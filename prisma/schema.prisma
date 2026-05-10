@@ -1,17 +1,14 @@
 // VibeSafe database schema
 //
-// Default provider is SQLite — no setup required for local dev.
-// For production with PostgreSQL:
-//   1. Change provider to "postgresql"
-//   2. Set DATABASE_URL to your Postgres connection string
-//   3. Run: npx prisma migrate deploy
+// PostgreSQL is the supported database provider. Set DATABASE_URL to a
+// PostgreSQL connection string, for example a Neon pooled or direct URL.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
