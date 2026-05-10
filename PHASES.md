@@ -24,26 +24,33 @@ Deployed to Vercel. All three screens render correctly with fixture data. Zero b
 
 ---
 
-## Phase 2 — Backend API & Infrastructure
+## Phase 2 — Backend API & Infrastructure ✅
 **Goal:** API accepts a scan URL, persists it, and returns an ID. Workers are stubbed.  
 **Duration:** ~1 week
 
-### What to build
-- Initialize Python/FastAPI project in `backend/`
-- PostgreSQL schema via Supabase migrations:
-  - `users`, `scans`, `findings`, `scan_artifacts`, `domain_verifications`
-- API endpoints (stubbed responses):
-  - `POST /api/v1/scans` — validate URL, create `QUEUED` scan record, return `{ id }`
-  - `GET /api/v1/scans/:id` — return scan status + grade + summary
-  - `GET /api/v1/scans/:id/findings` — return findings array
-  - `GET /api/v1/scans/:id/stream` — SSE endpoint (emit mock status events)
-- URL validation: format check, public IP enforcement (block RFC-1918 ranges), rate limiting
-- Redis + BullMQ/Celery queue setup; worker process receives job and logs it (no real scan yet)
-- Frontend polls `GET /api/v1/scans/:id` and connects to SSE stream; `ScanningPage` advances on real events instead of fake timer
-- Environment variable management (`.env.example`, secrets never committed)
+### What was built
+- **Next.js API routes** (originally planned as Python/FastAPI — switched to keep the stack unified)
+- **Prisma 5 + SQLite** for local dev; schema-compatible with PostgreSQL for production
+  - Models: `User`, `Scan`, `Finding`, `ScanEvent`, `DomainVerification`
+  - Migrations in `prisma/migrations/`
+- API endpoints:
+  - `POST /api/v1/scans` — validate URL, rate-limit by IP, create `QUEUED` scan record, fire worker
+  - `GET /api/v1/scans/:id` — return scan status, grade, score, stack, summary
+  - `GET /api/v1/scans/:id/findings` — return findings array (only when COMPLETED/FAILED)
+  - `GET /api/v1/scans/:id/stream` — SSE endpoint streaming real progress events
+  - `GET /api/health` — db type, status, queue mode
+- URL validation (`src/lib/url-validator.ts`): format check, DNS resolution, blocks RFC-1918, loopback, link-local, and cloud metadata IPs (169.254.169.254)
+- Rate limiting: in-memory per-IP, 10 scans/hour (configurable via `RATE_LIMIT_PER_HOUR`)
+- **Dual-mode event bus** (`src/lib/events.ts`):
+  - With `REDIS_URL`: Redis pub/sub via `redis` npm package
+  - Without `REDIS_URL`: DB-poll fallback every 500ms (zero-config local dev)
+- **Dual-mode worker** (`src/lib/scan-worker.ts`): fire-and-forget Promise in-process; BullMQ queue when Redis is present
+- Scan worker stub: simulates 15 modules at ~340ms each, writes fixture findings, computes grade
+- Server components query Prisma directly; `src/lib/api.ts` is browser-only (client components)
+- Environment: `.env.local` for Next.js runtime, `.env` for Prisma CLI — both gitignored
 
-### Deliverable
-Submit a URL from the UI → scan record created in DB → SSE events drive the scanning screen → fixture report rendered. No real vulnerability detection yet.
+### Deliverable ✅
+Submit a URL from the UI → scan record created in DB → SSE events drive the scanning screen → report rendered with grade, score, and 11 fixture findings. No real vulnerability detection yet.
 
 ---
 
@@ -238,13 +245,13 @@ Studio users can connect repos. Full static analysis report merged with passive 
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 14 (App Router), Tailwind, shadcn/ui → Vercel |
-| API | Python / FastAPI → Railway or Fly.io |
-| Workers | Python + Playwright + Chromium → Railway (ephemeral) |
-| Queue | Redis + Celery or BullMQ → Railway |
-| Database | PostgreSQL → Supabase |
-| Storage | Cloudflare R2 (PDFs, screenshots) |
-| LLM | Claude Sonnet via Anthropic SDK |
-| Auth | Supabase Auth |
-| Payments | Stripe |
-| Monitoring | Sentry + Axiom + Uptime Robot |
+| Frontend | Next.js 14 (App Router), Tailwind CSS → Vercel |
+| API | Next.js API routes (`/api/v1/...`) — same process as frontend |
+| Workers | In-process fire-and-forget (dev); BullMQ + Redis worker (production) |
+| Queue | Optional Redis + BullMQ; falls back to in-process Promise automatically |
+| Database | SQLite + Prisma (local dev); PostgreSQL + Prisma (production) |
+| Storage | Cloudflare R2 (PDFs, screenshots) — Phase 6 |
+| LLM | Claude Sonnet via Anthropic SDK — Phase 5 |
+| Auth | TBD (Supabase Auth or NextAuth) — Phase 6 |
+| Payments | Stripe — Phase 6 |
+| Monitoring | Sentry + Axiom + Uptime Robot — Phase 7 |
