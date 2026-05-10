@@ -1,6 +1,7 @@
 /**
- * API client — calls Next.js API routes at the same origin.
- * No NEXT_PUBLIC_API_URL or CORS configuration required.
+ * Browser-only API client — calls Next.js API routes at the same origin.
+ * Only call these functions from client components ('use client').
+ * Server components should query Prisma directly.
  */
 
 import type { ScanData, Finding } from '@/types';
