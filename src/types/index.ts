@@ -39,6 +39,31 @@ export interface ScanData {
   moduleResults: Record<string, number>;
   findings: Finding[];
   status?: ScanStatus;
+  performanceData?: {
+    performanceGrade: string;
+    performanceScore: number;
+    performanceMetrics: {
+      lcp: number | null;
+      fcp: number | null;
+      cls: number | null;
+      tbt: number | null;
+      ttfb: number | null;
+    };
+  } | null;
+  accessibilityData?: {
+    accessibilityGrade: string;
+    accessibilityScore: number;
+    accessibilityMetrics: {
+      violations: unknown[];
+    };
+  } | null;
+  seoData?: {
+    seoGrade: string;
+    seoScore: number;
+    seoMetrics: {
+      issues: unknown[];
+    };
+  } | null;
 }
 
 export interface ScanModule {

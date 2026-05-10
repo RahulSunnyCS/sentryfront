@@ -74,13 +74,28 @@ model Scan {
   targetUrl   String
   status      String    @default("QUEUED")
   tier        String    @default("free")
-  grade       String?
-  score       Float?
+  grade       String?   // Security grade (A-F)
+  score       Float?    // Security score (0-100)
   stack       String?
   summary     String?   // JSON string — e.g. {"CRITICAL":2,"HIGH":4,...}
   startedAt   DateTime  @default(now())
   completedAt DateTime?
   requesterIp String?
+
+  // Phase 5.5: Performance scanning results
+  performanceGrade   String? // Performance grade (A-F)
+  performanceScore   Float?  // Performance score (0-100)
+  performanceMetrics String? // JSON string — e.g. {"lcp":2400,"cls":0.05,...}
+
+  // Phase 6.5: Accessibility scanning results
+  accessibilityGrade   String? // Accessibility grade (A-F)
+  accessibilityScore   Float?  // Accessibility score (0-100)
+  accessibilityMetrics String? // JSON string — e.g. {"violations":[...]}
+
+  // Phase 7.5: SEO scanning results
+  seoGrade   String? // SEO grade (A-F)
+  seoScore   Float?  // SEO score (0-100)
+  seoMetrics String? // JSON string — e.g. {"issues":[...]}
 
   user     User?       @relation(fields: [userId], references: [id])
   findings Finding[]

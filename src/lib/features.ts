@@ -13,6 +13,15 @@ function parseBool(value: string | undefined, defaultValue = false): boolean {
 // ── Feature Flags ────────────────────────────────────────────────────────────
 
 export const features = {
+  /** Performance scanning (Phase 5.5) — Lighthouse Core Web Vitals analysis */
+  performanceScanning: parseBool(process.env.PERFORMANCE_SCANNING_ENABLED),
+
+  /** Accessibility scanning (Phase 6.5) — WCAG 2.2 Level AA compliance */
+  accessibilityScanning: parseBool(process.env.ACCESSIBILITY_SCANNING_ENABLED),
+
+  /** SEO scanning (Phase 7.5) — Search engine optimization analysis */
+  seoScanning: parseBool(process.env.SEO_SCANNING_ENABLED),
+
   /** Scan diff comparison endpoint (Pro tier) */
   scanDiff: parseBool(process.env.FEATURE_SCAN_DIFF_ENABLED),
 
@@ -98,8 +107,17 @@ export const authConfig = {
  */
 export function isFeatureReady(feature: keyof typeof features): boolean {
   if (!features[feature]) return false;
-  
+
   switch (feature) {
+    case 'performanceScanning':
+      // Performance scanning just needs to be enabled, uses Lighthouse (no external config)
+      return true;
+    case 'accessibilityScanning':
+      // Accessibility scanning just needs to be enabled, uses Lighthouse (no external config)
+      return true;
+    case 'seoScanning':
+      // SEO scanning just needs to be enabled, uses Lighthouse (no external config)
+      return true;
     case 'pdfExport':
       return pdfConfig.isConfigured;
     case 'stripe':

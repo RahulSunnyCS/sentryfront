@@ -93,7 +93,20 @@ async function runScanInternal(scanId: string): Promise<void> {
       emitPlaceholderProgress(scanId, ALL_MODULES.length),
     ]);
 
-    const { findings: rawFindings, stack, moduleFindingCounts } = scannerResult;
+    const {
+      findings: rawFindings,
+      stack,
+      moduleFindingCounts,
+      performanceGrade,
+      performanceScore,
+      performanceMetrics,
+      accessibilityGrade,
+      accessibilityScore,
+      accessibilityMetrics,
+      seoGrade,
+      seoScore,
+      seoMetrics,
+    } = scannerResult;
 
     await publishEvent(scanId, 'llm_enrichment_started', {
       scan_id: scanId,
@@ -147,6 +160,18 @@ async function runScanInternal(scanId: string): Promise<void> {
         stack,
         summary: JSON.stringify(summary),
         completedAt: new Date(),
+        // Phase 5.5: Store performance results
+        ...(performanceGrade && { performanceGrade }),
+        ...(performanceScore !== undefined && { performanceScore }),
+        ...(performanceMetrics && { performanceMetrics: JSON.stringify(performanceMetrics) }),
+        // Phase 6.5: Store accessibility results
+        ...(accessibilityGrade && { accessibilityGrade }),
+        ...(accessibilityScore !== undefined && { accessibilityScore }),
+        ...(accessibilityMetrics && { accessibilityMetrics: JSON.stringify(accessibilityMetrics) }),
+        // Phase 7.5: Store SEO results
+        ...(seoGrade && { seoGrade }),
+        ...(seoScore !== undefined && { seoScore }),
+        ...(seoMetrics && { seoMetrics: JSON.stringify(seoMetrics) }),
       },
     });
 

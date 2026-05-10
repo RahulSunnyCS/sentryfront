@@ -33,6 +33,61 @@ async function getReportData(id: string): Promise<ScanData> {
     fixAiPrompt: f.fixAiPrompt,
   }));
 
+  // Parse performance data if available
+  let performanceData: {
+    performanceGrade: string;
+    performanceScore: number;
+    performanceMetrics: {
+      lcp: number | null;
+      fcp: number | null;
+      cls: number | null;
+      tbt: number | null;
+      ttfb: number | null;
+    };
+  } | null = null;
+
+  if (scan.performanceGrade && scan.performanceScore !== null && scan.performanceMetrics) {
+    performanceData = {
+      performanceGrade: scan.performanceGrade,
+      performanceScore: scan.performanceScore,
+      performanceMetrics: JSON.parse(scan.performanceMetrics),
+    };
+  }
+
+  // Parse accessibility data if available
+  let accessibilityData: {
+    accessibilityGrade: string;
+    accessibilityScore: number;
+    accessibilityMetrics: {
+      violations: unknown[];
+    };
+  } | null = null;
+
+  if (scan.accessibilityGrade && scan.accessibilityScore !== null && scan.accessibilityMetrics) {
+    accessibilityData = {
+      accessibilityGrade: scan.accessibilityGrade,
+      accessibilityScore: scan.accessibilityScore,
+      accessibilityMetrics: JSON.parse(scan.accessibilityMetrics),
+    };
+  }
+
+  // Parse SEO data if available
+  let seoData: {
+    seoGrade: string;
+    seoScore: number;
+    seoMetrics: {
+      issues: unknown[];
+    };
+  } | null = null;
+
+  if (scan.seoGrade && scan.seoScore !== null && scan.seoMetrics) {
+    seoData = {
+      seoGrade: scan.seoGrade,
+      seoScore: scan.seoScore,
+      seoMetrics: JSON.parse(scan.seoMetrics),
+    };
+  }
+
   return {
     id: scan.id,
     url: scan.targetUrl,
@@ -49,6 +104,9 @@ async function getReportData(id: string): Promise<ScanData> {
     summary: scan.summary ? (JSON.parse(scan.summary) as ScanSummary) : { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, INFO: 0 },
     moduleResults: {},
     findings,
+    performanceData, // Add performance data
+    accessibilityData, // Add accessibility data
+    seoData, // Add SEO data
   };
 }
 

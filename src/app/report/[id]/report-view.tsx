@@ -9,6 +9,9 @@ import { FindingCard } from '@/components/finding-card';
 import { IconGlobe, IconClock } from '@/components/icons';
 import { TierGateBanner } from '@/components/tier-gate-banner';
 import { ReportWatermark } from '@/components/report-watermark';
+import { PerformanceSection } from '@/components/performance-section';
+import { AccessibilitySection } from '@/components/accessibility-section';
+import { SEOSection } from '@/components/seo-section';
 
 const SEVERITY_ORDER: Severity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
 
@@ -112,6 +115,32 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
             </p>
           </div>
         </div>
+
+        {/* Performance Section - only show if performance data is available */}
+        {scanData.performanceData && scanData.id && (
+          <PerformanceSection
+            scanId={scanData.id}
+            performanceData={scanData.performanceData}
+          />
+        )}
+
+        {/* Accessibility Section - only show if accessibility data is available */}
+        {scanData.accessibilityData && (
+          <AccessibilitySection
+            accessibilityData={scanData.accessibilityData}
+            findings={gatedFindings}
+          />
+        )}
+
+        {/* SEO Section - only show if SEO data is available */}
+        {scanData.seoData && (
+          <SEOSection
+            seoGrade={scanData.seoData.seoGrade}
+            seoScore={scanData.seoData.seoScore}
+            seoMetrics={scanData.seoData.seoMetrics}
+            findings={gatedFindings}
+          />
+        )}
 
         {/* Tier gate banner */}
         {!loading && tierMeta && (

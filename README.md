@@ -1,17 +1,37 @@
 # VibeSafe 🛡️
 
-**AI-Powered Security Scanner for Modern Web Apps**
+**Complete Web Quality Platform: Security, Performance, Accessibility & SEO**
 
-Scan any website for 15+ security vulnerabilities and get AI-enhanced remediation guidance.
+Scan any website for security vulnerabilities, performance bottlenecks, WCAG 2.2 compliance, and SEO optimization with AI-enhanced remediation.
 
 ---
 
 ## ✨ Features
 
+### **Security Scanning**
 - 🔍 **15 Security Modules** - Client secrets, XSS, CSP, CORS, and more
 - 🤖 **AI-Powered Enrichment** - Claude explains findings in plain English
-- 📄 **PDF Export** - Download professional security reports
-- 🎯 **Zero Costs** - No cloud storage, optional AI enrichment (~$0.001/scan)
+
+### **Performance Scanning** ✅
+- ⚡ **Core Web Vitals** - LCP, FCP, CLS, TBT analysis
+- 📊 **Lighthouse Integration** - Google PageSpeed Insights API
+- 💡 **AI Optimization** - File-specific improvement suggestions
+
+### **Accessibility Scanning** ✅
+- ♿ **WCAG 2.2 Level AA** - Legal compliance checking
+- 🎨 **Color Contrast** - Text and UI component analysis
+- 🎯 **Screen Reader Support** - Alt text, ARIA, semantic HTML
+
+### **SEO Scanning** ✅
+- 🔍 **Meta Tags & Titles** - Page metadata optimization
+- 📱 **Social Media** - Open Graph & Twitter Cards
+- 📊 **Structured Data** - Schema.org JSON-LD validation
+- 🤖 **Crawlability** - robots.txt, sitemap, indexing
+- 📲 **Mobile SEO** - Mobile-first indexing compliance
+
+### **Reporting & Export**
+- 📄 **PDF Export** - Download professional reports
+- 🎯 **Zero Cloud Costs** - No storage, optional AI (~$0.001/scan)
 - 🔐 **NextAuth** - GitHub & Google OAuth support
 - 📊 **Error Monitoring** - Sentry integration
 - 🚀 **Production Ready** - Deploy to Vercel, Railway, or Fly.io
