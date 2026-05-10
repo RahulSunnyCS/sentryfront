@@ -4,3 +4,11 @@ node_modules/
 .env.local
 .env.*.local
 tsconfig.tsbuildinfo
+
+# SQLite database (local dev)
+vibesafe.db
+vibesafe.db-shm
+vibesafe.db-wal
+
+# Prisma generated
+prisma/migrations/**/.gitkeep

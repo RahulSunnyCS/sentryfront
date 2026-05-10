@@ -1,0 +1,69 @@
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "email" TEXT NOT NULL,
+    "tier" TEXT NOT NULL DEFAULT 'free',
+    "stripeCustomerId" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE "Scan" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT,
+    "targetUrl" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'QUEUED',
+    "tier" TEXT NOT NULL DEFAULT 'free',
+    "grade" TEXT,
+    "score" REAL,
+    "stack" TEXT,
+    "summary" TEXT,
+    "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "completedAt" DATETIME,
+    "requesterIp" TEXT,
+    CONSTRAINT "Scan_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "Finding" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "scanId" TEXT NOT NULL,
+    "moduleId" TEXT NOT NULL,
+    "severity" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "location" TEXT NOT NULL,
+    "evidence" TEXT NOT NULL,
+    "explanation" TEXT NOT NULL,
+    "impact" TEXT NOT NULL,
+    "fixManual" TEXT NOT NULL,
+    "fixAiPrompt" TEXT NOT NULL,
+    CONSTRAINT "Finding_scanId_fkey" FOREIGN KEY ("scanId") REFERENCES "Scan" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "ScanEvent" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "scanId" TEXT NOT NULL,
+    "eventType" TEXT NOT NULL,
+    "payload" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ScanEvent_scanId_fkey" FOREIGN KEY ("scanId") REFERENCES "Scan" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "DomainVerification" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "domain" TEXT NOT NULL,
+    "method" TEXT NOT NULL DEFAULT 'dns_txt',
+    "token" TEXT NOT NULL,
+    "verifiedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "ScanEvent_scanId_idx" ON "ScanEvent"("scanId");

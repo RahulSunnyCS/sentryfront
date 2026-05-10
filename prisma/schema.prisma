@@ -1,0 +1,84 @@
+// VibeSafe database schema
+//
+// Default provider is SQLite — no setup required for local dev.
+// For production with PostgreSQL:
+//   1. Change provider to "postgresql"
+//   2. Set DATABASE_URL to your Postgres connection string
+//   3. Run: npx prisma migrate deploy
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  tier             String   @default("free")
+  stripeCustomerId String?
+  createdAt        DateTime @default(now())
+  scans            Scan[]
+}
+
+model Scan {
+  id          String    @id @default(cuid())
+  userId      String?
+  targetUrl   String
+  status      String    @default("QUEUED")
+  tier        String    @default("free")
+  grade       String?
+  score       Float?
+  stack       String?
+  summary     String?   // JSON string — e.g. {"CRITICAL":2,"HIGH":4,...}
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  requesterIp String?
+
+  user     User?       @relation(fields: [userId], references: [id])
+  findings Finding[]
+  events   ScanEvent[]
+}
+
+model Finding {
+  id          String @id @default(cuid())
+  scanId      String
+  moduleId    String
+  severity    String
+  category    String
+  title       String
+  location    String
+  evidence    String
+  explanation String
+  impact      String
+  fixManual   String // JSON array of strings
+  fixAiPrompt String
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+}
+
+// Lightweight event log — used as SSE fallback when Redis is absent.
+model ScanEvent {
+  id        Int      @id @default(autoincrement())
+  scanId    String
+  eventType String
+  payload   String   // JSON string
+  createdAt DateTime @default(now())
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@index([scanId])
+}
+
+model DomainVerification {
+  id         String    @id @default(cuid())
+  userId     String
+  domain     String
+  method     String    @default("dns_txt")
+  token      String
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+}

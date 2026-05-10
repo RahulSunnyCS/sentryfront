@@ -1,8 +1,6 @@
 import { Nav } from '@/components/nav';
 import { ReportView } from './report-view';
 import { getScan } from '@/lib/api';
-import { isMockMode } from '@/lib/config';
-import { MockModeBanner } from '@/components/mock-mode-banner';
 
 interface Props {
   params: { id: string };
@@ -23,7 +21,10 @@ export default async function ReportPage({ params, searchParams }: Props) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
         <Nav />
-        <div style={{ paddingTop: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 56px)' }}>
+        <div style={{
+          paddingTop: 56, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', minHeight: 'calc(100vh - 56px)',
+        }}>
           <div style={{ textAlign: 'center', padding: 48 }}>
             <p style={{ fontSize: 16, color: 'var(--text-secondary)', marginBottom: 16 }}>
               {fetchError ?? 'Report not found.'}
@@ -46,8 +47,7 @@ export default async function ReportPage({ params, searchParams }: Props) {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
       <Nav showReportActions scanUrl={scanUrl} />
-      {isMockMode && <div style={{ paddingTop: 56 }}><MockModeBanner /></div>}
-      <div style={{ paddingTop: isMockMode ? 0 : 56 }}>
+      <div style={{ paddingTop: 56 }}>
         <ReportView scanData={scanData} />
       </div>
     </div>
