@@ -46,8 +46,8 @@ export async function GET(
   
   // Get performance findings (P2-xx modules)
   const performanceFindings: RawFinding[] = scan.findings
-    .filter(f => f.moduleId.startsWith('P2-'))
-    .map(f => ({
+    .filter((f) => f.moduleId.startsWith('P2-'))
+    .map((f) => ({
       moduleId: f.moduleId,
       severity: f.severity as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO',
       category: f.category,

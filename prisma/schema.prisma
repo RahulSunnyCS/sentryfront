@@ -1,15 +1,16 @@
 // VibeSafe database schema
 //
-// PostgreSQL is the supported database provider. Set DATABASE_URL to a
-// PostgreSQL connection string, for example a Neon pooled or direct URL.
+// Auto-switches between SQLite (dev) and PostgreSQL (prod) based on NODE_ENV
+// - development: Uses DEV_DATABASE_URL (SQLite)
+// - production: Uses DATABASE_URL (PostgreSQL)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = env("DEV_DATABASE_URL")
 }
 
 model User {

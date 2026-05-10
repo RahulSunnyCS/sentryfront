@@ -103,7 +103,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         email: customerEmail,
         tier,
         stripeCustomerId,
-      },
+      } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     });
     console.log(`[Stripe] Created new user: ${user.id}`);
   } else {

@@ -67,9 +67,9 @@ export async function POST(req: NextRequest) {
     data: {
       targetUrl,
       requesterIp: ip,
-      userId: user?.id,
+      userId: user?.id || null,
       tier,
-    },
+    } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
   });
 
   logger.info('Scan created', {

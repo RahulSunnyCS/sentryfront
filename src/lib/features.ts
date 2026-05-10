@@ -1,41 +1,62 @@
 /**
- * Phase 6 feature flags — all optional, default to false.
- * 
- * This allows VibeSafe to work as a free, open-source scanner when all
- * monetization features are disabled, or as a full commercial product when enabled.
+ * Feature Flags — Configure via FEATURES environment variable
+ *
+ * All features enabled by default. Override by setting FEATURES env variable.
+ *
+ * Format: FEATURES='{"stripe":false,"auth":false,"tierGating":false}'
+ *
+ * This allows VibeSafe to work as a complete platform by default,
+ * with selective feature disabling when needed.
  */
 
-function parseBool(value: string | undefined, defaultValue = false): boolean {
-  if (!value) return defaultValue;
-  return value.toLowerCase() === 'true' || value === '1';
+// Default feature configuration (all enabled)
+const defaultFeatures = {
+  performanceScanning: true,
+  accessibilityScanning: true,
+  seoScanning: true,
+  scanDiff: true,
+  pdfExport: true,
+  stripe: true,
+  auth: true,
+  tierGating: true,
+};
+
+// Parse FEATURES env variable (JSON object)
+let customFeatures: Partial<typeof defaultFeatures> = {};
+try {
+  if (process.env.FEATURES) {
+    customFeatures = JSON.parse(process.env.FEATURES);
+  }
+} catch (error) {
+  console.warn('Invalid FEATURES env variable, using defaults:', error);
 }
 
 // ── Feature Flags ────────────────────────────────────────────────────────────
 
 export const features = {
   /** Performance scanning (Phase 5.5) — Lighthouse Core Web Vitals analysis */
-  performanceScanning: parseBool(process.env.PERFORMANCE_SCANNING_ENABLED),
+  performanceScanning: customFeatures.performanceScanning ?? defaultFeatures.performanceScanning,
 
   /** Accessibility scanning (Phase 6.5) — WCAG 2.2 Level AA compliance */
-  accessibilityScanning: parseBool(process.env.ACCESSIBILITY_SCANNING_ENABLED),
+  accessibilityScanning: customFeatures.accessibilityScanning ?? defaultFeatures.accessibilityScanning,
 
   /** SEO scanning (Phase 7.5) — Search engine optimization analysis */
-  seoScanning: parseBool(process.env.SEO_SCANNING_ENABLED),
+  seoScanning: customFeatures.seoScanning ?? defaultFeatures.seoScanning,
 
   /** Scan diff comparison endpoint (Pro tier) */
-  scanDiff: parseBool(process.env.FEATURE_SCAN_DIFF_ENABLED),
+  scanDiff: customFeatures.scanDiff ?? defaultFeatures.scanDiff,
 
-  /** PDF export to Cloudflare R2 */
-  pdfExport: parseBool(process.env.PDF_EXPORT_ENABLED),
+  /** PDF export */
+  pdfExport: customFeatures.pdfExport ?? defaultFeatures.pdfExport,
 
   /** Stripe payments and subscriptions */
-  stripe: parseBool(process.env.STRIPE_ENABLED),
+  stripe: customFeatures.stripe ?? defaultFeatures.stripe,
 
   /** Authentication (Supabase or NextAuth) */
-  auth: parseBool(process.env.AUTH_ENABLED),
+  auth: customFeatures.auth ?? defaultFeatures.auth,
 
   /** Tier-based feature gating (requires auth) */
-  tierGating: parseBool(process.env.TIER_GATING_ENABLED),
+  tierGating: customFeatures.tierGating ?? defaultFeatures.tierGating,
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────

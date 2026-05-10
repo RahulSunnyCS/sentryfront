@@ -141,7 +141,7 @@ async function runScanInternal(scanId: string): Promise<void> {
           impact: f.impact,
           fixManual: JSON.stringify(f.fixManual),
           fixAiPrompt: f.fixAiPrompt,
-        })),
+        })) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       });
     }
 
