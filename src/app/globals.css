@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Accent — overridable at runtime via JS (AccentThemeProvider) */
+  --accent:       #0D9488;
+  --accent-light: #CCFBF1;
+  --accent-dark:  #0F766E;
+
+  /* Surface */
+  --bg:       #FAFAF8;
+  --surface:  #FFFFFF;
+
+  /* Text */
+  --text:           #111110;
+  --text-secondary: #4A4A46;
+  --text-tertiary:  #9B9B94;
+
+  /* Borders */
+  --border:       #E4E4E0;
+  --border-light: #F0F0EC;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+
+  /* Fonts — resolved from next/font in layout.tsx */
+  --font: ui-sans-serif, system-ui, sans-serif;
+  --mono: ui-monospace, 'SF Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Spinner keyframe — used by IconSpinner via Tailwind's animate-spin */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Fade-in for screen transitions */
+@keyframes screenEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.screen-enter {
+  animation: screenEnter 0.3s ease-out both;
+}
