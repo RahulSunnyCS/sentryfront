@@ -1,5 +1,6 @@
 import { promises as dns } from 'dns';
 import type { CrawlResult, RawFinding } from '../types';
+import { runSubfinder } from '../tools/subfinder';
 
 // Known CNAME targets that indicate dangling/takeable subdomains
 const DANGLING_FINGERPRINTS: Array<{ pattern: string; service: string; evidence: string }> = [
@@ -79,7 +80,11 @@ export async function runSubdomainTakeoverModule(crawl: CrawlResult): Promise<Ra
   const parts = hostname.split('.');
   const apex = parts.length > 2 ? parts.slice(-2).join('.') : hostname;
 
-  const subdomains = await getSubdomainsFromCrtSh(apex);
+  // Use subfinder (passive multi-source) first, fall back to crt.sh
+  let subdomains = await runSubfinder(apex);
+  if (subdomains.length === 0) {
+    subdomains = await getSubdomainsFromCrtSh(apex);
+  }
   if (subdomains.length === 0) return findings;
 
   const results = await Promise.all(
