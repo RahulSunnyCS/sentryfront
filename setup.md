@@ -30,7 +30,13 @@ npm install
 Create a `.env` file in the project root. **This file is gitignored — every developer creates it locally.**
 
 ```bash
-echo 'DATABASE_URL="file:./vibesafe.db"' > .env
+cp .env.example .env
+```
+
+For the minimum deterministic-only setup, `.env` only needs:
+
+```env
+DATABASE_URL="file:./vibesafe.db"
 ```
 
 **Why `.env` and not `.env.local`?**  
@@ -243,7 +249,7 @@ For local dev this is entirely optional. The polling fallback works fine.
 
 Scans work without any LLM configuration. If `ANTHROPIC_API_KEY` is missing, invalid, expired, rate-limited, or the provider returns unusable output, VibeSafe keeps the deterministic scanner output and still completes the report.
 
-To enable enrichment, add these optional values to `.env`:
+`.env.example` includes the optional LLM settings. To enable enrichment, put your real Anthropic token in your local `.env` or hosting provider secrets:
 
 ```env
 ANTHROPIC_API_KEY="sk-ant-..."
@@ -252,7 +258,7 @@ LLM_ENRICHMENT_ENABLED="true"
 LLM_ENRICHMENT_TIMEOUT_MS="20000"
 ```
 
-Set `LLM_ENRICHMENT_ENABLED="false"` to force deterministic-only reports even when a key is present.
+Never commit a real LLM token. Set `LLM_ENRICHMENT_ENABLED="false"` to force deterministic-only reports even when a key is present.
 
 ---
 
