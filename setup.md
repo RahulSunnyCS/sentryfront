@@ -239,6 +239,23 @@ For local dev this is entirely optional. The polling fallback works fine.
 
 ---
 
+## Optional: enable LLM enrichment
+
+Scans work without any LLM configuration. If `ANTHROPIC_API_KEY` is missing, invalid, expired, rate-limited, or the provider returns unusable output, VibeSafe keeps the deterministic scanner output and still completes the report.
+
+To enable enrichment, add these optional values to `.env`:
+
+```env
+ANTHROPIC_API_KEY="sk-ant-..."
+ANTHROPIC_MODEL="claude-sonnet-4-20250514"
+LLM_ENRICHMENT_ENABLED="true"
+LLM_ENRICHMENT_TIMEOUT_MS="20000"
+```
+
+Set `LLM_ENRICHMENT_ENABLED="false"` to force deterministic-only reports even when a key is present.
+
+---
+
 ## Useful scripts
 
 ```bash

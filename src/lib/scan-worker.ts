@@ -6,6 +6,7 @@
 import { prisma } from './prisma';
 import { publishEvent } from './events';
 import { runScanner } from './scanner';
+import { enrichFindingsWithLLM } from './llm/enrichment';
 import type { RawFinding } from './scanner/types';
 
 const ALL_MODULES = [
@@ -58,7 +59,25 @@ export async function runScan(scanId: string): Promise<void> {
       emitPlaceholderProgress(scanId, ALL_MODULES.length),
     ]);
 
-    const { findings, stack, moduleFindingCounts } = scannerResult;
+    const { findings: rawFindings, stack, moduleFindingCounts } = scannerResult;
+
+    await publishEvent(scanId, 'llm_enrichment_started', {
+      scan_id: scanId,
+      finding_count: rawFindings.length,
+    });
+
+    const enrichmentResult = await enrichFindingsWithLLM(rawFindings, {
+      targetUrl: scan.targetUrl,
+      stack,
+    });
+    const findings = enrichmentResult.findings;
+
+    await publishEvent(scanId, 'llm_enrichment_complete', {
+      scan_id: scanId,
+      used_llm: enrichmentResult.status.used,
+      reason: enrichmentResult.status.reason ?? null,
+      model: enrichmentResult.status.model ?? null,
+    });
 
     // Persist findings
     if (findings.length > 0) {

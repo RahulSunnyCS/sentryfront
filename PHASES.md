@@ -123,21 +123,27 @@ Full 15-module passive scan runs end-to-end. Completes in ~6s on example.com. Al
 
 ---
 
-## Phase 5 — LLM Enrichment (Claude Sonnet)
-**Goal:** Every scan's findings are enriched with plain-English explanations and AI fix prompts.  
+## Phase 5 — LLM Enrichment (Claude Sonnet) 🚧
+**Goal:** Every scan's findings can be enriched with plain-English explanations and AI fix prompts, while scans still complete without a working LLM key.
 **Duration:** ~3–4 days
 
-### What to build
-- `backend/llm/enrichment.py` — Called once per scan after all modules complete
-- Batch all raw findings into a single prompt (~2,000–4,000 tokens input)
-- Output schema per finding: `explanation` (plain English), `impact` (business risk), `fix_ai_prompt` (Cursor/Lovable/Bolt ready)
-- Use `claude-sonnet-4-6` via Anthropic SDK with **prompt caching** on the static system prompt (security context, output format instructions) to minimize cost
-- LLM is **secondary to deterministic signals**: only enriches findings already confirmed by module logic; never creates new findings
-- Hallucination guard: structured JSON output with `response_format` + post-parse validation; discard enrichment if schema mismatch
-- Estimated cost: $0.01–$0.03 per scan
+### What has started
+- `src/lib/llm/enrichment.ts` — Called once per scan after all deterministic modules complete and before findings are persisted.
+- Batch all raw findings into a single Anthropic Messages API prompt, capped to the first 40 findings to control cost and latency.
+- Output schema per finding: `explanation` (plain English), `impact` (business risk), `fix_ai_prompt` (Cursor/Lovable/Bolt ready).
+- Uses `claude-sonnet-4-20250514` by default, configurable with `ANTHROPIC_MODEL`.
+- LLM is **secondary to deterministic signals**: it only updates text fields for findings already confirmed by module logic; it never creates new findings.
+- Fail-open behavior: if `ANTHROPIC_API_KEY` is missing, invalid, expired, rate-limited, times out, or returns invalid JSON, the scan keeps the deterministic findings and completes normally.
+- Safety guard: prompt payloads are truncated and re-redacted before leaving the worker; full secrets, cookies, credentials, and session tokens should never be sent to the LLM.
+- Config escape hatch: set `LLM_ENRICHMENT_ENABLED=false` to disable enrichment even when a key is present.
+
+### Still to build
+- Add prompt caching once the Anthropic integration is finalized for production.
+- Store enrichment metadata on the scan/report so operators can see whether LLM enrichment was used or skipped.
+- Add dedicated tests for missing key, invalid key/API error, timeout, invalid JSON, and successful enrichment.
 
 ### Deliverable
-Report findings display polished plain-English explanations and copy-ready AI fix prompts. Raw module output is preserved in DB for auditability.
+Report findings display polished plain-English explanations and copy-ready AI fix prompts when LLM enrichment succeeds. Raw deterministic module output remains usable and report generation still works when LLM enrichment is unavailable.
 
 ---
 
@@ -171,7 +177,58 @@ End-to-end paid flow works. A user visits the site, submits a URL, sees real fin
 
 ---
 
-## Phase 7 — Hardening, Observability & Beta Launch
+## Phase 7 — Compliance, Legal & Supply-Chain Readiness
+**Goal:** Make VibeSafe safe to commercialize by treating compliance as a launch blocker, not a post-launch cleanup task.
+**Duration:** ~1 week
+**Why it adds value:** Yes — this materially reduces launch risk for a security product aimed at vibe-coded apps. It prevents accidental use of commercially incompatible dependencies, clarifies what customers are authorized to scan, protects scan evidence and customer data, and creates a trust story that can be reused in sales, onboarding, and enterprise/security questionnaires.
+
+### Compliance risks to address
+- **Open-source licensing:** Next.js, React, Prisma, Playwright, BullMQ, Redis clients, scanner rules, fingerprints, and future Python tooling may have license obligations. Avoid copyleft/viral, source-available, non-commercial, or “research only” packages unless explicitly approved.
+- **Browser/runtime redistribution:** Playwright downloads and runs browser binaries; confirm redistribution, container image, and CI/CD usage obligations before commercial hosting.
+- **Scanner rule provenance:** Secret patterns, subdomain takeover fingerprints, header rules, and sensitive path lists must be original, permissively licensed, or documented with attribution; do not copy proprietary scanner databases.
+- **AI/LLM data handling:** Findings may include customer URLs, stack details, redacted secrets, cookies, headers, and code snippets. Confirm Anthropic/model-provider retention, training, subprocessors, and DPA terms before sending production scan data.
+- **Customer authorization:** Passive scans can still touch third-party infrastructure. Terms must require users to scan only properties they own or are authorized to test, and active scans must remain behind domain verification.
+- **Privacy and data protection:** Scan artifacts may contain personal data, tokens, emails, IP addresses, cookies, and analytics identifiers. Define retention, deletion, export, encryption, access controls, and GDPR/CCPA handling before beta.
+- **Payment and tax compliance:** Stripe integration reduces PCI scope, but checkout, invoices, refund policy, tax/VAT collection, and subscription cancellation flows still need documented ownership.
+- **Security claims and liability:** Marketing copy should not promise full compliance, certification, or “guaranteed secure” outcomes. Reports need scope disclaimers, severity methodology, and false-positive/false-negative language.
+- **Third-party services and subprocessors:** Supabase/Auth provider, Stripe, Cloudflare R2, Sentry, Axiom, Uptime Robot, Redis hosting, Vercel/Railway, and LLM providers must be listed with data categories and regions.
+- **Export/sanctions and abuse:** Security tooling can be dual-use. Add abuse monitoring, sanctions/embargo screening via payment/auth providers where available, and a process to disable malicious use.
+
+### What to build
+**License and dependency inventory**
+- Generate an SBOM for npm dependencies and, when Python workers are added, Python dependencies too.
+- Add CI license checks that fail on GPL/AGPL, non-commercial, source-available, unknown, or custom licenses until reviewed.
+- Maintain `docs/compliance/third-party-notices.md` with package name, version, license, homepage, usage, attribution notes, and approval status.
+- Add a dependency intake checklist for new scanner rules, fingerprints, wordlists, templates, and datasets.
+
+**Legal and product policy docs**
+- Draft Terms of Service with authorized-use scanning, prohibited targets, rate-limit/abuse terms, vulnerability disclosure, refund policy, and account termination language.
+- Draft Privacy Policy covering scan inputs, findings, logs, cookies, analytics, LLM processing, subprocessors, retention, deletion, and user rights.
+- Add report disclaimers: passive vs active scope, evidence redaction, severity methodology, and “not a certification/compliance audit” language.
+- Define an abuse contact and DMCA/security/legal escalation owner.
+
+**Data governance**
+- Classify data types: account data, payment metadata, scan target URLs, crawl artifacts, redacted evidence, logs, PDFs, screenshots, and LLM prompts/responses.
+- Define default retention windows: raw crawl artifacts shortest, logs bounded, reports user-controlled, backups documented.
+- Verify secrets are redacted before storage, logs, PDFs, and LLM prompts; add regression tests for redaction boundaries.
+- Document encryption in transit/at rest for database, R2/PDF storage, logs, and backups.
+
+**Vendor and AI governance**
+- Create a subprocessor register with purpose, data shared, region, retention, DPA status, and opt-out/disable path where feasible.
+- Confirm LLM provider commercial terms, data retention/training settings, and whether a zero-retention or enterprise plan is needed before paid launch.
+- Gate high-risk enrichment content: never send full secrets, session cookies, auth tokens, or unredacted PII to the LLM.
+
+**Operational controls**
+- Add a pre-launch compliance checklist to release management.
+- Add admin-only audit logs for report access, PDF generation, payment unlocks, domain verification, and active-scan starts.
+- Add a compliance review step for new detection modules that probe external services or import third-party datasets.
+
+### Deliverable
+Commercial launch has a documented compliance baseline: SBOM, license policy, third-party notices, ToS, Privacy Policy, subprocessor register, data retention policy, report disclaimers, CI license gate, and go/no-go checklist. Paid beta cannot launch until this phase is complete.
+
+---
+
+## Phase 8 — Hardening, Observability & Beta Launch
 **Goal:** Production-grade reliability before opening to public traffic.  
 **Duration:** ~1 week
 
@@ -190,10 +247,10 @@ Beta launch announcement ready. Site stable under concurrent load. Error rates m
 
 ---
 
-## Phase 8 — Phase 2: Active Testing with Domain Verification
+## Phase 9 — Phase 2: Active Testing with Domain Verification
 **Goal:** Authenticated users can opt into deeper active scans on domains they own.  
 **Duration:** ~3–4 weeks  
-**Prerequisite:** Legal review completed before this phase ships.
+**Prerequisite:** Phase 7 compliance sign-off completed before this phase ships.
 
 ### What to build
 - Domain verification flow: DNS TXT record method (add `vibesafe-verify=<token>` → poll DNS)
@@ -211,7 +268,7 @@ Pro/Studio users can verify domain ownership and run active scans. Additional fi
 
 ---
 
-## Phase 9 — Phase 3: Code / Repo Analysis
+## Phase 10 — Phase 3: Code / Repo Analysis
 **Goal:** Users can connect a GitHub repo for deep static analysis.  
 **Duration:** ~3–4 weeks
 
@@ -238,7 +295,11 @@ Studio users can connect repos. Full static analysis report merged with passive 
 | LLM cost control | Single batch call per scan; prompt caching on system prompt |
 | False positive rate | Conservative thresholds; deterministic signals primary; target < 5% on CRITICAL/HIGH |
 | Worker isolation | Ephemeral container destroyed after each scan |
-| Legal/abuse | Phase 1 passive-only; Phase 2+ requires domain verification |
+| Legal/abuse | Passive scans start unauthenticated, but ToS restricts use to authorized targets; active scans require domain verification; abuse contact and escalation process before beta |
+| Open-source licensing | SBOM + CI license gate; block non-commercial/source-available/copyleft dependencies until reviewed |
+| Privacy/data retention | Minimize raw crawl artifact storage; redact secrets before DB/log/PDF/LLM; documented deletion and retention windows |
+| Vendor governance | Subprocessor register for Auth, payments, storage, monitoring, hosting, Redis, and LLM providers |
+| Security claims | Reports must state scope, methodology, limitations, and that results are not a formal certification or guaranteed security attestation |
 | Scalability | Stateless API + queue-based workers; scale workers horizontally |
 
 ---
@@ -256,4 +317,4 @@ Studio users can connect repos. Full static analysis report merged with passive 
 | LLM | Claude Sonnet via Anthropic SDK — Phase 5 |
 | Auth | TBD (Supabase Auth or NextAuth) — Phase 6 |
 | Payments | Stripe — Phase 6 |
-| Monitoring | Sentry + Axiom + Uptime Robot — Phase 7 |
+| Monitoring | Sentry + Axiom + Uptime Robot — Phase 8 |

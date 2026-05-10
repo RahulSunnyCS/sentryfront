@@ -36,7 +36,6 @@ function parseCacheControl(value: string): Record<string, string | true> {
 export function runCacheModule(crawl: CrawlResult): RawFinding[] {
   const findings: RawFinding[] = [];
   const cacheControl = crawl.headers['cache-control'] ?? '';
-  const pragma = crawl.headers['pragma'] ?? '';
   const varyHeader = crawl.headers['vary'] ?? '';
   const isAuthenticated = looksAuthenticated(crawl.headers, crawl.cookies);
 
