@@ -1,0 +1,161 @@
+═══════════════════════════════════════════════════════════════════════════════
+                         VIBESAFE DESIGN SYSTEM SUMMARY
+═══════════════════════════════════════════════════════════════════════════════
+
+BRAND IDENTITY
+──────────────
+• Security scanner for AI-built websites (Lovable, Bolt, v0, Cursor, Replit)
+• Aesthetic: Clean Technical — professional yet approachable
+• Philosophy: "Security made simple"
+• Emotional tone: Confident, trustworthy, empowering (not intimidating)
+
+COLOR PALETTE
+─────────────
+Foundation:
+  • Background: #FAFAF8 (warm off-white)
+  • Surface: #FFFFFF (pure white for cards)
+  • Text: #111110 → #4A4A46 → #9B9B94 (3-level hierarchy)
+  • Borders: #E4E4E0, #F0F0EC
+
+Themeable Accents (3 options):
+  • Teal: #0D9488 (main), #CCFBF1 (light), #0F766E (dark)
+  • Indigo: #4F46E5, #E0E7FF, #3730A3
+  • Violet: #7C3AED, #EDE9FE, #5B21B6
+
+Grades (A-F):
+  • A (Excellent): #059669 / #ECFDF5
+  • B (Good): #0D9488 / #F0FDFA
+  • C (Fair): #CA8A04 / #FEFCE8
+  • D (Poor): #EA580C / #FFF7ED
+  • F (Failing): #E11D48 / #FFF1F2
+
+Severity Levels:
+  • CRITICAL: #E11D48 / #FFF1F2 / #FECDD3
+  • HIGH: #EA580C / #FFF7ED / #FED7AA
+  • MEDIUM: #CA8A04 / #FEFCE8 / #FEF08A
+  • LOW: #2563EB / #EFF6FF / #BFDBFE
+  • INFO: #6B7280 / #F9FAFB / #E5E7EB
+
+Code Blocks:
+  • Background: #1a1a2e (dark slate)
+  • Text: #e2e8f0 (light gray)
+
+TYPOGRAPHY
+──────────
+Font Stack:
+  • Primary: system-ui, -apple-system, Segoe UI, Roboto
+  • Monospace: ui-monospace, SF Mono, Consolas
+
+Key Sizes:
+  • Display XL: clamp(32px, 5vw, 56px) @ 800 weight, -2% tracking
+  • Headlines: 32px/20px/18px @ 700 weight
+  • Body: 16px/14px @ 400 weight, 1.6 line-height
+  • Labels: 13px @ 600 weight (UI), 12px @ 700 (badges, uppercase)
+  • Mono: 12.5-14px @ 400 weight
+
+LAYOUT & SPACING
+────────────────
+Base Grid: 8px unit
+  • Container padding: 32px
+  • Card padding: 24px
+  • Section margins: 40px vertical
+  • Component gaps: 12-16px
+  • Nav height: 56px
+
+Responsive: Fluid typography with clamp(), auto-fit grids, max-width containers
+
+SHADOWS & ELEVATION
+───────────────────
+  • Small: 0 1px 2px rgba(0,0,0,0.05)
+  • Medium: 0 4px 12px rgba(0,0,0,0.08)
+  • Large: 0 8px 24px rgba(0,0,0,0.10)
+
+Layers:
+  1. Background (#FAFAF8)
+  2. Surface cards (#FFFFFF)
+  3. Nav overlay (rgba(250,250,248,0.85) + backdrop-blur: 12px)
+
+BORDER RADIUS
+─────────────
+  • 4px: Badges, progress bars
+  • 8-12px: Buttons, inputs, cards
+  • 16-24px: Hero containers, modals
+  • 20px: Pills, status badges
+  • Full: Icons, dots
+
+ANIMATION
+─────────
+Durations:
+  • 150ms: Micro-interactions, hovers
+  • 200ms: Standard transitions
+  • 300ms: Screen transitions
+  • 1200ms: Grade ring reveal
+
+Easing: cubic-bezier(0.4, 0, 0.2, 1) (Material standard)
+
+KEY COMPONENTS
+──────────────
+1. Primary Button:
+   - Accent background, white text
+   - 12px radius, 12-28px padding
+   - Hover: darker accent variant
+
+2. Secondary Button:
+   - White background, 1px border
+   - 8px radius, 7-14px padding
+   - Hover: light gray background
+
+3. URL Input (Hero):
+   - 2px border, 14px radius
+   - Large shadow, icon prefix
+   - Integrated action button
+
+4. Finding Card:
+   - Collapsible with severity badge
+   - Expandable sections (evidence, impact, fix)
+   - Tabbed fix interface (manual vs AI prompt)
+   - Optional semantic border color
+
+5. Grade Display (3 variants):
+   - Ring: Animated circular progress (default)
+   - Shield: Security badge icon
+   - Letter: Circular badge
+   - All: 140px size, 8px stroke, 1200ms animation
+
+6. Severity Badge:
+   - Uppercase, tight spacing
+   - Semantic colors (bg, text, border)
+   - 4px radius, 2-4px vertical padding
+
+7. Navigation:
+   - Fixed 56px height
+   - Frosted glass (backdrop-blur)
+   - Logo left, actions right
+
+8. Code Block:
+   - Dark theme (#1a1a2e bg)
+   - Monospace stack
+   - 8px radius, 14-16px padding
+
+DESIGN PRINCIPLES
+─────────────────
+✓ Clarity through simplicity
+✓ Function over decoration
+✓ Semantic color usage (meaning, not aesthetics)
+✓ Generous whitespace to combat density
+✓ Developer-friendly mental model
+✓ Accessible (WCAG AA contrast)
+✓ Themeable without losing consistency
+
+TECHNICAL NOTES
+───────────────
+• Uses CSS custom properties (--accent, --bg, --text-*)
+• Themeable accent via runtime JS override
+• GPU-accelerated animations (transform, opacity)
+• System fonts for performance
+• Backdrop filters for glass effects
+• Responsive with fluid typography (clamp)
+
+═══════════════════════════════════════════════════════════════════════════════
+File Location: /DESIGN.md (full spec with YAML tokens)
+═══════════════════════════════════════════════════════════════════════════════
