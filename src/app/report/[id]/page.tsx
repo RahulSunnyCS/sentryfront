@@ -91,7 +91,7 @@ export default async function ReportPage({ params, searchParams }: Props) {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
-      <Nav showReportActions scanUrl={scanUrl} />
+      <Nav showReportActions scanUrl={scanUrl} scanId={params.id} />
       <div style={{ paddingTop: 56 }}>
         <ReportView scanData={scanData} />
       </div>

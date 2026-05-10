@@ -2,24 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateAndNormalize, ValidationError } from '@/lib/url-validator';
 import { runScan } from '@/lib/scan-worker';
-
-// In-memory rate limiter: { ip → [timestamps] }
-// Good enough for Phase 2. Replace with Redis-backed limiter in production.
-const rateLimitStore = new Map<string, number[]>();
-const RATE_LIMIT = Number(process.env.RATE_LIMIT_PER_HOUR ?? 10);
-
-function checkRateLimit(ip: string): void {
-  const now = Date.now();
-  const window = 60 * 60 * 1000; // 1 hour
-  const hits = (rateLimitStore.get(ip) ?? []).filter((t) => now - t < window);
-  if (hits.length >= RATE_LIMIT) {
-    throw Object.assign(new Error(`Rate limit exceeded. Max ${RATE_LIMIT} scans per hour.`), {
-      status: 429,
-    });
-  }
-  hits.push(now);
-  rateLimitStore.set(ip, hits);
-}
+import { getCurrentUser } from '@/lib/auth/helpers';
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limiter';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   const ip =
@@ -27,11 +12,35 @@ export async function POST(req: NextRequest) {
     req.headers.get('x-real-ip') ??
     'unknown';
 
-  try {
-    checkRateLimit(ip);
-  } catch (err: unknown) {
-    const e = err as { message: string; status?: number };
-    return NextResponse.json({ error: e.message }, { status: e.status ?? 429 });
+  // Get current user (if authenticated)
+  const user = await getCurrentUser();
+  const tier = user?.tier || 'free';
+  const identifier = user?.id || ip;
+
+  // Check rate limit
+  const rateLimitResult = await checkRateLimit(identifier, tier as 'free' | 'one-shot' | 'pro' | 'studio');
+  const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
+
+  if (!rateLimitResult.allowed) {
+    logger.warn('Rate limit exceeded', {
+      ip,
+      userId: user?.id,
+      tier,
+      limit: rateLimitResult.limit,
+    });
+
+    return NextResponse.json(
+      {
+        error: `Rate limit exceeded. Maximum ${rateLimitResult.limit} scans per hour.`,
+        limit: rateLimitResult.limit,
+        reset: rateLimitResult.reset,
+        retryAfter: rateLimitResult.retryAfter,
+      },
+      {
+        status: 429,
+        headers: rateLimitHeaders,
+      }
+    );
   }
 
   let body: { url?: string };
@@ -47,24 +56,42 @@ export async function POST(req: NextRequest) {
     targetUrl = await validateAndNormalize(rawUrl);
   } catch (err) {
     if (err instanceof ValidationError) {
+      logger.info('URL validation failed', { url: rawUrl, error: err.message, ip });
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
+    logger.error('URL validation error', { url: rawUrl, ip }, err as Error);
     return NextResponse.json({ error: 'URL validation failed.' }, { status: 422 });
   }
 
   const scan = await prisma.scan.create({
-    data: { targetUrl, requesterIp: ip },
+    data: {
+      targetUrl,
+      requesterIp: ip,
+      userId: user?.id,
+      tier,
+    },
+  });
+
+  logger.info('Scan created', {
+    scanId: scan.id,
+    targetUrl: scan.targetUrl,
+    userId: user?.id,
+    tier,
+    ip,
   });
 
   // Fire the worker.
   // - With REDIS_URL: enqueue via BullMQ (see src/lib/queue.ts, Phase 3+).
   // - Without REDIS_URL: run as a fire-and-forget Promise (fine for local dev).
-  runScan(scan.id).catch((err) =>
-    console.error(`[worker] scan ${scan.id} failed:`, err),
-  );
+  runScan(scan.id).catch((err) => {
+    logger.error('Scan worker failed', { scanId: scan.id }, err);
+  });
 
   return NextResponse.json(
     { id: scan.id, status: scan.status, targetUrl: scan.targetUrl },
-    { status: 201 },
+    {
+      status: 201,
+      headers: rateLimitHeaders,
+    }
   );
 }

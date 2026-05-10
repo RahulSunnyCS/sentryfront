@@ -1,0 +1,88 @@
+===========================================
+VERCEL ENVIRONMENT VARIABLES - READY TO PASTE
+===========================================
+
+Copy and paste these into Vercel's Environment Variables section.
+
+-------------------------------------------
+REQUIRED VARIABLES (Add these first!)
+-------------------------------------------
+
+NEXTAUTH_SECRET=FMlrVOiTjeOnIfKf8ZSV7A5BjXqmnCUW6NIy5zUMP1Q=
+
+NEXTAUTH_URL=https://vibesafe.vercel.app
+
+# DATABASE_URL will be added automatically when you create Vercel Postgres
+# Or get it from Neon.tech if using that instead
+
+
+-------------------------------------------
+RECOMMENDED - LLM ENRICHMENT (AI-powered reports)
+-------------------------------------------
+
+ANTHROPIC_API_KEY=<your-anthropic-api-key-here>
+
+LLM_ENRICHMENT_ENABLED=true
+
+ANTHROPIC_MODEL=claude-sonnet-4-20250514
+
+LLM_ENRICHMENT_TIMEOUT_MS=20000
+
+
+-------------------------------------------
+RECOMMENDED - FEATURES
+-------------------------------------------
+
+PDF_EXPORT_ENABLED=true
+
+NEXT_PUBLIC_PDF_EXPORT_ENABLED=true
+
+FEATURE_SCAN_DIFF_ENABLED=true
+
+TIER_GATING_ENABLED=false
+
+
+-------------------------------------------
+OPTIONAL - OAUTH (GitHub/Google Login)
+-------------------------------------------
+
+# Get these from:
+# GitHub: https://github.com/settings/developers
+# Google: https://console.cloud.google.com
+
+GITHUB_CLIENT_ID=<your-github-client-id>
+
+GITHUB_CLIENT_SECRET=<your-github-client-secret>
+
+GOOGLE_CLIENT_ID=<your-google-client-id>
+
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+
+
+-------------------------------------------
+OPTIONAL - MONITORING
+-------------------------------------------
+
+SENTRY_DSN=<your-sentry-dsn-if-you-have-one>
+
+
+===========================================
+IMPORTANT NOTES:
+===========================================
+
+1. NEXTAUTH_URL: Change "vibesafe" to your actual project name on Vercel
+   Example: https://your-project-name.vercel.app
+
+2. DATABASE_URL: Will be added automatically when you create Vercel Postgres database
+   - In Vercel import screen, click "Add Storage" → "Postgres" → "Create"
+   - Vercel will inject DATABASE_URL automatically
+
+3. After deployment, you need to run database migrations:
+   vercel env pull .env.production
+   npx prisma migrate deploy
+
+4. Update OAuth callbacks after deployment:
+   - GitHub: https://your-app.vercel.app/api/auth/callback/github
+   - Google: https://your-app.vercel.app/api/auth/callback/google
+
+===========================================

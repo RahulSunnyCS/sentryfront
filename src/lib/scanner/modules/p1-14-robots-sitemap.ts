@@ -33,7 +33,7 @@ function parseRobotsDisallow(content: string): string[] {
   return paths;
 }
 
-function parseSitemapUrls(xml: string, base: string): string[] {
+function parseSitemapUrls(xml: string): string[] {
   const urls: string[] = [];
   const re = /<loc>\s*([^<]+)\s*<\/loc>/gi;
   let m: RegExpExecArray | null;
@@ -101,7 +101,7 @@ export async function runRobotsSitemapModule(crawl: CrawlResult): Promise<RawFin
 
   // Sitemap analysis
   if (sitemapXml) {
-    const paths = parseSitemapUrls(sitemapXml, base);
+    const paths = parseSitemapUrls(sitemapXml);
     const sensitiveSitemapPaths = paths.filter(isSensitivePath);
 
     if (sensitiveSitemapPaths.length > 0) {

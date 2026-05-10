@@ -2,13 +2,16 @@
 
 import Link from 'next/link';
 import { IconShield, IconExternalLink } from './icons';
+import { PdfExportButton } from './pdf-export-button';
+import { AuthButton } from './auth-button';
 
 interface Props {
   showReportActions?: boolean;
   scanUrl?: string;
+  scanId?: string;
 }
 
-export function Nav({ showReportActions = false, scanUrl }: Props) {
+export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
@@ -24,31 +27,35 @@ export function Nav({ showReportActions = false, scanUrl }: Props) {
         </span>
       </Link>
 
-      {showReportActions && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/" style={{
-            padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border)',
-            backgroundColor: 'var(--surface)', textDecoration: 'none',
-            fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)',
-          }}>
-            New scan
-          </Link>
-          {scanUrl && (
-            <button
-              onClick={() => navigator.clipboard.writeText(window.location.href).catch(() => {})}
-              style={{
-                padding: '7px 14px', borderRadius: 8, border: 'none',
-                backgroundColor: 'var(--accent)', cursor: 'pointer',
-                fontSize: 13, fontWeight: 600, color: '#fff',
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}
-            >
-              <IconExternalLink size={13} color="#fff" />
-              Share
-            </button>
-          )}
-        </div>
-      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {showReportActions && (
+          <>
+            {scanId && <PdfExportButton scanId={scanId} />}
+            <Link href="/" style={{
+              padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border)',
+              backgroundColor: 'var(--surface)', textDecoration: 'none',
+              fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)',
+            }}>
+              New scan
+            </Link>
+            {scanUrl && (
+              <button
+                onClick={() => navigator.clipboard.writeText(window.location.href).catch(() => {})}
+                style={{
+                  padding: '7px 14px', borderRadius: 8, border: 'none',
+                  backgroundColor: 'var(--accent)', cursor: 'pointer',
+                  fontSize: 13, fontWeight: 600, color: '#fff',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <IconExternalLink size={13} color="#fff" />
+                Share
+              </button>
+            )}
+          </>
+        )}
+        <AuthButton />
+      </div>
     </nav>
   );
 }

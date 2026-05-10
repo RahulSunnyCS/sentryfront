@@ -1,24 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GRADE_CONFIG } from '@/lib/data';
-import type { ScanData, Severity } from '@/types';
+import type { ScanData, Severity, Finding } from '@/types';
 import { GradeDisplay } from '@/components/grade-display';
 import { SeveritySummary } from '@/components/severity-summary';
 import { FindingCard } from '@/components/finding-card';
 import { IconGlobe, IconClock } from '@/components/icons';
+import { TierGateBanner } from '@/components/tier-gate-banner';
+import { ReportWatermark } from '@/components/report-watermark';
 
 const SEVERITY_ORDER: Severity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
+
+interface FindingsResponse {
+  findings: Finding[];
+  meta: {
+    isLimited: boolean;
+    tier: string;
+    total: number;
+    shown: number;
+    limit?: number;
+    hiddenCount?: number;
+  };
+}
 
 export function ReportView({ scanData }: { scanData: ScanData }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<'ALL' | Severity>('ALL');
+  const [gatedFindings, setGatedFindings] = useState<Finding[]>(scanData.findings);
+  const [tierMeta, setTierMeta] = useState<FindingsResponse['meta'] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch findings with tier gating applied
+  useEffect(() => {
+    async function fetchFindings() {
+      try {
+        const res = await fetch(`/api/v1/scans/${scanData.id}/findings`);
+        if (!res.ok) {
+          console.error('Failed to fetch findings');
+          setGatedFindings(scanData.findings);
+          setLoading(false);
+          return;
+        }
+        const data: FindingsResponse = await res.json();
+        setGatedFindings(data.findings);
+        setTierMeta(data.meta);
+      } catch (error) {
+        console.error('Error fetching findings:', error);
+        setGatedFindings(scanData.findings);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchFindings();
+  }, [scanData.id, scanData.findings]);
 
   const gradeConfig = GRADE_CONFIG[scanData.grade];
 
   const filtered = filterSeverity === 'ALL'
-    ? scanData.findings
-    : scanData.findings.filter((f) => f.severity === filterSeverity);
+    ? gatedFindings
+    : gatedFindings.filter((f) => f.severity === filterSeverity);
 
   const sorted = [...filtered].sort(
     (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity),
@@ -72,6 +113,17 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           </div>
         </div>
 
+        {/* Tier gate banner */}
+        {!loading && tierMeta && (
+          <TierGateBanner
+            isLimited={tierMeta.isLimited}
+            tier={tierMeta.tier}
+            total={tierMeta.total}
+            shown={tierMeta.shown}
+            hiddenCount={tierMeta.hiddenCount}
+          />
+        )}
+
         {/* Findings header + filter */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
@@ -116,6 +168,11 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           </div>
         )}
       </div>
+
+      {/* Watermark for free tier */}
+      {!loading && tierMeta && (
+        <ReportWatermark tier={tierMeta.tier} isLimited={tierMeta.isLimited} />
+      )}
     </div>
   );
 }

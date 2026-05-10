@@ -54,7 +54,7 @@ export async function runGitleaks(
       const srcFile = path.join(tmpDir, 'source.js');
       fs.writeFileSync(srcFile, content, 'utf8');
 
-      const result = await runTool(
+      await runTool(
         binary,
         ['detect', '--source', srcFile, '--no-git', '-f', 'json', '-r', reportFile, '--exit-code', '0'],
         { timeoutMs: 20_000 },

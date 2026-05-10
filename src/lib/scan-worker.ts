@@ -1,12 +1,18 @@
 /**
  * Scan worker — orchestrates the full 15-module passive scan pipeline.
  * Phase 4: all modules implemented. No stubs remain.
+ * Phase 8: Added 120s timeout enforcement.
  */
 
 import { prisma } from './prisma';
 import { publishEvent } from './events';
 import { runScanner } from './scanner';
+import { enrichFindingsWithLLM } from './llm/enrichment';
+import { logger } from './logger';
 import type { RawFinding } from './scanner/types';
+
+// Scan timeout: hard kill at 120 seconds
+const SCAN_TIMEOUT_MS = Number(process.env.SCAN_TIMEOUT_MS ?? 120000); // 120s default
 
 const ALL_MODULES = [
   'P1-01', 'P1-02', 'P1-03', 'P1-04', 'P1-05',
@@ -45,6 +51,35 @@ async function emitPlaceholderProgress(scanId: string, count: number): Promise<v
 }
 
 export async function runScan(scanId: string): Promise<void> {
+  // Wrap scan in timeout enforcement
+  return runScanWithTimeout(scanId);
+}
+
+async function runScanWithTimeout(scanId: string): Promise<void> {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Scan timeout: exceeded ${SCAN_TIMEOUT_MS / 1000}s limit`));
+    }, SCAN_TIMEOUT_MS);
+  });
+
+  try {
+    await Promise.race([
+      runScanInternal(scanId),
+      timeoutPromise,
+    ]);
+  } catch (err) {
+    const isTimeout = err instanceof Error && err.message.includes('Scan timeout');
+
+    if (isTimeout) {
+      logger.warn('Scan timeout', { scanId, timeout: SCAN_TIMEOUT_MS });
+      await handleScanTimeout(scanId);
+    }
+
+    throw err;
+  }
+}
+
+async function runScanInternal(scanId: string): Promise<void> {
   try {
     const scan = await prisma.scan.findUnique({ where: { id: scanId } });
     if (!scan) throw new Error(`Scan ${scanId} not found`);
@@ -58,7 +93,25 @@ export async function runScan(scanId: string): Promise<void> {
       emitPlaceholderProgress(scanId, ALL_MODULES.length),
     ]);
 
-    const { findings, stack, moduleFindingCounts } = scannerResult;
+    const { findings: rawFindings, stack, moduleFindingCounts } = scannerResult;
+
+    await publishEvent(scanId, 'llm_enrichment_started', {
+      scan_id: scanId,
+      finding_count: rawFindings.length,
+    });
+
+    const enrichmentResult = await enrichFindingsWithLLM(rawFindings, {
+      targetUrl: scan.targetUrl,
+      stack,
+    });
+    const findings = enrichmentResult.findings;
+
+    await publishEvent(scanId, 'llm_enrichment_complete', {
+      scan_id: scanId,
+      used_llm: enrichmentResult.status.used,
+      reason: enrichmentResult.status.reason ?? null,
+      model: enrichmentResult.status.model ?? null,
+    });
 
     // Persist findings
     if (findings.length > 0) {
@@ -104,15 +157,50 @@ export async function runScan(scanId: string): Promise<void> {
     });
 
   } catch (err) {
-    console.error(`[worker] scan ${scanId} failed:`, err);
+    logger.error('Scan failed', { scanId }, err as Error);
     await prisma.scan.update({
       where: { id: scanId },
-      data: { status: 'FAILED' },
+      data: { status: 'FAILED', completedAt: new Date() },
     }).catch(() => {});
     await publishEvent(scanId, 'scan_failed', {
       scan_id: scanId,
       error: String(err),
     }).catch(() => {});
     throw err;
+  }
+}
+
+/**
+ * Handle scan timeout: persist partial findings and mark as TIMEOUT
+ */
+async function handleScanTimeout(scanId: string): Promise<void> {
+  try {
+    // Try to fetch any findings that were persisted before timeout
+    const findingsCount = await prisma.finding.count({
+      where: { scanId },
+    });
+
+    logger.info('Handling scan timeout', {
+      scanId,
+      partialFindings: findingsCount,
+    });
+
+    // Mark scan as timed out
+    await prisma.scan.update({
+      where: { id: scanId },
+      data: {
+        status: 'TIMEOUT',
+        completedAt: new Date(),
+      },
+    });
+
+    // Publish timeout event
+    await publishEvent(scanId, 'scan_timeout', {
+      scan_id: scanId,
+      partial_findings: findingsCount,
+      timeout_seconds: SCAN_TIMEOUT_MS / 1000,
+    });
+  } catch (error) {
+    logger.error('Failed to handle scan timeout', { scanId }, error as Error);
   }
 }

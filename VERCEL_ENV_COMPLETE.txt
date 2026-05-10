@@ -1,0 +1,158 @@
+===========================================
+COMPLETE ENVIRONMENT VARIABLES FOR VERCEL
+===========================================
+
+Copy and paste each variable into Vercel's Environment Variables section.
+Set all to "All Environments" (Production, Preview, Development)
+
+-------------------------------------------
+REQUIRED VARIABLES
+-------------------------------------------
+
+DATABASE_URL
+postgresql://neondb_owner:npg_lEe7VfpZLuA1@ep-withered-unit-aqqsqpy8.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+NEXTAUTH_URL
+https://vibesafe.vercel.app
+
+NEXTAUTH_SECRET
+FMlrVOiTjeOnIfKf8ZSV7A5BjXqmnCUW6NIy5zUMP1Q=
+
+
+-------------------------------------------
+RECOMMENDED - LLM ENRICHMENT
+-------------------------------------------
+
+ANTHROPIC_API_KEY
+<paste-your-anthropic-key-here>
+
+LLM_ENRICHMENT_ENABLED
+true
+
+ANTHROPIC_MODEL
+claude-sonnet-4-20250514
+
+LLM_ENRICHMENT_TIMEOUT_MS
+20000
+
+
+-------------------------------------------
+RECOMMENDED - FEATURES
+-------------------------------------------
+
+PDF_EXPORT_ENABLED
+true
+
+NEXT_PUBLIC_PDF_EXPORT_ENABLED
+true
+
+FEATURE_SCAN_DIFF_ENABLED
+true
+
+TIER_GATING_ENABLED
+false
+
+AUTH_ENABLED
+true
+
+
+-------------------------------------------
+OPTIONAL - OAUTH PROVIDERS
+-------------------------------------------
+
+GITHUB_CLIENT_ID
+<your-github-oauth-client-id>
+
+GITHUB_CLIENT_SECRET
+<your-github-oauth-client-secret>
+
+GOOGLE_CLIENT_ID
+<your-google-oauth-client-id>
+
+GOOGLE_CLIENT_SECRET
+<your-google-oauth-client-secret>
+
+
+-------------------------------------------
+OPTIONAL - MONITORING
+-------------------------------------------
+
+SENTRY_DSN
+<your-sentry-dsn-if-enabled>
+
+SENTRY_ENABLED
+false
+
+
+-------------------------------------------
+OPTIONAL - PAYMENTS
+-------------------------------------------
+
+STRIPE_ENABLED
+false
+
+STRIPE_SECRET_KEY
+<your-stripe-secret-key>
+
+STRIPE_PUBLISHABLE_KEY
+<your-stripe-publishable-key>
+
+STRIPE_WEBHOOK_SECRET
+<your-stripe-webhook-secret>
+
+
+===========================================
+HOW TO ADD IN VERCEL
+===========================================
+
+1. In Vercel import screen, scroll to "Environment Variables"
+2. For each variable above:
+   - Click "Add New"
+   - Name: <variable-name>
+   - Value: <variable-value>
+   - Select: "All Environments"
+   - Click "Add"
+3. After adding all variables, click "Deploy"
+
+===========================================
+QUICK COPY FORMAT (One variable per line)
+===========================================
+
+DATABASE_URL=postgresql://neondb_owner:npg_lEe7VfpZLuA1@ep-withered-unit-aqqsqpy8.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require
+NEXTAUTH_URL=https://vibesafe.vercel.app
+NEXTAUTH_SECRET=FMlrVOiTjeOnIfKf8ZSV7A5BjXqmnCUW6NIy5zUMP1Q=
+ANTHROPIC_API_KEY=<your-key>
+LLM_ENRICHMENT_ENABLED=true
+ANTHROPIC_MODEL=claude-sonnet-4-20250514
+LLM_ENRICHMENT_TIMEOUT_MS=20000
+PDF_EXPORT_ENABLED=true
+NEXT_PUBLIC_PDF_EXPORT_ENABLED=true
+FEATURE_SCAN_DIFF_ENABLED=true
+TIER_GATING_ENABLED=false
+AUTH_ENABLED=true
+
+===========================================
+IMPORTANT NOTES
+===========================================
+
+1. NEXTAUTH_URL: 
+   - Update with your actual Vercel URL after deployment
+   - Example: https://your-project.vercel.app
+
+2. DATABASE_URL:
+   - This is your Neon PostgreSQL connection string
+   - Already configured above ✅
+
+3. ANTHROPIC_API_KEY:
+   - Get from: https://console.anthropic.com
+   - Replace <your-key> with actual key
+
+4. After deployment:
+   - Run migrations: vercel env pull .env.production
+   - Then: npx prisma migrate deploy
+
+5. OAuth Callbacks (if using):
+   - GitHub: https://your-app.vercel.app/api/auth/callback/github
+   - Google: https://your-app.vercel.app/api/auth/callback/google
+
+===========================================
