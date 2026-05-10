@@ -9,6 +9,7 @@ tsconfig.tsbuildinfo
 vibesafe.db
 vibesafe.db-shm
 vibesafe.db-wal
+vibesafe.db-journal
 
 # Prisma generated
 prisma/migrations/**/.gitkeep
