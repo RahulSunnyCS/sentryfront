@@ -1,10 +1,12 @@
-// Reads env at runtime (client-side NEXT_PUBLIC_* vars are inlined at build time).
-// Returns null when the variable is absent or blank — callers treat null as "mock mode".
+// API routes live at the same origin — no base URL configuration needed.
+// "Demo mode" now means the scan ID is "demo" and fixture data is shown,
+// not that the API is absent.
 
-export const apiUrl: string | null =
-  process.env.NEXT_PUBLIC_API_URL?.trim() || null;
+export const defaultAccent = (
+  process.env.NEXT_PUBLIC_DEFAULT_ACCENT?.trim() || 'teal'
+) as 'teal' | 'indigo' | 'violet';
 
-export const defaultAccent = (process.env.NEXT_PUBLIC_DEFAULT_ACCENT?.trim() || 'teal') as
-  'teal' | 'indigo' | 'violet';
-
-export const isMockMode = apiUrl === null;
+// True when running with SQLite (local dev). Shows a subtle DB-mode indicator.
+export const isSqliteMode =
+  (process.env.DATABASE_URL ?? 'file:').startsWith('file:') ||
+  (process.env.DATABASE_URL ?? 'file:').startsWith('sqlite:');
