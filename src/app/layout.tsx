@@ -1,0 +1,15 @@
+import type { Metadata } from 'next';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'VibeSafe — Security scanner for AI-built sites',
+  description: 'Paste a URL. Get a security report in 90 seconds. Every finding includes an AI fix prompt for Cursor, Lovable, or Bolt.',
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
