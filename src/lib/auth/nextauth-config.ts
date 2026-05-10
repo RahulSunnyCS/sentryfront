@@ -12,6 +12,12 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
 import { authConfig } from '@/lib/features';
 
+// Extend session user type
+interface ExtendedUser {
+  id: string;
+  tier?: string;
+}
+
 export const nextAuthConfig: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   
@@ -29,13 +35,14 @@ export const nextAuthConfig: NextAuthOptions = {
   callbacks: {
     async session({ session, user }) {
       if (session.user) {
-        session.user.id = user.id;
+        const extendedUser = session.user as typeof session.user & ExtendedUser;
+        extendedUser.id = user.id;
         // Fetch tier from database
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
           select: { tier: true },
         });
-        session.user.tier = dbUser?.tier || 'free';
+        extendedUser.tier = dbUser?.tier || 'free';
       }
       return session;
     },

@@ -56,7 +56,11 @@ async function getCurrentUserNextAuth(): Promise<AuthUser | null> {
     select: { id: true, email: true, tier: true },
   });
 
-  return user;
+  if (!user || !user.email) {
+    return null;
+  }
+
+  return user as AuthUser;
 }
 
 async function getCurrentUserSupabase(): Promise<AuthUser | null> {

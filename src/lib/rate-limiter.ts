@@ -6,7 +6,7 @@
  */
 
 import { prisma } from './prisma';
-import { TIER_LIMITS, type UserTier } from './tier-gating';
+import { type UserTier } from './tier-gating';
 import { logger } from './logger';
 
 // Rate limit configuration

@@ -38,7 +38,6 @@ export async function GET() {
       stripe: features.stripe,
       auth: features.auth,
       tierGating: features.tierGating,
-      llmEnrichment: features.llmEnrichment,
     },
 
     // Monitoring

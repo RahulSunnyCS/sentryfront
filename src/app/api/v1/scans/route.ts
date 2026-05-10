@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const identifier = user?.id || ip;
 
   // Check rate limit
-  const rateLimitResult = await checkRateLimit(identifier, tier as any);
+  const rateLimitResult = await checkRateLimit(identifier, tier as 'free' | 'one-shot' | 'pro' | 'studio');
   const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
 
   if (!rateLimitResult.allowed) {

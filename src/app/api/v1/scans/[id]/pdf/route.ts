@@ -94,7 +94,7 @@ export async function GET(
     : 'unknown';
   const filename = `vibesafe-${hostname}-${timestamp}.pdf`;
 
-  return new NextResponse(result.buffer, {
+  return new NextResponse(result.buffer as unknown as BodyInit, {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
