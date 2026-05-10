@@ -1,4 +1,6 @@
 import type { CrawlResult, RawFinding } from '../types';
+import { runHttpxProbe } from '../tools/httpx';
+import { runNuclei } from '../tools/nuclei';
 
 const SENSITIVE_PATHS = [
   // Secrets & config
@@ -98,13 +100,28 @@ export async function runSensitivePathsModule(crawl: CrawlResult): Promise<RawFi
   // Establish baseline before probing (catches catch-all 200 sites like example.com)
   const baseline = await getBaseline(crawl.finalUrl);
 
-  // Probe in batches of 10 to avoid hammering the server
+  // Use httpx for fast parallel probing when available, fall back to fetch batches
+  const httpxResults = await runHttpxProbe(crawl.finalUrl, SENSITIVE_PATHS);
   const hits: ProbeResult[] = [];
-  for (let i = 0; i < SENSITIVE_PATHS.length; i += 10) {
-    const batch = SENSITIVE_PATHS.slice(i, i + 10);
-    const results = await Promise.all(batch.map((p) => probeOne(crawl.finalUrl, p, baseline)));
-    for (const r of results) { if (r) hits.push(r); }
+
+  if (httpxResults.length > 0) {
+    // Validate httpx hits against baseline to remove false positives
+    const validated = await Promise.all(
+      httpxResults.map((r) => probeOne(crawl.finalUrl, r.path, baseline)),
+    );
+    for (const r of validated) { if (r) hits.push(r); }
+  } else {
+    // Fallback: fetch-based probing in batches of 10
+    for (let i = 0; i < SENSITIVE_PATHS.length; i += 10) {
+      const batch = SENSITIVE_PATHS.slice(i, i + 10);
+      const results = await Promise.all(batch.map((p) => probeOne(crawl.finalUrl, p, baseline)));
+      for (const r of results) { if (r) hits.push(r); }
+    }
   }
+
+  // Run nuclei for template-based detection (if installed + templates downloaded)
+  const nucleiFindings = await runNuclei(crawl.finalUrl);
+  findings.push(...nucleiFindings);
 
   if (hits.length === 0) return findings;
 
