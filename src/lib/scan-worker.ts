@@ -1,8 +1,6 @@
 /**
- * Scan worker — orchestrates the full scan pipeline.
- *
- * Phase 3: P1-01 to P1-05 use real detection via the scanner.
- *          P1-06 to P1-15 are stubs (implemented in Phase 4).
+ * Scan worker — orchestrates the full 15-module passive scan pipeline.
+ * Phase 4: all modules implemented. No stubs remain.
  */
 
 import { prisma } from './prisma';
@@ -15,9 +13,6 @@ const ALL_MODULES = [
   'P1-06', 'P1-07', 'P1-08', 'P1-09', 'P1-10',
   'P1-11', 'P1-12', 'P1-13', 'P1-14', 'P1-15',
 ] as const;
-
-// Modules not yet implemented — emitted as complete with 0 findings.
-const STUB_MODULES = new Set(['P1-06', 'P1-07', 'P1-08', 'P1-09', 'P1-10', 'P1-11', 'P1-12', 'P1-13', 'P1-14', 'P1-15']);
 
 const SEVERITY_SCORE: Record<string, number> = {
   CRITICAL: 25, HIGH: 10, MEDIUM: 3, LOW: 1, INFO: 0,
@@ -35,53 +30,37 @@ function computeGrade(findings: RawFinding[]): { grade: string; score: number } 
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function runScan(scanId: string): Promise<void> {
-  let targetUrl = '';
+// Emit placeholder progress events while the scanner crawls, so the UI
+// doesn't stall on a blank progress bar during the initial HTTP fetch.
+async function emitPlaceholderProgress(scanId: string, count: number): Promise<void> {
+  for (let i = 0; i < count; i++) {
+    await sleep(350);
+    await publishEvent(scanId, 'module_complete', {
+      scan_id: scanId,
+      module_id: ALL_MODULES[i],
+      findings: 0,
+      index: i,
+    });
+  }
+}
 
+export async function runScan(scanId: string): Promise<void> {
   try {
     const scan = await prisma.scan.findUnique({ where: { id: scanId } });
     if (!scan) throw new Error(`Scan ${scanId} not found`);
-    targetUrl = scan.targetUrl;
 
     await prisma.scan.update({ where: { id: scanId }, data: { status: 'RUNNING' } });
 
-    // Publish stub progress for modules 1-5 while the real scanner crawls
-    // (gives the UI something to show during the ~10s crawl + analysis)
-    const publishStubProgress = async (upTo: number) => {
-      for (let i = 0; i < upTo; i++) {
-        await sleep(400);
-        await publishEvent(scanId, 'module_complete', {
-          scan_id: scanId,
-          module_id: ALL_MODULES[i],
-          findings: 0,   // placeholder — real counts sent after scanner finishes
-          index: i,
-        });
-      }
-    };
-
-    // Run scanner and stub progress in parallel
+    // Run scanner and emit placeholder progress in parallel.
+    // The real results replace placeholder counts when we publish scan_complete.
     const [scannerResult] = await Promise.all([
-      runScanner(targetUrl),
-      publishStubProgress(5),
+      runScanner(scan.targetUrl),
+      emitPlaceholderProgress(scanId, ALL_MODULES.length),
     ]);
 
     const { findings, stack, moduleFindingCounts } = scannerResult;
 
-    // Emit stub events for P1-06 to P1-15
-    for (let i = 5; i < ALL_MODULES.length; i++) {
-      const moduleId = ALL_MODULES[i];
-      if (STUB_MODULES.has(moduleId)) {
-        await sleep(200);
-        await publishEvent(scanId, 'module_complete', {
-          scan_id: scanId,
-          module_id: moduleId,
-          findings: 0,
-          index: i,
-        });
-      }
-    }
-
-    // Persist real findings
+    // Persist findings
     if (findings.length > 0) {
       await prisma.finding.createMany({
         data: findings.map((f) => ({
@@ -100,7 +79,7 @@ export async function runScan(scanId: string): Promise<void> {
       });
     }
 
-    // Build summary
+    // Build summary counts
     const summary: Record<string, number> = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, INFO: 0 };
     for (const f of findings) summary[f.severity] = (summary[f.severity] ?? 0) + 1;
 
