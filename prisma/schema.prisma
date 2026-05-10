@@ -21,7 +21,8 @@ model User {
   tier             String   @default("free")
   stripeCustomerId String?
   createdAt        DateTime @default(now())
-  scans            Scan[]
+  scans               Scan[]
+  domainVerifications DomainVerification[]
 }
 
 model Scan {
@@ -81,4 +82,6 @@ model DomainVerification {
   token      String
   verifiedAt DateTime?
   createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
