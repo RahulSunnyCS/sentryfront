@@ -1,4 +1,5 @@
 import type { CrawlResult, RawFinding } from '../types';
+import { runGitleaks } from '../tools/gitleaks';
 
 interface SecretPattern {
   name: string;
@@ -117,6 +118,16 @@ export async function runSecretsModule(crawl: CrawlResult): Promise<RawFinding[]
     })),
   );
   sources.push(...bundleContents);
+
+  // Run gitleaks (700+ rules) — results replace regex findings for matched rules
+  const gitleaksFindings = await runGitleaks(sources);
+  if (gitleaksFindings.length > 0) {
+    findings.push(...gitleaksFindings);
+    // Still run regex+entropy below, but skip sources already covered by gitleaks
+    const coveredLocations = new Set(gitleaksFindings.map((f) => f.location));
+    const uncovered = sources.filter((s) => !coveredLocations.has(s.label));
+    sources.splice(0, sources.length, ...uncovered);
+  }
 
   for (const { label, content } of sources) {
     if (!content) continue;
