@@ -1,4 +1,5 @@
 import type { RawFinding } from '@/lib/scanner/types';
+import { features, llmConfig } from '@/lib/features';
 
 interface AnthropicTextBlock {
   type: 'text';
@@ -29,7 +30,6 @@ export interface EnrichmentResult {
 }
 
 const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
 const DEFAULT_TIMEOUT_MS = 20_000;
 const MAX_FINDINGS_PER_PROMPT = 40;
 const MAX_TEXT_FIELD_LENGTH = 1_200;
@@ -40,8 +40,7 @@ Never add new findings, never upgrade severity, never invent evidence, and never
 Return only valid JSON: an array of objects with index, explanation, impact, and fix_ai_prompt.`;
 
 function llmDisabledByConfig(): boolean {
-  const flag = process.env.LLM_ENRICHMENT_ENABLED?.trim().toLowerCase();
-  return flag === 'false' || flag === '0' || flag === 'off';
+  return !features.llmEnrichment;
 }
 
 function truncate(value: string, maxLength = MAX_TEXT_FIELD_LENGTH): string {
@@ -174,12 +173,11 @@ export async function enrichFindingsWithLLM(
     return { findings, status: { enabled: false, used: false, reason: 'disabled_by_config' } };
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!apiKey) {
+  if (!llmConfig.apiKey) {
     return { findings, status: { enabled: false, used: false, reason: 'missing_api_key' } };
   }
 
-  const model = process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL;
+  const model = llmConfig.model;
   const timeoutMs = Number(process.env.LLM_ENRICHMENT_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Number.isFinite(timeoutMs) ? timeoutMs : DEFAULT_TIMEOUT_MS);
@@ -190,7 +188,7 @@ export async function enrichFindingsWithLLM(
       signal: controller.signal,
       headers: {
         'content-type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': llmConfig.apiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({

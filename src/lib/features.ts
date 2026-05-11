@@ -14,6 +14,7 @@ const defaultFeatures = {
   performanceScanning: true,
   accessibilityScanning: true,
   seoScanning: true,
+  llmEnrichment: true,
   scanDiff: true,
   pdfExport: true,
   stripe: true,
@@ -43,6 +44,9 @@ export const features = {
   /** SEO scanning (Phase 7.5) — Search engine optimization analysis */
   seoScanning: customFeatures.seoScanning ?? defaultFeatures.seoScanning,
 
+  /** LLM enrichment (Phase 5) — AI-powered finding explanations via Anthropic */
+  llmEnrichment: customFeatures.llmEnrichment ?? defaultFeatures.llmEnrichment,
+
   /** Scan diff comparison endpoint (Pro tier) */
   scanDiff: customFeatures.scanDiff ?? defaultFeatures.scanDiff,
 
@@ -60,6 +64,15 @@ export const features = {
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────
+
+export const llmConfig = {
+  enabled: features.llmEnrichment,
+  apiKey: process.env.ANTHROPIC_API_KEY ?? '',
+  model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514',
+  get isConfigured(): boolean {
+    return !!this.apiKey;
+  },
+} as const;
 
 export const pdfConfig = {
   enabled: features.pdfExport,
@@ -139,6 +152,8 @@ export function isFeatureReady(feature: keyof typeof features): boolean {
     case 'seoScanning':
       // SEO scanning just needs to be enabled, uses Lighthouse (no external config)
       return true;
+    case 'llmEnrichment':
+      return llmConfig.isConfigured;
     case 'pdfExport':
       return pdfConfig.isConfigured;
     case 'stripe':
@@ -170,6 +185,10 @@ export function getEnabledFeatures(): string[] {
  */
 export function getFeatureStatus() {
   return {
+    performanceScanning: { enabled: features.performanceScanning, ready: isFeatureReady('performanceScanning') },
+    accessibilityScanning: { enabled: features.accessibilityScanning, ready: isFeatureReady('accessibilityScanning') },
+    seoScanning: { enabled: features.seoScanning, ready: isFeatureReady('seoScanning') },
+    llmEnrichment: { enabled: features.llmEnrichment, ready: isFeatureReady('llmEnrichment') },
     scanDiff: { enabled: features.scanDiff, ready: isFeatureReady('scanDiff') },
     pdfExport: { enabled: features.pdfExport, ready: isFeatureReady('pdfExport') },
     stripe: { enabled: features.stripe, ready: isFeatureReady('stripe') },
