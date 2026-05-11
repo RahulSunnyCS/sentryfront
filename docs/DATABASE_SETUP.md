@@ -173,23 +173,47 @@ NODE_ENV=production npm run db:deploy
 
 ---
 
+## Important Notes
+
+### Database Provider Switching
+
+**Current Setup:**
+- **Development:** SQLite (migrations in `prisma/migrations/`)
+- **Production:** PostgreSQL (schema synced via `db push`)
+
+**Why we use `db push` for production:**
+- Different providers (SQLite vs PostgreSQL) have incompatible migrations
+- `db push` syncs the schema directly without migration files
+- Perfect for initial deployment or when switching providers
+
+**For Production Deployments:**
+```bash
+# This is what npm run db:deploy does:
+node scripts/db-config.js production
+npx prisma db push
+```
+
+### Relation Name Differences
+
+⚠️ **Important:** Prisma generates different relation names based on the provider:
+- **SQLite:** `findings`, `user` (lowercase)
+- **PostgreSQL:** `Finding`, `User` (capitalized)
+
+**Current code uses lowercase** (`findings`, `user`) for SQLite compatibility.
+
+If you need to switch to PostgreSQL permanently, update all relation references in:
+- `src/app/api/v1/scans/*/route.ts`
+- `src/app/report/[id]/page.tsx`
+
 ## Troubleshooting
 
 ### Error: "Provider mismatch in migration_lock.toml"
 
-This happens when switching between SQLite and PostgreSQL.
+This is expected when switching between SQLite and PostgreSQL.
 
-**Solution:**
+**For Production:** Use `npm run db:deploy` (uses `db push`, not migrations)
 
-```bash
-# Remove old migrations (only if starting fresh!)
-rm -rf prisma/migrations
-
-# Re-run migrations
-npm run db:migrate
-```
-
-**⚠️ Warning:** Only do this in development! In production, use `db:deploy`.
+**For Development:** Keep using SQLite with migrations
 
 ### Prisma Client Out of Sync
 

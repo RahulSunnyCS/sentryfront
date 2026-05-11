@@ -52,13 +52,29 @@ function maskSensitiveText(value: string): string {
   return value
     // Common API key / bearer-token assignment patterns.
     .replace(
-      /((?:api[_-]?key|secret|token|authorization|password|passwd|pwd|session|cookie)\s*[:=]\s*["']?)([^"'\s;]{8,})/gi,
+      /((?:api[_-]?key|secret|token|authorization|password|passwd|pwd|session|cookie|sessionid)\s*[:=]\s*["']?)([^"'\s;]{8,})/gi,
       (_match, prefix: string, secret: string) => `${prefix}${maskToken(secret)}`,
     )
     // JWT-like values.
     .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, (token) => maskToken(token))
     // Stripe-style live/test keys and similar long opaque keys.
-    .replace(/\b(?:sk|pk|rk|whsec)_(?:live|test)_[A-Za-z0-9]{10,}\b/g, (token) => maskToken(token));
+    .replace(/\b(?:sk|pk|rk|whsec)_(?:live|test)_[A-Za-z0-9]{10,}\b/g, (token) => maskToken(token))
+    // Set-Cookie headers
+    .replace(/Set-Cookie:\s*([^=]+)=([^;\s]+)/gi, (_match, name: string, value: string) =>
+      `Set-Cookie: ${name}=${maskToken(value)}`,
+    )
+    // Authorization: Bearer <token>
+    .replace(/Authorization:\s*Bearer\s+([A-Za-z0-9\-_\.]+)/gi, (_match, token: string) =>
+      `Authorization: Bearer ${maskToken(token)}`,
+    )
+    // Authorization: Basic <base64>
+    .replace(/Authorization:\s*Basic\s+([A-Za-z0-9+/=]+)/gi, (_match, token: string) =>
+      `Authorization: Basic ${maskToken(token)}`,
+    )
+    // Email addresses (optional - redact local part for privacy)
+    .replace(/\b([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\.[A-Z]{2,})\b/gi, (_match, local: string, domain: string) =>
+      local.length > 1 ? `${local[0]}***@${domain}` : `***@${domain}`,
+    );
 }
 
 function maskToken(token: string): string {

@@ -17,8 +17,22 @@ export async function GET() {
     ? 'postgres'
     : 'sqlite';
 
+  // Check required environment variables
+  const requiredEnvVars = {
+    DATABASE_URL: !!process.env.DATABASE_URL,
+    NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
+    NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+    PAGESPEED_API_KEY: !!process.env.PAGESPEED_API_KEY,
+  };
+
+  const missingEnvVars = Object.entries(requiredEnvVars)
+    .filter(([, exists]) => !exists)
+    .map(([name]) => name);
+
+  const overallStatus = dbStatus === 'error' || missingEnvVars.length > 0 ? 'error' : 'ok';
+
   return NextResponse.json({
-    status: dbStatus === 'ok' ? 'ok' : 'degraded',
+    status: overallStatus,
     timestamp: new Date().toISOString(),
     version: process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'dev',
     environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'development',
@@ -31,6 +45,13 @@ export async function GET() {
     },
     queue: process.env.REDIS_URL ? 'redis' : 'in-process',
 
+    // Environment check
+    env: {
+      status: missingEnvVars.length === 0 ? 'ok' : 'error',
+      required: requiredEnvVars,
+      ...(missingEnvVars.length > 0 && { missing: missingEnvVars }),
+    },
+
     // Feature flags
     features: {
       scanDiff: features.scanDiff,
@@ -38,11 +59,23 @@ export async function GET() {
       stripe: features.stripe,
       auth: features.auth,
       tierGating: features.tierGating,
+      llmEnrichment: !!process.env.ANTHROPIC_API_KEY,
+      performanceScanning: true,
+      accessibilityScanning: true,
+      seoScanning: true,
     },
 
-    // Monitoring
-    monitoring: {
-      sentry: process.env.SENTRY_ENABLED === 'true',
+    // Optional integrations
+    integrations: {
+      anthropic: !!process.env.ANTHROPIC_API_KEY,
+      stripe: !!process.env.STRIPE_SECRET_KEY,
+      github: !!process.env.GITHUB_CLIENT_ID,
+      google: !!process.env.GOOGLE_CLIENT_ID,
+      redis: !!process.env.REDIS_URL,
+      r2: !!process.env.R2_ACCESS_KEY_ID,
+      sentry: !!process.env.SENTRY_DSN,
     },
+  }, {
+    status: overallStatus === 'ok' ? 200 : 503,
   });
 }
