@@ -465,6 +465,69 @@ Marketing teams can run VibeSafe scans to optimize search rankings. Reports show
 
 ---
 
+## Phase 8.2 — False Positive Management
+**Goal:** Allow users to suppress false positives with proper documentation and audit trails
+**Duration:** ~5-7 days
+**ROI:** High — Reduces noise, improves user trust, critical for enterprise adoption
+
+### What to build
+
+**Suppression Data Model** (`prisma/schema.prisma`)
+- `Suppression` model — Store suppression rules (moduleId, pattern, reason, expires, approvedBy)
+- `SuppressionEvent` model — Audit trail for all suppression actions
+- User relationship — Suppressions tied to user accounts
+- Expiration support — Auto-expire suppressions after a set date
+
+**Suppression Engine** (`src/lib/suppressions/`)
+- **Matcher** — Pattern matching against findings (regex, exact match, URL patterns)
+- **Service** — Apply suppressions to scan results
+- **Parser** — Parse `.vibesafe-ignore` YAML files
+- **Validator** — Ensure suppression rules are safe and valid
+
+**API Endpoints** (`src/app/api/v1/suppressions/`)
+- `POST /suppressions` — Create new suppression
+- `GET /suppressions` — List user's suppressions
+- `GET /suppressions/:id` — Get specific suppression
+- `PUT /suppressions/:id` — Update suppression
+- `DELETE /suppressions/:id` — Delete suppression
+- `GET /suppressions/:id/events` — View suppression history
+
+**Scan Integration**
+- Add `applySuppressions` parameter to scan API
+- Filter findings during scan processing
+- Track suppressed findings in scan metadata
+- Generate suppression report alongside findings
+
+**UI Components**
+- Suppression manager dashboard
+- "Suppress this finding" button on each finding
+- Quick suppression dialog
+- Suppression history viewer
+- Toggle to show/hide suppressed findings
+
+**File-Based Suppressions** (Optional)
+- Support `.vibesafe-ignore` file in target repository
+- Parse YAML format suppressions
+- Merge with database suppressions
+- Validate rules before applying
+
+### Testing
+- Unit tests for matcher logic
+- Integration tests for API endpoints
+- E2E tests for suppression workflow
+- Test expiration handling
+- Test audit trail
+
+### Deliverable
+Users can suppress false positives with proper documentation, approval workflow, and audit trail. Suppressions auto-expire and are tracked for compliance. Enterprise customers can review suppression history.
+
+**Documentation:**
+- `docs/FALSE_POSITIVES.md` — User guide
+- `docs/FALSE_POSITIVES_QUICK_START.md` — Quick reference
+- `docs/FALSE_POSITIVES_IMPLEMENTATION.md` — Technical specs
+
+---
+
 ## Phase 8.5 — Privacy & GDPR Compliance (P5-01 to P5-06)
 **Goal:** Add privacy regulation compliance checking (GDPR, CCPA, ePrivacy). Critical for enterprise sales and EU customers.
 **Duration:** ~4-5 days
