@@ -1,21 +1,8 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
 import { LandingHero } from './landing-hero';
-
-export const metadata: Metadata = {
-  title: 'VibeSafe — Security, performance & compliance scanner for AI-built sites',
-  description:
-    'Paste a URL and get an enterprise-grade security, performance, accessibility, and SEO report in 90 seconds. Every finding ships with a ready-to-paste AI fix prompt for Cursor, Lovable, Bolt, v0, and Replit.',
-  alternates: { canonical: '/' },
-  openGraph: {
-    title: 'VibeSafe — Security, performance & compliance scanner for AI-built sites',
-    description:
-      'Scan any URL in 90 seconds. Security, compliance, performance, accessibility, and SEO — all with AI fix prompts you can paste into Cursor or Lovable.',
-    url: '/',
-    type: 'website',
-  },
-};
 
 export default function HomePage() {
   return (
