@@ -968,8 +968,24 @@
       document.querySelectorAll('.page-btn').forEach(btn => {
         btn.classList.remove('active');
       });
+
       // Show/hide PDF button
-      document.getElementById('pdfBtn').style.display = (pageId === 'report') ? 'flex' : 'none';
+      const pdfBtn = document.getElementById('pdfBtn');
+      if (pdfBtn) {
+        pdfBtn.style.display = (pageId === 'report') ? 'flex' : 'none';
+      }
+
+      // Show/hide user section
+      const userSection = document.getElementById('userSection');
+      if (userSection) {
+        const pagesWithUser = ['scan', 'report', 'dashboard', 'verify'];
+        userSection.style.display = pagesWithUser.includes(pageId) ? 'flex' : 'none';
+      }
+
+      // If showing docs page, load default section
+      if (pageId === 'docs') {
+        setTimeout(() => showDocsSection('getting-started'), 100);
+      }
     }
 
     function startScan() {
@@ -1128,6 +1144,116 @@
         </div>
       </div>
 
+      <!-- FEATURES SECTION -->
+      <div style="max-width: 1200px; margin: 80px auto; padding: 0 24px;">
+        <h2 style="text-align: center; font-size: 42px; font-weight: 800; margin-bottom: 16px;">
+          Everything you need to ship with confidence
+        </h2>
+        <p style="text-align: center; font-size: 18px; color: var(--text-secondary); margin-bottom: 64px; max-width: 700px; margin-left: auto; margin-right: auto;">
+          From security to SEO, we check it all—so you don't have to
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px;">
+
+          <!-- Security Scanning -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+            <div style="font-size: 32px; margin-bottom: 16px;">🛡️</div>
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">Security Scanning</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+              15 security modules detect exposed secrets (700+ patterns), missing headers, XSS, CORS issues, and vulnerable dependencies
+            </p>
+            <div style="font-size: 12px; color: var(--text-tertiary);">
+              ✓ Gitleaks integration • ✓ Subdomain takeover • ✓ SSL/TLS checks
+            </div>
+          </div>
+
+          <!-- Code Scanning -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+            <div style="font-size: 32px; margin-bottom: 16px;">💻</div>
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">Code Scanning (CI/CD)</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+              Catch secrets before deployment with GitHub Actions, GitLab CI, or Bitbucket Pipelines integration
+            </p>
+            <div style="font-size: 12px; color: var(--text-tertiary);">
+              ✓ GitHub • ✓ GitLab • ✓ Bitbucket • ✓ PR comments
+            </div>
+          </div>
+
+          <!-- Compliance -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+            <div style="font-size: 32px; margin-bottom: 16px;">⚖️</div>
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">Compliance Checks</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+              GDPR, WCAG 2.2 Level AA, cookie consent, privacy policy detection—stay legally compliant
+            </p>
+            <div style="font-size: 12px; color: var(--text-tertiary);">
+              ✓ GDPR • ✓ WCAG 2.2 • ✓ Cookie banners • ✓ Privacy policies
+            </div>
+          </div>
+
+          <!-- Performance -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+            <div style="font-size: 32px; margin-bottom: 16px;">⚡</div>
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">Performance Analysis</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+              Core Web Vitals (LCP, FCP, CLS) via Lighthouse API. Find slow images and render-blocking resources
+            </p>
+            <div style="font-size: 12px; color: var(--text-tertiary);">
+              ✓ Lighthouse • ✓ Core Web Vitals • ✓ Image optimization
+            </div>
+          </div>
+
+          <!-- Accessibility -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+            <div style="font-size: 32px; margin-bottom: 16px;">♿</div>
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">Accessibility (A11y)</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+              Color contrast, keyboard navigation, screen reader support, semantic HTML—WCAG 2.2 compliance
+            </p>
+            <div style="font-size: 12px; color: var(--text-tertiary);">
+              ✓ Color contrast • ✓ Alt text • ✓ Keyboard nav • ✓ ARIA
+            </div>
+          </div>
+
+          <!-- SEO -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+            <div style="font-size: 32px; margin-bottom: 16px;">🔍</div>
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">SEO Optimization</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+              Meta tags, Open Graph, structured data, sitemap, robots.txt—rank higher in search results
+            </p>
+            <div style="font-size: 12px; color: var(--text-tertiary);">
+              ✓ Meta tags • ✓ OG tags • ✓ Sitemap • ✓ Structured data
+            </div>
+          </div>
+
+          <!-- AI Features -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+            <div style="font-size: 32px; margin-bottom: 16px;">🤖</div>
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">AI Fix Prompts</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+              Every finding includes a copy-paste prompt for Cursor, Claude, or your AI coding tool
+            </p>
+            <div style="font-size: 12px; color: var(--text-tertiary);">
+              ✓ Claude Sonnet 4 • ✓ Plain English • ✓ Context-aware
+            </div>
+          </div>
+
+          <!-- Monitoring -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+            <div style="font-size: 32px; margin-bottom: 16px;">📊</div>
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">24/7 Monitoring</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+              Daily auto-scans, email + Slack alerts, SSL expiry tracking, subdomain discovery—never miss an issue
+            </p>
+            <div style="font-size: 12px; color: var(--text-tertiary);">
+              ✓ Daily scans • ✓ Email alerts • ✓ Slack • ✓ SSL tracking
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <!-- Chrome Extension Section -->
       <div style="max-width: 960px; margin: 80px auto 0; padding: 0 24px 80px;">
         <div style="background: linear-gradient(135deg, var(--surface) 0%, var(--surface-secondary) 100%); border: 1px solid var(--border); border-radius: 16px; padding: 48px; position: relative; overflow: hidden;">
@@ -1236,133 +1362,343 @@
           Pricing
         </div>
         <h1 style="font-size: 48px; font-weight: 800; margin-bottom: 16px;">
-          Simple, transparent pricing
+          Pay only for what you scan
         </h1>
         <p style="font-size: 18px; color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
-          Start free. Upgrade when you need continuous monitoring and deeper scans.
+          Buy credits, use them anytime. Need 24/7 monitoring? Add it for $15/month per domain.
         </p>
       </div>
 
+      <!-- Free Tier -->
+      <div style="max-width: 800px; margin: 0 auto 48px; background: var(--surface); border: 2px solid var(--border); border-radius: 16px; padding: 32px; text-align: center;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: white; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;">
+          🎉 Forever Free
+        </div>
+        <h3 style="font-size: 28px; font-weight: 800; margin-bottom: 12px;">Start with 3 free scans every month</h3>
+        <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 24px;">Perfect for side projects and testing. No credit card required.</p>
+        <button onclick="showPage('login')" style="padding: 12px 28px; background: var(--accent); border: none; border-radius: 10px; font-size: 15px; font-weight: 700; color: white; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+          Get Started Free
+        </button>
+      </div>
+
+      <!-- Value Proposition -->
+      <div style="max-width: 800px; margin: 0 auto 48px; text-align: center; background: linear-gradient(135deg, rgba(13, 148, 136, 0.05), rgba(20, 184, 166, 0.02)); border: 1px solid var(--accent); border-radius: 12px; padding: 24px;">
+        <div style="font-size: 15px; color: var(--text-secondary); margin-bottom: 12px;">Each scan replaces:</div>
+        <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary);">
+          <div>🔒 Security audit <span style="font-weight: 700; color: var(--text);">($2,000)</span></div>
+          <div>⚖️ Compliance review <span style="font-weight: 700; color: var(--text);">($500)</span></div>
+          <div>⚡ Performance audit <span style="font-weight: 700; color: var(--text);">($200)</span></div>
+          <div>🤖 AI fix prompts <span style="font-weight: 700; color: var(--text);">($500)</span></div>
+        </div>
+        <div style="font-size: 13px; color: var(--text-tertiary); margin-top: 12px;">Total value: <span style="font-weight: 700; color: var(--accent);">$3,200+ per scan</span> • You save 99%+</div>
+      </div>
+
+      <!-- WHAT'S INCLUDED -->
+      <div style="background: var(--surface); border: 2px solid var(--accent); border-radius: 16px; padding: 48px; margin-bottom: 64px;">
+        <h3 style="font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 16px;">
+          Every scan includes all features
+        </h3>
+        <p style="text-align: center; font-size: 15px; color: var(--text-secondary); margin-bottom: 40px; max-width: 700px; margin-left: auto; margin-right: auto;">
+          Whether you're on the Free tier or bought 200 credits, every scan checks the same depth. No feature gating.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; margin-bottom: 32px;">
+
+          <!-- Security -->
+          <div>
+            <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">🛡️</span> Security (15 modules)
+            </h4>
+            <ul style="font-size: 14px; color: var(--text-secondary); line-height: 2; padding-left: 20px; list-style: none;">
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                700+ secret patterns (Gitleaks)
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Missing security headers
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                XSS & CORS vulnerabilities
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Subdomain takeover detection
+              </li>
+            </ul>
+          </div>
+
+          <!-- Compliance -->
+          <div>
+            <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">⚖️</span> Compliance
+            </h4>
+            <ul style="font-size: 14px; color: var(--text-secondary); line-height: 2; padding-left: 20px; list-style: none;">
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                GDPR compliance checks
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                WCAG 2.2 Level AA
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Cookie consent verification
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Privacy policy detection
+              </li>
+            </ul>
+          </div>
+
+          <!-- Performance -->
+          <div>
+            <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">⚡</span> Performance
+            </h4>
+            <ul style="font-size: 14px; color: var(--text-secondary); line-height: 2; padding-left: 20px; list-style: none;">
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Core Web Vitals (LCP, FCP, CLS)
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Lighthouse integration
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Image optimization checks
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Render-blocking resources
+              </li>
+            </ul>
+          </div>
+
+          <!-- AI Features -->
+          <div>
+            <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">🤖</span> AI Features
+            </h4>
+            <ul style="font-size: 14px; color: var(--text-secondary); line-height: 2; padding-left: 20px; list-style: none;">
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                AI-powered explanations
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Fix prompts for Cursor/v0/Bolt
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Plain English impact analysis
+              </li>
+              <li style="position: relative; padding-left: 20px;">
+                <span style="position: absolute; left: 0; color: var(--accent);">✓</span>
+                Context-aware remediation
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+        <div style="text-align: center; padding-top: 32px; border-top: 1px solid var(--border);">
+          <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 8px;">
+            <strong style="color: var(--text);">All tiers get the same depth.</strong> Free tier = 3 scans/month. Paid = more scans.
+          </p>
+          <p style="font-size: 13px; color: var(--text-tertiary);">
+            Plus: Accessibility (♿), SEO (🔍), Code Scanning (💻), Multi-language reports (🌍)
+          </p>
+        </div>
+      </div>
+
+      <!-- Credit Packs -->
+      <div style="text-align: center; margin-bottom: 32px;">
+        <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 12px;">Buy Credits • Use Anytime</h2>
+        <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 8px;">1 credit = 1 comprehensive scan (security, compliance, performance, accessibility, SEO + AI prompts)</p>
+        <p style="font-size: 14px; color: var(--accent); font-weight: 600;">✨ Credits never expire • Use across unlimited domains</p>
+      </div>
+
       <!-- Pricing Cards -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; max-width: 900px; margin: 0 auto;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto 80px;">
 
-        <!-- Free Plan -->
-        <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 16px; padding: 40px; position: relative;">
-          <div style="margin-bottom: 24px;">
-            <h3 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Free</h3>
-            <p style="font-size: 14px; color: var(--text-secondary);">For individual projects and testing</p>
+        <!-- Starter Pack -->
+        <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 28px; position: relative; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">Starter</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">Perfect to try it out</p>
           </div>
 
-          <div style="margin-bottom: 32px;">
-            <div style="font-size: 48px; font-weight: 800; margin-bottom: 4px;">$0</div>
-            <div style="font-size: 14px; color: var(--text-secondary);">Forever free</div>
+          <div style="margin-bottom: 20px;">
+            <div style="font-size: 38px; font-weight: 800; margin-bottom: 6px;">$25</div>
+            <div style="font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 2px;">5 scans</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">$5.00 per scan</div>
           </div>
 
-          <button onclick="showPage('login')" style="width: 100%; padding: 14px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 10px; font-size: 15px; font-weight: 700; color: var(--text); cursor: pointer; margin-bottom: 32px; transition: all 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface-secondary)'">
-            Get Started Free
+          <button onclick="showPaymentModal('starter')" style="width: 100%; padding: 11px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 9px; font-size: 14px; font-weight: 700; color: var(--text); cursor: pointer; margin-bottom: 20px; transition: all 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface-secondary)'">
+            Buy Credits
           </button>
 
-          <div style="border-top: 1px solid var(--border); padding-top: 24px;">
-            <div style="font-size: 13px; font-weight: 700; margin-bottom: 16px; color: var(--text-secondary);">What's included:</div>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+          <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                <span>3 manual scans per month</span>
+                <span>5 comprehensive scans</span>
               </div>
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                <span>Basic security & SEO checks</span>
+                <span>Never expires</span>
               </div>
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                <span>AI-generated fix prompts</span>
-              </div>
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-                <span>Email support</span>
-              </div>
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px; color: var(--text-tertiary);">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-                <span>No continuous monitoring</span>
-              </div>
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px; color: var(--text-tertiary);">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-                <span>No compliance reports</span>
+                <span>All features included</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Pro Plan -->
-        <div style="background: var(--surface); border: 2px solid var(--accent); border-radius: 16px; padding: 40px; position: relative; box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.1);">
-          <!-- Popular Badge -->
-          <div style="position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+        <!-- Growth Pack (Most Popular) -->
+        <div style="background: var(--surface); border: 2px solid var(--accent); border-radius: 14px; padding: 28px; position: relative; box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.1); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+          <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 5px 14px; border-radius: 18px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
             Most Popular
           </div>
 
-          <div style="margin-bottom: 24px;">
-            <h3 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Pro</h3>
-            <p style="font-size: 14px; color: var(--text-secondary);">For professionals and growing teams</p>
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">Growth</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">Best for most projects</p>
           </div>
 
-          <div style="margin-bottom: 32px;">
-            <div style="font-size: 48px; font-weight: 800; margin-bottom: 4px;">$29</div>
-            <div style="font-size: 14px; color: var(--text-secondary);">per month</div>
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; align-items-baseline; gap: 7px; margin-bottom: 6px;">
+              <div style="font-size: 38px; font-weight: 800;">$80</div>
+              <div style="background: #DCFCE7; color: #166534; padding: 3px 7px; border-radius: 5px; font-size: 10px; font-weight: 700;">SAVE 20%</div>
+            </div>
+            <div style="font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 2px;">20 scans</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">$4.00 per scan</div>
           </div>
 
-          <button onclick="showPaymentModal()" style="width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 10px; font-size: 15px; font-weight: 700; color: white; cursor: pointer; margin-bottom: 32px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-            Start 14-Day Free Trial
+          <button onclick="showPaymentModal('growth')" style="width: 100%; padding: 11px; background: var(--accent); border: none; border-radius: 9px; font-size: 14px; font-weight: 700; color: white; cursor: pointer; margin-bottom: 20px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+            Buy Credits
           </button>
 
-          <div style="border-top: 1px solid var(--border); padding-top: 24px;">
-            <div style="font-size: 13px; font-weight: 700; margin-bottom: 16px; color: var(--text-secondary);">Everything in Free, plus:</div>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+          <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                <span><strong>Unlimited scans</strong></span>
+                <span>20 comprehensive scans</span>
               </div>
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                <span><strong>Daily automatic monitoring</strong></span>
+                <span>Never expires</span>
               </div>
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                <span>Email & Slack alerts</span>
+                <span>All features included</span>
               </div>
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Pro Pack -->
+        <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 28px; position: relative; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">Pro</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">For power users</p>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; align-items-baseline; gap: 7px; margin-bottom: 6px;">
+              <div style="font-size: 38px; font-weight: 800;">$180</div>
+              <div style="background: #DCFCE7; color: #166534; padding: 3px 7px; border-radius: 5px; font-size: 10px; font-weight: 700;">SAVE 40%</div>
+            </div>
+            <div style="font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 2px;">60 scans</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">$3.00 per scan</div>
+          </div>
+
+          <button onclick="showPaymentModal('pro')" style="width: 100%; padding: 11px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 9px; font-size: 14px; font-weight: 700; color: var(--text); cursor: pointer; margin-bottom: 20px; transition: all 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface-secondary)'">
+            Buy Credits
+          </button>
+
+          <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                <span>Full compliance reports (GDPR, WCAG)</span>
+                <span>60 comprehensive scans</span>
               </div>
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                <span>Chrome extension access</span>
+                <span>Never expires</span>
               </div>
-              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>All features included</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Business Pack -->
+        <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 28px; position: relative; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+          <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #F59E0B, #D97706); color: white; padding: 5px 14px; border-radius: 18px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+            Best Value
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">Business</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">For agencies & teams</p>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; align-items-baseline; gap: 7px; margin-bottom: 6px;">
+              <div style="font-size: 38px; font-weight: 800;">$500</div>
+              <div style="background: #DCFCE7; color: #166534; padding: 3px 7px; border-radius: 5px; font-size: 10px; font-weight: 700;">SAVE 50%</div>
+            </div>
+            <div style="font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 2px;">200 scans</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">$2.50 per scan</div>
+          </div>
+
+          <button onclick="showPaymentModal('business')" style="width: 100%; padding: 11px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 9px; font-size: 14px; font-weight: 700; color: var(--text); cursor: pointer; margin-bottom: 20px; transition: all 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface-secondary)'">
+            Buy Credits
+          </button>
+
+          <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>200 comprehensive scans</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Never expires</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
                 <span>Priority support</span>
@@ -1373,29 +1709,128 @@
 
       </div>
 
+      <!-- Continuous Monitoring Add-on -->
+      <div style="max-width: 900px; margin: 0 auto 80px; background: linear-gradient(135deg, var(--surface) 0%, var(--surface-secondary) 100%); border: 2px solid var(--accent); border-radius: 16px; padding: 48px; position: relative;">
+        <!-- Badge -->
+        <div style="position: absolute; top: -14px; left: 48px; background: var(--accent); color: white; padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+          Add-On
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center;">
+          <!-- Left side -->
+          <div>
+            <h3 style="font-size: 28px; font-weight: 800; margin-bottom: 12px;">Need 24/7 Monitoring?</h3>
+            <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 24px;">
+              Get daily automatic scans, instant alerts, and compliance reports for any domain.
+            </p>
+
+            <!-- Features grid -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Daily auto-scans<br><span style="font-size: 12px; color: var(--text-tertiary);">(doesn't use credits)</span></span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Email + Slack alerts</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Subdomain discovery</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Compliance reports</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>SSL expiry tracking</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Downtime monitoring</span>
+              </div>
+            </div>
+
+            <div style="font-size: 13px; color: var(--text-tertiary); font-style: italic;">
+              💡 Pro tip: Use credits for development scans, add monitoring for production sites
+            </div>
+          </div>
+
+          <!-- Right side - Pricing -->
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 32px; min-width: 240px; text-align: center;">
+            <div style="font-size: 42px; font-weight: 800; margin-bottom: 4px;">$29</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">per domain / month</div>
+
+            <button onclick="showPaymentModal('monitoring')" style="width: 100%; padding: 12px; background: var(--accent); border: none; border-radius: 10px; font-size: 14px; font-weight: 700; color: white; cursor: pointer; margin-bottom: 16px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+              Add Monitoring
+            </button>
+
+            <div style="font-size: 12px; color: var(--text-tertiary);">
+              Cancel anytime
+            </div>
+
+            <!-- Volume discount -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-secondary);">
+              <div style="margin-bottom: 6px;">Volume discounts:</div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                <span>3+ domains</span>
+                <span style="font-weight: 700; color: var(--accent);">$24/mo each</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>10+ domains</span>
+                <span style="font-weight: 700; color: var(--accent);">$20/mo each</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- FAQ Section -->
       <div style="max-width: 700px; margin: 80px auto 0;">
         <h3 style="font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 40px;">Frequently Asked Questions</h3>
 
         <div style="display: flex; flex-direction: column; gap: 24px;">
           <div>
-            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Can I cancel anytime?</div>
-            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Yes. No long-term contracts. Cancel with one click from your dashboard.</div>
+            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Do credits expire?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">No! Credits never expire. Buy once, use whenever you need. Roll them over month to month with no pressure.</div>
           </div>
 
           <div>
-            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Do I need to verify my domain?</div>
-            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">For Free plan: No. For Pro plan: Yes (to enable continuous monitoring). We support DNS, meta tag, file upload, and email verification methods.</div>
+            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Can I use credits across multiple domains?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Yes! 1 credit = 1 scan of any domain. Scan 10 different sites or scan the same site 10 times - it's up to you.</div>
           </div>
 
           <div>
-            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">What payment methods do you accept?</div>
-            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Credit card, debit card, and Apple Pay via Stripe. All payments are secure and PCI-compliant.</div>
+            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Do I need monitoring?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Only if you want automated daily scans with instant alerts. Most users just buy credits and scan manually when building/deploying. Add monitoring for production sites that need 24/7 watching.</div>
+          </div>
+
+          <div>
+            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">What's included in each scan?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Every scan checks security (headers, exposed secrets), compliance (GDPR, WCAG), performance (Core Web Vitals), accessibility, SEO, and generates AI fix prompts. Same depth whether you're Free tier or bought 300 credits.</div>
+          </div>
+
+          <div>
+            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Can I cancel monitoring anytime?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Yes. No long-term contracts. Cancel monitoring with one click from your dashboard. Your credits remain available.</div>
           </div>
 
           <div>
             <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Is there a refund policy?</div>
-            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Yes. Full refund within 14 days if you're not satisfied.</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Yes. Full refund on credit purchases within 14 days if you're not satisfied. Monitoring is prorated.</div>
           </div>
         </div>
       </div>
@@ -1415,6 +1850,9 @@
         <div style="display: flex; flex-direction: column; gap: 4px;">
           <a href="#" onclick="showDocsSection('getting-started'); return false;" style="padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='var(--surface)'; this.style.color='var(--text)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
             Getting Started
+          </a>
+          <a href="#" onclick="showDocsSection('code-scanning'); return false;" style="padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='var(--surface)'; this.style.color='var(--text)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
+            💻 Code Scanning (GitHub/GitLab)
           </a>
           <a href="#" onclick="showDocsSection('security'); return false;" style="padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='var(--surface)'; this.style.color='var(--text)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
             🔒 Security Issues
@@ -2985,37 +3423,7 @@ Can you provide general instructions that work for most DNS providers? Also, wha
       });
     }
 
-    // Page Navigation
-    function showPage(pageId) {
-      // Hide all pages
-      document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
-      });
-
-      // Show selected page
-      document.getElementById(pageId).classList.add('active');
-
-      // Update button states
-      document.querySelectorAll('.page-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      event.target.classList.add('active');
-
-      // Show user section and PDF button on appropriate pages
-      const pagesWithUser = ['scan', 'report', 'dashboard', 'verify'];
-      if (pagesWithUser.includes(pageId)) {
-        document.getElementById('userSection').style.display = 'flex';
-      } else {
-        document.getElementById('userSection').style.display = 'none';
-      }
-
-      // PDF button only on report page
-      if (pageId === 'report') {
-        document.getElementById('pdfBtn').style.display = 'flex';
-      } else {
-        document.getElementById('pdfBtn').style.display = 'none';
-      }
-    }
+    // Page Navigation (removed duplicate - using the one at line 958)
 
     // Start Scan (Landing -> Scan page)
     function startScan() {
@@ -3167,8 +3575,26 @@ Can you provide general instructions that work for most DNS providers? Also, wha
     });
 
     // Show payment modal
-    function showPaymentModal() {
+    function showPaymentModal(plan) {
       const modal = document.getElementById('paymentModal');
+      const title = document.getElementById('paymentTitle');
+      const subtitle = document.getElementById('paymentSubtitle');
+
+      const plans = {
+        starter: { name: 'Starter Pack', price: '$25', credits: '5 scans', note: 'One-time purchase • Never expires • $5.00 per scan' },
+        growth: { name: 'Growth Pack', price: '$80', credits: '20 scans', note: 'One-time purchase • Never expires • $4.00 per scan • Save 20%' },
+        pro: { name: 'Pro Pack', price: '$180', credits: '60 scans', note: 'One-time purchase • Never expires • $3.00 per scan • Save 40%' },
+        business: { name: 'Business Pack', price: '$500', credits: '200 scans', note: 'One-time purchase • Never expires • $2.50 per scan • Save 50%' },
+        monitoring: { name: 'Continuous Monitoring', price: '$29/month', credits: 'Daily auto-scans', note: 'Per domain • Cancel anytime • Doesn\'t use your credits' }
+      };
+
+      const selectedPlan = plans[plan] || plans.growth;
+      window.currentPlan = plan;
+
+      title.textContent = selectedPlan.name;
+      subtitle.textContent = `${selectedPlan.price} • ${selectedPlan.credits}`;
+      document.getElementById('paymentNote').textContent = selectedPlan.note;
+
       if (modal) {
         modal.style.display = 'flex';
       }
@@ -3184,8 +3610,16 @@ Can you provide general instructions that work for most DNS providers? Also, wha
 
     // Process payment (demo)
     function processPayment() {
-      // Simulate payment processing
-      alert('✅ Payment Successful!\\n\\nWelcome to VibeSafe Pro!\\n\\nYour 14-day free trial has started.\\nYou won\\'t be charged until ' + new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString() + '.\\n\\nRedirecting to dashboard...');
+      const plan = window.currentPlan || 'growth';
+      const messages = {
+        starter: '✅ Payment Successful!\\n\\n5 scans added to your account.\\nCredits never expire - use them anytime!\\n\\nEach scan provides security, compliance, performance, accessibility, and SEO analysis + AI fix prompts.',
+        growth: '✅ Payment Successful!\\n\\n20 scans added to your account.\\nCredits never expire - use them anytime!\\n\\nYou saved 20% ($100 value for $80).',
+        pro: '✅ Payment Successful!\\n\\n60 scans added to your account.\\nCredits never expire - use them anytime!\\n\\nYou saved 40% ($300 value for $180).',
+        business: '✅ Payment Successful!\\n\\n200 scans added to your account.\\nCredits never expire - use them anytime!\\n\\nYou saved 50% ($1,000 value for $500). Priority support activated.',
+        monitoring: '✅ Monitoring Activated!\\n\\nDaily automatic scans are now running for your domain.\\nYou will receive instant alerts via email and Slack.\\n\\nManage from your dashboard. Cancel anytime.'
+      };
+
+      alert(messages[plan] || messages.growth);
       closePaymentModal();
       showPage('dashboard');
     }
@@ -3229,6 +3663,177 @@ Can you provide general instructions that work for most DNS providers? Also, wha
             <li><strong>SEO:</strong> Missing meta tags, broken links, sitemap issues</li>
             <li><strong>AI Marketing:</strong> Brand analysis, meta tag optimization (Pro only)</li>
           </ul>
+        `,
+
+        'code-scanning': `
+          <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 16px;">💻 Repository Code Scanning</h1>
+          <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 40px;">Scan your source code for secrets, vulnerabilities, and security issues before deployment.</p>
+
+          <div style="background: linear-gradient(135deg, rgba(13, 148, 136, 0.1), rgba(20, 184, 166, 0.05)); border: 1px solid var(--accent); border-radius: 12px; padding: 24px; margin-bottom: 40px;">
+            <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--accent);">🎯 Why Code Scanning?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+              VibeSafe scans your <strong>deployed website</strong> by default. But some issues (like API keys in source code) need to be caught <strong>before deployment</strong>. Code scanning integrates with your Git repository to find secrets, hardcoded credentials, and security anti-patterns in your codebase.
+            </div>
+          </div>
+
+          <h2 style="font-size: 28px; font-weight: 700; margin-top: 48px; margin-bottom: 24px;">Supported Platforms</h2>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 40px;">
+            <!-- GitHub -->
+            <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 24px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <div style="font-size: 32px; margin-bottom: 12px;">🐙</div>
+              <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">GitHub</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">GitHub Action + App Integration</div>
+              <div style="font-size: 12px; color: var(--accent); font-weight: 600;">✓ Fully Supported</div>
+            </div>
+
+            <!-- GitLab -->
+            <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 24px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <div style="font-size: 32px; margin-bottom: 12px;">🦊</div>
+              <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">GitLab</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">GitLab CI/CD Integration</div>
+              <div style="font-size: 12px; color: var(--accent); font-weight: 600;">✓ Fully Supported</div>
+            </div>
+
+            <!-- Bitbucket -->
+            <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 24px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <div style="font-size: 32px; margin-bottom: 12px;">🪣</div>
+              <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">Bitbucket</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Bitbucket Pipelines</div>
+              <div style="font-size: 12px; color: var(--accent); font-weight: 600;">✓ Fully Supported</div>
+            </div>
+          </div>
+
+          <h2 style="font-size: 28px; font-weight: 700; margin-top: 48px; margin-bottom: 24px;">What We Scan For</h2>
+
+          <div style="display: grid; gap: 16px; margin-bottom: 40px;">
+            <div style="background: var(--surface); border-left: 3px solid #DC2626; border-radius: 8px; padding: 20px;">
+              <div style="font-size: 15px; font-weight: 700; margin-bottom: 8px; color: #DC2626;">🔑 Exposed Secrets (700+ patterns)</div>
+              <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+                API keys, tokens, passwords, private keys using <strong>Gitleaks</strong> engine
+              </div>
+              <div style="font-size: 13px; color: var(--text-tertiary);">
+                Examples: AWS keys, Stripe keys, GitHub tokens, database URLs, JWT secrets
+              </div>
+            </div>
+
+            <div style="background: var(--surface); border-left: 3px solid #F59E0B; border-radius: 8px; padding: 20px;">
+              <div style="font-size: 15px; font-weight: 700; margin-bottom: 8px; color: #F59E0B;">🐛 Security Anti-Patterns</div>
+              <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+                Insecure code patterns, dangerous functions, vulnerable dependencies
+              </div>
+              <div style="font-size: 13px; color: var(--text-tertiary);">
+                Examples: eval(), innerHTML, SQL injection risks, XSS vulnerabilities
+              </div>
+            </div>
+
+            <div style="background: var(--surface); border-left: 3px solid #0891B2; border-radius: 8px; padding: 20px;">
+              <div style="font-size: 15px; font-weight: 700; margin-bottom: 8px; color: #0891B2;">📦 Dependency Vulnerabilities</div>
+              <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+                Known CVEs in npm, pip, Maven dependencies (coming soon)
+              </div>
+              <div style="font-size: 13px; color: var(--text-tertiary);">
+                Examples: Outdated React, vulnerable Express, compromised packages
+              </div>
+            </div>
+          </div>
+
+          <h2 style="font-size: 28px; font-weight: 700; margin-top: 48px; margin-bottom: 24px;">Setup: GitHub Action</h2>
+
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+            <div style="font-size: 15px; font-weight: 700; margin-bottom: 16px;">Step 1: Install VibeSafe GitHub App</div>
+            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px;">
+              <li>Go to <a href="#" style="color: var(--accent); text-decoration: none;">GitHub Marketplace → VibeSafe</a></li>
+              <li>Click "Install" and select your repositories</li>
+              <li>Authorize VibeSafe to access your code</li>
+            </ol>
+          </div>
+
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+            <div style="font-size: 15px; font-weight: 700; margin-bottom: 16px;">Step 2: Add Workflow File</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">Create <code style="background: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: monospace;">.github/workflows/vibesafe.yml</code></div>
+
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Courier New', monospace; font-size: 13px; overflow-x: auto; margin-top: 12px; line-height: 1.8; color: var(--text-secondary);">
+name: VibeSafe Security Scan
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+jobs:
+  code-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run VibeSafe Code Scan
+        uses: vibesafe/action@v1
+        with:
+          api_key: \${{ secrets.VIBESAFE_API_KEY }}
+          scan_type: code
+          fail_on_critical: true
+
+      - name: Comment PR with Results
+        if: github.event_name == 'pull_request'
+        uses: vibesafe/comment-action@v1
+        with:
+          scan_id: \${{ steps.scan.outputs.scan_id }}
+            </div>
+          </div>
+
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 40px;">
+            <div style="font-size: 15px; font-weight: 700; margin-bottom: 16px;">Step 3: Add API Key to Secrets</div>
+            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px;">
+              <li>Go to your VibeSafe dashboard → Settings → API Keys</li>
+              <li>Click "Generate New API Key"</li>
+              <li>Copy the key (starts with <code style="background: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: monospace;">vbs_</code>)</li>
+              <li>In GitHub: Settings → Secrets → New repository secret</li>
+              <li>Name: <code style="background: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: monospace;">VIBESAFE_API_KEY</code>, Value: paste your key</li>
+            </ol>
+          </div>
+
+          <h2 style="font-size: 28px; font-weight: 700; margin-top: 48px; margin-bottom: 24px;">Pricing</h2>
+
+          <div style="background: var(--surface); border: 2px solid var(--accent); border-radius: 12px; padding: 32px; margin-bottom: 40px;">
+            <div style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Code scanning uses the same credits as URL scanning</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">
+              1 code scan = 1 credit (same as 1 URL scan)
+            </div>
+
+            <div style="display: grid; gap: 12px; margin-bottom: 24px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="color: #059669; font-weight: 700;">✓</div>
+                <span style="font-size: 14px;">Free tier: 3 code scans/month</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="color: #059669; font-weight: 700;">✓</div>
+                <span style="font-size: 14px;">Paid plans: Use your credit balance</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="color: #059669; font-weight: 700;">✓</div>
+                <span style="font-size: 14px;">Open-source: Free unlimited scans (apply for program)</span>
+              </div>
+            </div>
+
+            <div style="background: rgba(13, 148, 136, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 16px;">
+              <div style="font-size: 13px; color: var(--text-secondary);">
+                <strong>Example:</strong> If you have 20 credits (Growth pack), you can run 20 code scans, 20 URL scans, or any combination (10 code + 10 URL, etc.)
+              </div>
+            </div>
+          </div>
+
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+            <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">💡 Best Practices</div>
+            <ul style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px;">
+              <li>Run code scans on every PR (catch secrets before deployment)</li>
+              <li>Run URL scans after deployment (verify deployed security)</li>
+              <li>Use <code style="background: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: monospace;">fail_on_critical: true</code> to block dangerous code</li>
+              <li>Enable Slack notifications for CI failures</li>
+              <li>Review scan history weekly to identify patterns</li>
+            </ul>
+          </div>
         `,
 
         'security': `
@@ -3438,8 +4043,8 @@ Can you provide general instructions that work for most DNS providers? Also, wha
 
       <!-- Header -->
       <div style="text-align: center; margin-bottom: 32px;">
-        <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Subscribe to VibeSafe Pro</h2>
-        <p style="font-size: 14px; color: var(--text-secondary);">$29/month • 14-day free trial</p>
+        <h2 id="paymentTitle" style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Growth Pack</h2>
+        <p id="paymentSubtitle" style="font-size: 14px; color: var(--text-secondary);">$35 • 50 credits</p>
       </div>
 
       <!-- Stripe-style payment form -->
@@ -3464,11 +4069,11 @@ Can you provide general instructions that work for most DNS providers? Also, wha
         </div>
 
         <div style="background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-          ℹ️ You won't be charged today. Your 14-day free trial starts now. Cancel anytime.
+          ℹ️ <span id="paymentNote">One-time purchase • Never expires</span>
         </div>
 
         <button type="submit" style="width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 10px; font-size: 15px; font-weight: 700; color: white; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-          Start Free Trial
+          Complete Purchase
         </button>
 
         <div style="text-align: center; margin-top: 16px; font-size: 12px; color: var(--text-tertiary);">
