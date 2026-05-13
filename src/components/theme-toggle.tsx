@@ -6,11 +6,9 @@ export function ThemeToggle() {
   const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
-      setIsDark(false);
-    }
+    // The no-flash script in <head> has already set the attribute synchronously.
+    // Read from the DOM to stay in sync.
+    setIsDark(document.documentElement.getAttribute('data-theme') !== 'light');
   }, []);
 
   const toggle = () => {
