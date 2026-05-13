@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Domain Ownership · VibeSafe</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --surface: #0F0F0F;
+      --surface-secondary: #1A1A1A;
+      --border: #2A2A2A;
+      --border-light: #1A1A1A;
+      --text: #FFFFFF;
+      --text-secondary: #A1A1AA;
+      --text-tertiary: #71717A;
+      --accent: #0D9488;
+      --accent-light: #CCFBF1;
+      --danger: #DC2626;
+      --warn: #EA580C;
+      --success: #059669;
+      --info: #2563EB;
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --mono: 'JetBrains Mono', 'Monaco', 'Cascadia Code', Consolas, monospace;
+    }
+
+    [data-theme="light"] {
+      --bg: #FFFFFF;
+      --surface: #F9FAFB;
+      --surface-secondary: #F3F4F6;
+      --border: #E5E7EB;
+      --border-light: #F3F4F6;
+      --text: #111827;
+      --text-secondary: #4B5563;
+      --text-tertiary: #9CA3AF;
+      --accent-light: #CCFBF1;
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .wrapper {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 64px 24px;
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      padding: 8px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-family: var(--font);
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(220, 38, 38, 0.08);
+      border: 1px solid rgba(220, 38, 38, 0.2);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--danger);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 20px;
+    }
+    .header-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--danger);
+      animation: pulse-dot 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+    .header h1 {
+      font-size: clamp(26px, 4vw, 34px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+    .header p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .header .domain {
+      font-family: var(--mono);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 5px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    /* Why verify - context callout */
+    .why-callout {
+      background: linear-gradient(135deg, rgba(220,38,38,0.06), rgba(124,58,237,0.06));
+      border: 1px solid rgba(220, 38, 38, 0.2);
+      border-radius: 12px;
+      padding: 18px 22px;
+      margin-bottom: 32px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .why-callout-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(220,38,38,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .why-callout-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .why-callout-text strong {
+      color: var(--text);
+    }
+
+    /* Path selector */
+    .path-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 6px;
+      margin-bottom: 32px;
+    }
+    .path-btn {
+      padding: 14px 18px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      text-align: left;
+    }
+    .path-btn:hover { color: var(--text); }
+    .path-btn.active {
+      background: var(--accent);
+      color: white;
+    }
+    .path-btn-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .path-btn-sub {
+      font-size: 11px;
+      font-weight: 500;
+      opacity: 0.85;
+    }
+
+    /* Method cards (technical path) */
+    .methods-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 640px) {
+      .methods-grid { grid-template-columns: 1fr; }
+      .path-selector { grid-template-columns: 1fr; }
+    }
+
+    .method-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .method-card.recommended {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.08);
+    }
+    .method-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .method-card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--accent-light);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .method-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .method-card-badge {
+      background: var(--accent);
+      color: white;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .method-card-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+    .method-card-body {
+      flex: 1;
+    }
+    .method-card-step {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .code-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      margin-bottom: 12px;
+      position: relative;
+      word-break: break-all;
+    }
+    .code-block-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .code-block-label {
+      color: var(--text-tertiary);
+    }
+    .code-block-value {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .copy-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: opacity 0.15s;
+    }
+    .copy-btn:hover { opacity: 0.85; }
+    .copy-btn.copied { background: var(--success); }
+
+    .verify-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 9px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 8px;
+    }
+    .verify-btn:hover { opacity: 0.9; }
+    .verify-btn.secondary {
+      background: var(--surface-secondary);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .helper-text {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+
+    /* Guided path - platform picker */
+    .platforms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .platform-btn {
+      padding: 18px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font);
+      color: var(--text);
+    }
+    .platform-btn:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .platform-btn.selected {
+      border-color: var(--accent);
+      background: rgba(13,148,136,0.05);
+    }
+    .platform-btn-icon {
+      font-size: 28px;
+    }
+    .platform-btn-name {
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .platform-btn-method {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    /* Guided step details */
+    .guided-steps {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .guided-steps-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .guided-steps-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .back-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 7px;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .back-btn:hover { color: var(--text); border-color: var(--text-secondary); }
+
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+    .step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-content {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .step-content .label {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .step-content .sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .screenshot-placeholder {
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-style: italic;
+      text-align: center;
+    }
+    .screenshot-placeholder::before {
+      content: "📷 ";
+    }
+
+    /* Status / verification result */
+    .verify-status {
+      background: var(--surface-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .verify-status.pending {
+      background: rgba(202, 138, 4, 0.06);
+      border-color: rgba(202, 138, 4, 0.2);
+      color: #CA8A04;
+    }
+    .verify-status.success {
+      background: rgba(5, 150, 105, 0.06);
+      border-color: rgba(5, 150, 105, 0.2);
+      color: var(--success);
+    }
+    .verify-status.error {
+      background: rgba(220, 38, 38, 0.06);
+      border-color: rgba(220, 38, 38, 0.2);
+      color: var(--danger);
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* Trust footer */
+    .trust-footer {
+      margin-top: 32px;
+      padding: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .trust-item svg {
+      color: var(--success);
+    }
+
+    /* Skip link */
+    .skip-link {
+      display: block;
+      text-align: center;
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+    }
+    .skip-link:hover { color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+
+  <button class="theme-toggle" onclick="toggleTheme()">Toggle theme</button>
+
+  <div class="wrapper">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-badge">
+        <span class="header-dot"></span>
+        <span>Required for Active Testing</span>
+      </div>
+      <h1>Verify you own this domain</h1>
+      <p>To run active security tests on <span class="domain">taskflow.app</span>, we need proof you own or are authorized to test it.</p>
+    </div>
+
+    <!-- Why this matters -->
+    <div class="why-callout">
+      <div class="why-callout-icon">⚖️</div>
+      <div class="why-callout-text">
+        <strong>Why verify?</strong> Active testing sends real attack probes to your site (SQL injection, XSS, fuzzing). Verification is your legal authorization — it protects both you and us under the Computer Fraud and Abuse Act (US) and equivalent laws globally. Without it, scanning is potentially illegal. With it, you're explicitly testing your own property.
+      </div>
+    </div>
+
+    <!-- Path Selector -->
+    <div class="path-selector" role="tablist">
+      <button id="pathTechBtn" class="path-btn active" onclick="switchPath('tech')" role="tab" aria-selected="true">
+        <div class="path-btn-title">👨‍💻 I'm a developer</div>
+        <div class="path-btn-sub">DNS panel access or can deploy HTML — pick a method</div>
+      </button>
+      <button id="pathGuidedBtn" class="path-btn" onclick="switchPath('guided')" role="tab" aria-selected="false">
+        <div class="path-btn-title">🌐 I use a website builder</div>
+        <div class="path-btn-sub">Wix, Squarespace, Webflow, etc. — we'll show you exactly where</div>
+      </button>
+    </div>
+
+    <!-- ============================== -->
+    <!-- TECHNICAL PATH (default view) -->
+    <!-- ============================== -->
+    <div id="techPath">
+
+      <div class="methods-grid">
+
+        <!-- METHOD 1: DNS TXT (Recommended) -->
+        <div class="method-card recommended">
+          <div class="method-card-header">
+            <div class="method-card-icon">🔧</div>
+            <div>
+              <div class="method-card-title">DNS TXT Record <span class="method-card-badge">Recommended</span></div>
+              <div class="method-card-sub">~60 seconds · most reliable</div>
+            </div>
+          </div>
+          <div class="method-card-body">
+            <div class="method-card-step">1. Add this TXT record in your DNS panel:</div>
+            <div class="code-block">
+              <div class="code-block-row" style="margin-bottom: 6px;">
+                <span class="code-block-label">Type</span>
+                <span style="color: var(--text); font-weight: 600;">TXT</span>
+              </div>
+              <div class="code-block-row" style="margin-bottom: 6px;">
+                <span class="code-block-label">Name</span>
+                <span style="color: var(--text); font-weight: 600;">@</span>
+              </div>
+              <div class="code-block-row">
+                <span class="code-block-label">Value</span>
+                <span class="code-block-value">vibesafe-verify=a7f3c2e1d4b8</span>
+              </div>
+              <button class="copy-btn" style="position: absolute; top: 10px; right: 10px;" onclick="copyValue(this, 'vibesafe-verify=a7f3c2e1d4b8')">Copy</button>
+            </div>
+            <div class="method-card-step">2. Wait 1–5 minutes for DNS propagation</div>
+          </div>
+          <button class="verify-btn" onclick="runVerify('dns')">Verify DNS Record →</button>
+          <div class="helper-text">Common DNS panels: Cloudflare, Namecheap, GoDaddy, Route 53, Google Domains</div>
+        </div>
+
+        <!-- METHOD 2: HTML Meta Tag -->
+        <div class="method-card">
+          <div class="method-card-header">
+            <div class="method-card-icon" style="background: rgba(124,58,237,0.12); color: #7C3AED;">📄</div>
+            <div>
+              <div class="method-card-title">HTML Meta Tag</div>
+              <div class="method-card-sub">Use this if you can edit your site's HTML</div>
+            </div>
+          </div>
+          <div class="method-card-body">
+            <div class="method-card-step">1. Add this inside your site's <code style="background: var(--bg); padding: 2px 5px; border-radius: 4px; font-family: var(--mono); font-size: 11px;">&lt;head&gt;</code>:</div>
+            <div class="code-block">
+              <code style="color: var(--accent); display: block; padding-right: 50px;">&lt;meta name="vibesafe-verify" content="a7f3c2e1d4b8"&gt;</code>
+              <button class="copy-btn" style="position: absolute; top: 10px; right: 10px;" onclick="copyValue(this, '&lt;meta name=\&quot;vibesafe-verify\&quot; content=\&quot;a7f3c2e1d4b8\&quot;&gt;')">Copy</button>
+            </div>
+            <div class="method-card-step">2. Deploy your site so it's live</div>
+          </div>
+          <button class="verify-btn" onclick="runVerify('meta')">Verify Meta Tag →</button>
+          <div class="helper-text">We'll fetch your homepage and check the &lt;head&gt; section</div>
+        </div>
+
+      </div>
+
+      <div id="techStatus"></div>
+
+    </div>
+
+    <!-- ============================== -->
+    <!-- GUIDED PATH (non-technical) -->
+    <!-- ============================== -->
+    <div id="guidedPath" style="display: none;">
+
+      <!-- Step 1: pick platform -->
+      <div id="guidedStep1">
+        <div class="guided-steps">
+          <div class="guided-steps-header">
+            <div class="guided-steps-title">Where is your site hosted?</div>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
+            We'll show you the exact place to add the verification. Pick where you built your site:
+          </p>
+
+          <div class="platforms-grid">
+            <button class="platform-btn" onclick="pickPlatform('wix')">
+              <div class="platform-btn-icon">🟣</div>
+              <div class="platform-btn-name">Wix</div>
+              <div class="platform-btn-method">Meta tag</div>
+            </button>
+            <button class="platform-btn" onclick="pickPlatform('squarespace')">
+              <div class="platform-btn-icon">⬛</div>
+              <div class="platform-btn-name">Squarespace</div>
+              <div class="platform-btn-method">Meta tag</div>
+            </button>
+            <button class="platform-btn" onclick="pickPlatform('webflow')">
+              <div class="platform-btn-icon">🔷</div>
+              <div class="platform-btn-name">Webflow</div>
+              <div class="platform-btn-method">Meta tag</div>
+            </button>
+            <button class="platform-btn" onclick="pickPlatform('framer')">
+              <div class="platform-btn-icon">⬡</div>
+              <div class="platform-btn-name">Framer</div>
+              <div class="platform-btn-method">Meta tag</div>
+            </button>
+            <button class="platform-btn" onclick="pickPlatform('shopify')">
+              <div class="platform-btn-icon">🟢</div>
+              <div class="platform-btn-name">Shopify</div>
+              <div class="platform-btn-method">Meta tag</div>
+            </button>
+            <button class="platform-btn" onclick="pickPlatform('wordpress')">
+              <div class="platform-btn-icon">🔵</div>
+              <div class="platform-btn-name">WordPress</div>
+              <div class="platform-btn-method">Plugin or DNS</div>
+            </button>
+            <button class="platform-btn" onclick="pickPlatform('cloudflare')">
+              <div class="platform-btn-icon">🟠</div>
+              <div class="platform-btn-name">Cloudflare</div>
+              <div class="platform-btn-method">DNS TXT</div>
+            </button>
+            <button class="platform-btn" onclick="pickPlatform('vercel')">
+              <div class="platform-btn-icon">▲</div>
+              <div class="platform-btn-name">Vercel</div>
+              <div class="platform-btn-method">DNS TXT</div>
+            </button>
+            <button class="platform-btn" onclick="pickPlatform('other')">
+              <div class="platform-btn-icon">❓</div>
+              <div class="platform-btn-name">Other / Not sure</div>
+              <div class="platform-btn-method">Help me decide</div>
+            </button>
+          </div>
+
+          <a href="#" class="skip-link" onclick="switchPath('tech'); return false;">I actually know what I'm doing → switch to developer view</a>
+        </div>
+      </div>
+
+      <!-- Step 2: platform-specific instructions (dynamically filled) -->
+      <div id="guidedStep2" style="display: none;">
+        <div class="guided-steps">
+          <div class="guided-steps-header">
+            <button class="back-btn" onclick="backToPlatformPicker()">← Pick a different platform</button>
+            <div class="guided-steps-title" id="guidedPlatformName">Wix instructions</div>
+          </div>
+          <div id="guidedInstructions"></div>
+          <div id="guidedStatus"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Trust footer -->
+    <div class="trust-footer">
+      <div class="trust-item">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        One-time setup
+      </div>
+      <div class="trust-item">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        Remove anytime
+      </div>
+      <div class="trust-item">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        We re-check on each scan
+      </div>
+      <div class="trust-item">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        No tracking pixel installed
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const root = document.documentElement;
+      const next = root.getAttribute('data-theme') === 'light' ? '' : 'light';
+      if (next) root.setAttribute('data-theme', next);
+      else root.removeAttribute('data-theme');
+    }
+
+    // Path switch (Technical / Guided)
+    function switchPath(path) {
+      const techBtn = document.getElementById('pathTechBtn');
+      const guidedBtn = document.getElementById('pathGuidedBtn');
+      const techPath = document.getElementById('techPath');
+      const guidedPath = document.getElementById('guidedPath');
+
+      if (path === 'tech') {
+        techBtn.classList.add('active');
+        guidedBtn.classList.remove('active');
+        techBtn.setAttribute('aria-selected', 'true');
+        guidedBtn.setAttribute('aria-selected', 'false');
+        techPath.style.display = '';
+        guidedPath.style.display = 'none';
+      } else {
+        guidedBtn.classList.add('active');
+        techBtn.classList.remove('active');
+        guidedBtn.setAttribute('aria-selected', 'true');
+        techBtn.setAttribute('aria-selected', 'false');
+        guidedPath.style.display = '';
+        techPath.style.display = 'none';
+      }
+    }
+
+    // Copy to clipboard
+    function copyValue(btn, value) {
+      // Decode HTML entities for the meta tag case
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = value;
+      const decoded = textarea.value;
+      navigator.clipboard.writeText(decoded).then(() => {
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1800);
+      });
+    }
+
+    // Verify (simulated)
+    function runVerify(method) {
+      const target = document.getElementById('techStatus');
+      target.innerHTML = '<div class="verify-status pending"><div class="spinner"></div><span>Checking ' + (method === 'dns' ? 'DNS TXT record' : 'meta tag') + ' for taskflow.app...</span></div>';
+      setTimeout(() => {
+        target.innerHTML = '<div class="verify-status success"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Verified!</strong> Domain ownership confirmed for taskflow.app. Active testing is now unlocked.</span></div>';
+      }, 1800);
+    }
+
+    // Guided path - platform definitions
+    const PLATFORMS = {
+      wix: {
+        name: 'Wix',
+        method: 'meta',
+        steps: [
+          { label: 'Open your Wix Editor', sub: 'Go to wix.com → Sites → click "Edit" on your site' },
+          { label: 'Go to Settings → Custom Code', sub: 'In the editor sidebar, click ⚙️ Settings, then "Custom Code"' },
+          { label: 'Click "+ Add Custom Code"', sub: 'Pick "Head" as the location so it loads on every page' },
+          { label: 'Paste this code snippet:', sub: 'This is the only line you need:', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+          { label: 'Click "Apply" and publish your site', sub: 'Then come back here and click Verify below' }
+        ]
+      },
+      squarespace: {
+        name: 'Squarespace',
+        method: 'meta',
+        steps: [
+          { label: 'Open your Squarespace dashboard', sub: 'Log in at squarespace.com' },
+          { label: 'Go to Settings → Advanced → Code Injection', sub: 'Settings is in the sidebar, then click "Advanced"' },
+          { label: 'Paste this into the "Header" field:', sub: '', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+          { label: 'Click "Save" at the top right', sub: 'Then return here and click Verify' }
+        ]
+      },
+      webflow: {
+        name: 'Webflow',
+        method: 'meta',
+        steps: [
+          { label: 'Open your Webflow Designer', sub: 'webflow.com → click your project' },
+          { label: 'Go to Project Settings (⚙️ icon)', sub: 'Bottom-left of the designer' },
+          { label: 'Click "Custom Code" tab', sub: '' },
+          { label: 'Paste this in "Head Code":', sub: '', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+          { label: 'Click "Save Changes" then "Publish"', sub: 'Important: it only takes effect after you publish' }
+        ]
+      },
+      framer: {
+        name: 'Framer',
+        method: 'meta',
+        steps: [
+          { label: 'Open your Framer project', sub: 'framer.com → click your site' },
+          { label: 'Click Site Settings → General', sub: 'Cog icon top-right' },
+          { label: 'Scroll to "Custom Code"', sub: 'Then click "Head"' },
+          { label: 'Paste this:', sub: '', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+          { label: 'Publish your site', sub: 'Click the Publish button top-right' }
+        ]
+      },
+      shopify: {
+        name: 'Shopify',
+        method: 'meta',
+        steps: [
+          { label: 'Open your Shopify admin', sub: 'admin.shopify.com → Online Store' },
+          { label: 'Click Themes → "..." → Edit Code', sub: 'On your active theme' },
+          { label: 'Open theme.liquid (under Layout)', sub: '' },
+          { label: 'Paste this line right after <head>:', sub: '', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+          { label: 'Click Save', sub: 'No publish step needed for Shopify' }
+        ]
+      },
+      wordpress: {
+        name: 'WordPress',
+        method: 'meta',
+        steps: [
+          { label: 'Easiest: install a plugin', sub: 'Plugins → Add New → search "Insert Headers and Footers" → Install + Activate' },
+          { label: 'Go to Settings → Insert Headers and Footers', sub: '' },
+          { label: 'Paste this in "Scripts in Header":', sub: '', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+          { label: 'Click "Save"', sub: 'If you have DNS access, the DNS TXT method is cleaner — switch to developer view' }
+        ]
+      },
+      cloudflare: {
+        name: 'Cloudflare',
+        method: 'dns',
+        steps: [
+          { label: 'Open Cloudflare dashboard', sub: 'dash.cloudflare.com → pick your domain' },
+          { label: 'Click "DNS" in the sidebar', sub: '' },
+          { label: 'Click "Add record"', sub: '' },
+          { label: 'Set Type = TXT, Name = @, Content = (this):', sub: 'Then click "Save"', codeBlock: 'vibesafe-verify=a7f3c2e1d4b8' },
+          { label: 'Wait ~1 minute, then click Verify below', sub: 'Cloudflare DNS propagates almost instantly' }
+        ]
+      },
+      vercel: {
+        name: 'Vercel',
+        method: 'dns',
+        steps: [
+          { label: 'Open Vercel dashboard', sub: 'vercel.com/dashboard → Domains' },
+          { label: 'Click your domain → "DNS Records"', sub: '' },
+          { label: 'Click "Add Record"', sub: '' },
+          { label: 'Type = TXT, Name = @, Value =', sub: '', codeBlock: 'vibesafe-verify=a7f3c2e1d4b8' },
+          { label: 'Click "Save"', sub: 'Then come back here to verify' }
+        ]
+      },
+      other: {
+        name: 'Other / Not sure',
+        method: 'help',
+        steps: [
+          { label: 'Quick question: can you log into your domain registrar?', sub: 'That\'s wherever you bought your domain (GoDaddy, Namecheap, etc.). If yes → use the DNS TXT method.' },
+          { label: 'Or: do you have access to edit your site\'s HTML?', sub: 'If you can deploy code or use a builder that allows custom HTML in &lt;head&gt; → use the Meta tag method.' },
+          { label: 'Still stuck? Email support@vibesafe.app', sub: 'Tell us where your site is hosted and we\'ll walk you through it.' }
+        ]
+      }
+    };
+
+    function pickPlatform(key) {
+      const p = PLATFORMS[key];
+      if (!p) return;
+      document.getElementById('guidedPlatformName').textContent = p.name + ' — step-by-step';
+      const wrap = document.getElementById('guidedInstructions');
+
+      let html = '<div class="step-list">';
+      p.steps.forEach((s, i) => {
+        html += '<div class="step">';
+        html += '  <div class="step-num">' + (i + 1) + '</div>';
+        html += '  <div class="step-content">';
+        html += '    <div class="label">' + s.label + '</div>';
+        if (s.sub) html += '    <div class="sub">' + s.sub + '</div>';
+        if (s.codeBlock) {
+          const escaped = s.codeBlock.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+          html += '    <div class="code-block" style="margin-top: 8px;"><code style="color: var(--accent); display: block; padding-right: 60px;">' + escaped + '</code>';
+          html += '      <button class="copy-btn" style="position: absolute; top: 10px; right: 10px;" onclick="copyValue(this, \'' + s.codeBlock.replace(/'/g, "\\'") + '\')">Copy</button>';
+          html += '    </div>';
+        }
+        html += '    <div class="screenshot-placeholder">Screenshot showing the exact ' + p.name + ' screen at this step</div>';
+        html += '  </div>';
+        html += '</div>';
+      });
+      html += '</div>';
+
+      if (p.method !== 'help') {
+        html += '<button class="verify-btn" onclick="runGuidedVerify(\'' + p.method + '\')">Verify now →</button>';
+        html += '<div class="helper-text" style="text-align: center; margin-top: 10px;">We\'ll automatically re-check every 60 seconds for the next 10 minutes if it\'s not ready yet</div>';
+      }
+
+      wrap.innerHTML = html;
+      document.getElementById('guidedStep1').style.display = 'none';
+      document.getElementById('guidedStep2').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function backToPlatformPicker() {
+      document.getElementById('guidedStep2').style.display = 'none';
+      document.getElementById('guidedStep1').style.display = '';
+      document.getElementById('guidedStatus').innerHTML = '';
+    }
+
+    function runGuidedVerify(method) {
+      const target = document.getElementById('guidedStatus');
+      target.innerHTML = '<div class="verify-status pending" style="margin-top: 16px;"><div class="spinner"></div><span>Checking ' + (method === 'dns' ? 'DNS TXT record' : 'meta tag') + ' for taskflow.app...</span></div>';
+      setTimeout(() => {
+        target.innerHTML = '<div class="verify-status success" style="margin-top: 16px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Verified!</strong> taskflow.app is now confirmed. Active testing is unlocked.</span></div>';
+      }, 1800);
+    }
+  </script>
+</body>
+</html>
