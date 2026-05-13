@@ -1,0 +1,3482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VibeSafe - Complete Web Quality Platform</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --surface: #0F0F0F;
+      --surface-secondary: #1A1A1A;
+      --border: #2A2A2A;
+      --border-light: #1A1A1A;
+      --text: #FFFFFF;
+      --text-secondary: #A1A1AA;
+      --text-tertiary: #71717A;
+      --accent: #0D9488;
+      --accent-light: #CCFBF1;
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg: #FFFFFF;
+      --surface: #F9FAFB;
+      --surface-secondary: #F3F4F6;
+      --border: #E5E7EB;
+      --border-light: #F3F4F6;
+      --text: #111827;
+      --text-secondary: #6B7280;
+      --text-tertiary: #9CA3AF;
+      --accent: #0D9488;
+      --accent-light: #CCFBF1;
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: rgba(10, 10, 11, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-spacer { flex: 1; }
+
+    .theme-toggle {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      margin-right: 12px;
+    }
+
+    .theme-toggle:hover {
+      background: var(--surface-secondary);
+    }
+
+    .nav-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0D9488, #14B8A6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Page Switcher */
+    .page-switcher {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      gap: 8px;
+      background: var(--surface);
+      padding: 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      z-index: 200;
+    }
+
+    .page-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .page-btn:hover {
+      background: var(--surface-secondary);
+      color: var(--text);
+    }
+
+    .page-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    /* Page containers */
+    .page {
+      display: none;
+      min-height: 100vh;
+      padding-top: 56px;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* Container */
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .container-wide {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Landing Hero */
+    .hero {
+      min-height: calc(100vh - 56px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 80px 24px 40px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      background: var(--accent-light);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 32px;
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 800;
+      line-height: 1.1;
+      max-width: 680px;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      font-size: clamp(16px, 2vw, 19px);
+      color: var(--text-secondary);
+      max-width: 540px;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    /* URL Input */
+    .url-input-wrapper {
+      display: flex;
+      width: 100%;
+      max-width: 560px;
+      border-radius: 14px;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .url-input-wrapper input {
+      flex: 1;
+      padding: 16px 12px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      color: var(--text);
+      background: transparent;
+      font-family: var(--font);
+    }
+
+    .scan-btn {
+      padding: 12px 28px;
+      margin: 6px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .scan-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+    }
+
+    /* PDF Download Button */
+    .pdf-download-btn {
+      padding: 10px 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .pdf-download-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+    }
+
+    /* Scan Progress */
+    .scan-container {
+      max-width: 560px;
+      margin: 80px auto;
+      padding: 24px;
+    }
+
+    .progress-card {
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 40px;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 64px;
+      height: 64px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 24px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .progress-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .progress-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .scan-fact {
+      background: var(--surface-secondary);
+      border-left: 3px solid var(--accent);
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 24px 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .scan-fact-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .module-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .module-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .module-status {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .module-status.pending {
+      background: var(--border);
+      color: var(--text-tertiary);
+    }
+
+    .module-status.running {
+      background: var(--accent);
+      color: white;
+      animation: pulse 2s infinite;
+    }
+
+    .module-status.done {
+      background: #059669;
+      color: white;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Report Header */
+    .report-header {
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      padding: 32px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* Grade Display */
+    .grade-ring {
+      position: relative;
+      width: 140px;
+      height: 140px;
+    }
+
+    .grade-ring svg {
+      transform: rotate(-90deg);
+    }
+
+    .grade-ring circle {
+      fill: none;
+      stroke-width: 12;
+    }
+
+    .grade-ring .bg-circle {
+      stroke: var(--border);
+    }
+
+    .grade-ring .fill-circle {
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s ease;
+    }
+
+    .grade-letter {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      font-weight: 800;
+    }
+
+    .grade-score {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* Report Info */
+    .report-info {
+      flex: 1;
+      min-width: 240px;
+    }
+
+    .report-url {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .report-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .exec-summary {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      background: var(--bg);
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    /* Severity Summary */
+    .severity-summary {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .severity-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .severity-badge:hover {
+      transform: translateY(-1px);
+    }
+
+    .severity-badge.active {
+      border-color: currentColor;
+    }
+
+    /* Finding Card */
+    .finding-card {
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    .finding-card:hover {
+      border-color: var(--text-tertiary);
+    }
+
+    .finding-header {
+      padding: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .severity-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .finding-content {
+      flex: 1;
+    }
+
+    .finding-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .finding-location {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      font-family: 'Monaco', monospace;
+    }
+
+    .expand-icon {
+      color: var(--text-tertiary);
+      transition: transform 0.2s;
+    }
+
+    .expand-icon.expanded {
+      transform: rotate(180deg);
+    }
+
+    .finding-details {
+      padding: 0 20px 20px;
+      display: none;
+    }
+
+    .finding-details.visible {
+      display: block;
+    }
+
+    .detail-section {
+      margin-bottom: 20px;
+    }
+
+    .detail-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+
+    .detail-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .code-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: 'Monaco', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .fix-steps {
+      list-style: none;
+      counter-reset: step-counter;
+    }
+
+    .fix-steps li {
+      counter-increment: step-counter;
+      padding-left: 32px;
+      margin-bottom: 8px;
+      position: relative;
+    }
+
+    .fix-steps li:before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 24px;
+      height: 24px;
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .ai-prompt-box {
+      background: linear-gradient(135deg, rgba(13, 148, 136, 0.1), rgba(20, 184, 166, 0.05));
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+
+    .ai-prompt-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .ai-prompt-content {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      font-family: 'Monaco', monospace;
+    }
+
+    .copy-btn {
+      padding: 6px 12px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+
+    .tab {
+      padding: 12px 20px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab:hover {
+      color: var(--text);
+      background: var(--surface-secondary);
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Performance Section */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-status {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-left: 4px;
+    }
+
+    .metric-status.good { background: #059669; }
+    .metric-status.needs-improvement { background: #CA8A04; }
+    .metric-status.poor { background: #E11D48; }
+
+    /* Utility */
+    .mb-24 { margin-bottom: 24px; }
+    .text-center { text-align: center; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <a href="#" onclick="showPage('landing'); return false;" class="nav-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      VibeSafe
+    </a>
+
+    <!-- Nav Links -->
+    <div style="display: flex; align-items: center; gap: 24px; margin-left: 40px;">
+      <a href="#" onclick="showPage('pricing'); return false;" style="font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-secondary)'">
+        <span data-translate="pricing">Pricing</span>
+      </a>
+      <a href="#" onclick="showPage('docs'); return false;" style="font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-secondary)'">
+        <span data-translate="docs">Docs</span>
+      </a>
+    </div>
+
+    <div class="nav-spacer"></div>
+
+    <!-- Language Switcher -->
+    <div style="position: relative; margin-right: 12px;">
+      <button onclick="toggleLanguageMenu()" style="padding: 6px 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+        <span id="currentLangFlag">🇺🇸</span>
+        <span id="currentLangCode">EN</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      <!-- Language Dropdown -->
+      <div id="langMenu" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px; min-width: 180px; box-shadow: var(--shadow-lg); z-index: 1000;">
+        <button onclick="switchLanguage('en')" style="width: 100%; padding: 10px 12px; background: transparent; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; text-align: left;" onmouseover="this.style.background='var(--surface-secondary)'" onmouseout="this.style.background='transparent'">
+          <span style="font-size: 20px;">🇺🇸</span>
+          <span>English</span>
+        </button>
+        <button onclick="switchLanguage('ml')" style="width: 100%; padding: 10px 12px; background: transparent; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; text-align: left;" onmouseover="this.style.background='var(--surface-secondary)'" onmouseout="this.style.background='transparent'">
+          <span style="font-size: 20px;">🇮🇳</span>
+          <span>മലയാളം</span>
+        </button>
+        <button onclick="switchLanguage('es')" style="width: 100%; padding: 10px 12px; background: transparent; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; text-align: left;" onmouseover="this.style.background='var(--surface-secondary)'" onmouseout="this.style.background='transparent'">
+          <span style="font-size: 20px;">🇪🇸</span>
+          <span>Español</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Login Button -->
+    <button onclick="showPage('login')" style="padding: 8px 16px; background: transparent; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; margin-right: 12px;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span data-translate="login">Login</span>
+    </button>
+
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+      <svg id="themeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+
+    <!-- PDF Download (visible on report page) -->
+    <button class="pdf-download-btn" id="pdfBtn" style="display: none; margin-left: 12px;" onclick="downloadPDF()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Download PDF
+    </button>
+
+    <div class="nav-user" id="userSection" style="display: none;">
+      <div class="user-avatar">JD</div>
+      <div class="user-name">John Doe</div>
+    </div>
+  </nav>
+
+  <script>
+    // Translation data
+    const translations = {
+      en: {
+        // Navigation
+        pricing: "Pricing",
+        docs: "Docs",
+        login: "Login",
+
+        // Landing Page
+        heroTitle: "Is your AI-built site actually secure?",
+        heroSubtitle: "Paste a URL. Get a security report in 90 seconds. Every finding comes with a fix you can paste right into your AI coding tool.",
+        scanButton: "Scan",
+        noConfig: "No CLI. No config files. No security knowledge needed.",
+        qualityAnalysis: "Complete Web Quality Analysis",
+        security: "Security",
+        compliance: "Compliance",
+        performance: "Performance",
+        accessibility: "Accessibility",
+        seo: "SEO",
+        reportsAvailable: "Reports available in:",
+
+        // Pricing
+        pricingTitle: "Simple, transparent pricing",
+        pricingSubtitle: "Start free. Upgrade when you need continuous monitoring and deeper scans.",
+        free: "Free",
+        pro: "Pro",
+        perMonth: "per month",
+        foreverFree: "Forever free",
+        getStartedFree: "Get Started Free",
+        startTrial: "Start 14-Day Free Trial",
+        mostPopular: "Most Popular"
+      },
+
+      ml: {
+        // Navigation
+        pricing: "വില നിർണ്ണയം",
+        docs: "ഡോക്യുമെന്റേഷൻ",
+        login: "പ്രവേശനം",
+
+        // Landing Page
+        heroTitle: "നിങ്ങളുടെ AI നിർമ്മിത സൈറ്റ് യഥാർത്ഥത്തിൽ സുരക്ഷിതമാണോ?",
+        heroSubtitle: "ഒരു URL ഒട്ടിക്കുക. 90 സെക്കൻഡിൽ ഒരു സുരക്ષാ റിപ്പോർട്ട് നേടുക. ഓരോ കണ്ടെത്തലും നിങ്ങളുടെ AI കോഡിംഗ് ടൂളിൽ ഒട്ടിക്കാൻ കഴിയുന്ന പരിഹാരത്തോടെ വരുന്നു.",
+        scanButton: "സ്കാൻ ചെയ്യുക",
+        noConfig: "CLI ഇല്ല. കോൺഫിഗ് ഫയലുകൾ ഇല്ല. സുരക്ഷാ അറിവ് ആവശ്യമില്ല.",
+        qualityAnalysis: "സമ്പൂർണ്ണ വെബ് ഗുണനിലവാര വിശകലനം",
+        security: "സുരക്ഷ",
+        compliance: "അനുസരണം",
+        performance: "പ്രകടനം",
+        accessibility: "പ്രവേശനക്ഷമത",
+        seo: "എസ്ഇഒ",
+        reportsAvailable: "റിപ്പോർട്ടുകൾ ലഭ്യമാണ്:",
+
+        // Pricing
+        pricingTitle: "ലളിതവും സുതാര്യവുമായ വിലനിർണ്ണയം",
+        pricingSubtitle: "സൗജന്യമായി ആരംഭിക്കുക. തുടർച്ചയായ നിരീക്ഷണവും ആഴത്തിലുള്ള സ്കാനുകളും ആവശ്യമുള്ളപ്പോൾ അപ്ഗ്രേഡ് ചെയ്യുക.",
+        free: "സൗജന്യം",
+        pro: "പ്രോ",
+        perMonth: "പ്രതിമാസം",
+        foreverFree: "എന്നേക്കും സൗജന്യം",
+        getStartedFree: "സൗജന്യമായി ആരംഭിക്കുക",
+        startTrial: "14 ദിവസത്തെ സൗജന്യ ട്രയൽ ആരംഭിക്കുക",
+        mostPopular: "ഏറ്റവും ജനപ്രിയം"
+      },
+
+      es: {
+        // Navigation
+        pricing: "Precios",
+        docs: "Documentación",
+        login: "Iniciar sesión",
+
+        // Landing Page
+        heroTitle: "¿Tu sitio creado con IA es realmente seguro?",
+        heroSubtitle: "Pega una URL. Obtén un informe de seguridad en 90 segundos. Cada hallazgo viene con una solución que puedes pegar directamente en tu herramienta de codificación IA.",
+        scanButton: "Escanear",
+        noConfig: "Sin CLI. Sin archivos de configuración. No se necesita conocimiento de seguridad.",
+        qualityAnalysis: "Análisis Completo de Calidad Web",
+        security: "Seguridad",
+        compliance: "Cumplimiento",
+        performance: "Rendimiento",
+        accessibility: "Accesibilidad",
+        seo: "SEO",
+        reportsAvailable: "Informes disponibles en:",
+
+        // Pricing
+        pricingTitle: "Precios simples y transparentes",
+        pricingSubtitle: "Comienza gratis. Actualiza cuando necesites monitoreo continuo y escaneos más profundos.",
+        free: "Gratis",
+        pro: "Pro",
+        perMonth: "por mes",
+        foreverFree: "Gratis para siempre",
+        getStartedFree: "Comenzar Gratis",
+        startTrial: "Iniciar Prueba de 14 Días",
+        mostPopular: "Más Popular"
+      }
+    };
+
+    let currentLang = 'en';
+
+    // Define functions early so onclick handlers can access them
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+        page.style.display = 'none';
+      });
+      const targetPage = document.getElementById(pageId);
+      if (targetPage) {
+        targetPage.classList.add('active');
+        targetPage.style.display = 'block';
+      }
+      document.querySelectorAll('.page-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      // Show/hide PDF button
+      document.getElementById('pdfBtn').style.display = (pageId === 'report') ? 'flex' : 'none';
+    }
+
+    function startScan() {
+      showPage('scan');
+      document.querySelectorAll('.page-btn').forEach(btn => {
+        if (btn.textContent === 'Scanning') {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      setTimeout(() => {
+        showPage('report');
+      }, 3000);
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', newTheme);
+      const icon = document.getElementById('themeIcon');
+      if (newTheme === 'light') {
+        icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+      } else {
+        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+      }
+    }
+
+    // Language functions
+    function toggleLanguageMenu() {
+      const menu = document.getElementById('langMenu');
+      menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function switchLanguage(lang) {
+      currentLang = lang;
+
+      // Update language selector
+      const flags = { en: '🇺🇸', ml: '🇮🇳', es: '🇪🇸' };
+      const codes = { en: 'EN', ml: 'ML', es: 'ES' };
+      document.getElementById('currentLangFlag').textContent = flags[lang];
+      document.getElementById('currentLangCode').textContent = codes[lang];
+
+      // Close menu
+      document.getElementById('langMenu').style.display = 'none';
+
+      // Translate all elements
+      document.querySelectorAll('[data-translate]').forEach(element => {
+        const key = element.getAttribute('data-translate');
+        if (translations[lang] && translations[lang][key]) {
+          element.textContent = translations[lang][key];
+        }
+      });
+
+      // Show notification
+      const langNames = { en: 'English', ml: 'മലയാളം', es: 'Español' };
+      const notification = document.createElement('div');
+      notification.style.cssText = 'position: fixed; top: 80px; right: 24px; background: var(--accent); color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
+      notification.textContent = `✓ Language changed to ${langNames[lang]}`;
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.3s';
+        setTimeout(() => notification.remove(), 300);
+      }, 2000);
+    }
+
+    // Close language menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const langMenu = document.getElementById('langMenu');
+      if (langMenu && !e.target.closest('#langMenu') && !e.target.closest('[onclick*="toggleLanguageMenu"]')) {
+        langMenu.style.display = 'none';
+      }
+    });
+  </script>
+
+  <!-- Page Switcher (for demo purposes) -->
+  <div class="page-switcher">
+    <button class="page-btn active" onclick="showPage('landing')">Landing</button>
+    <button class="page-btn" onclick="showPage('login')">Login</button>
+    <button class="page-btn" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="page-btn" onclick="showPage('verify')">DNS Verify</button>
+    <button class="page-btn" onclick="showPage('scan')">Scanning</button>
+    <button class="page-btn" onclick="showPage('report')">Report</button>
+  </div>
+
+  <!-- PAGE 1: Landing -->
+  <div id="landing" class="page active">
+    <div class="hero">
+      <div class="hero-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Passive scan — no config required
+      </div>
+
+      <h1 data-translate="heroTitle">Is your AI-built site actually secure?</h1>
+
+      <p data-translate="heroSubtitle">Paste a URL. Get a security report in 90 seconds. Every finding comes with a fix you can paste right into your AI coding tool.</p>
+
+      <div class="url-input-wrapper">
+        <div style="padding: 0 0 0 18px; display: flex; align-items: center; color: var(--text-tertiary);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
+        <input type="text" placeholder="taskflow.app" value="">
+        <button class="scan-btn" onclick="startScan()">
+          <span data-translate="scanButton">Scan</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle; margin-left: 4px;">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+
+      <p style="font-size: 13px; color: var(--text-tertiary); margin-top: 16px;" data-translate="noConfig">
+        No CLI. No config files. No security knowledge needed.
+      </p>
+
+      <!-- What We Check - Subtle Pills -->
+      <div style="margin-top: 48px; text-align: center;">
+        <p style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;" data-translate="qualityAnalysis">
+          Complete Web Quality Analysis
+        </p>
+        <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; max-width: 600px; margin: 0 auto;">
+          <div style="padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            🛡️ <span data-translate="security">Security</span>
+          </div>
+          <div style="padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            ⚖️ <span data-translate="compliance">Compliance</span>
+          </div>
+          <div style="padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            ⚡ <span data-translate="performance">Performance</span>
+          </div>
+          <div style="padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            ♿ <span data-translate="accessibility">Accessibility</span>
+          </div>
+          <div style="padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            🔍 <span data-translate="seo">SEO</span>
+          </div>
+        </div>
+
+        <!-- Language Support -->
+        <div style="margin-top: 32px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;" data-translate="reportsAvailable">Reports available in:</span>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="padding: 4px 10px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 12px; font-size: 11px; font-weight: 600; color: var(--text-secondary);">🇺🇸 English</span>
+            <span style="padding: 4px 10px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 12px; font-size: 11px; font-weight: 600; color: var(--text-secondary);">🇮🇳 മലയാളം</span>
+            <span style="padding: 4px 10px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 12px; font-size: 11px; font-weight: 600; color: var(--text-secondary);">🇪🇸 Español</span>
+            <span style="padding: 4px 10px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 12px; font-size: 11px; font-weight: 600; color: var(--text-secondary);">🇫🇷 Français</span>
+            <span style="padding: 4px 10px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 12px; font-size: 11px; font-weight: 600; color: var(--text-secondary);">+12 more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chrome Extension Section -->
+      <div style="max-width: 960px; margin: 80px auto 0; padding: 0 24px 80px;">
+        <div style="background: linear-gradient(135deg, var(--surface) 0%, var(--surface-secondary) 100%); border: 1px solid var(--border); border-radius: 16px; padding: 48px; position: relative; overflow: hidden;">
+          <!-- Background decoration -->
+          <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: var(--accent); opacity: 0.05; border-radius: 50%;"></div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;">
+            <div>
+              <div style="display: inline-block; padding: 6px 12px; background: var(--accent-light); color: var(--accent); border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
+                Chrome Extension
+              </div>
+              <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 12px; line-height: 1.2;">
+                Scan any site<br>in one click
+              </h2>
+              <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;">
+                Install our Chrome extension to scan any website you visit. Right-click → "Scan with VibeSafe" or use the toolbar icon. Perfect for auditing competitor sites or client projects.
+              </p>
+
+              <!-- Features List -->
+              <div style="margin-bottom: 28px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span>One-click security scan from any page</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span>Automatic subdomain discovery</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span>Real-time security score badge</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; font-size: 14px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span>Export reports to PDF/JSON</span>
+                </div>
+              </div>
+
+              <button style="padding: 14px 28px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(13, 148, 136, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                Add to Chrome - Free
+              </button>
+              <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 10px;">
+                ⭐️ 4.8/5 rating • 10,000+ users
+              </div>
+            </div>
+
+            <!-- Extension Screenshot/Mockup -->
+            <div style="position: relative;">
+              <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);">
+                <!-- Toolbar mockup -->
+                <div style="display: flex; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+                  <div style="width: 48px; height: 48px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style="font-size: 16px; font-weight: 700;">VibeSafe Security</div>
+                    <div style="font-size: 12px; color: var(--text-tertiary);">v1.2.0</div>
+                  </div>
+                </div>
+
+                <!-- Extension content -->
+                <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px;">Current Site:</div>
+                <div style="background: var(--surface); padding: 12px; border-radius: 8px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 32px; height: 32px; background: #FEFCE8; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #CA8A04;">
+                    C
+                  </div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 13px; font-weight: 600;">example.com</div>
+                    <div style="font-size: 11px; color: var(--text-tertiary);">Score: 72/100</div>
+                  </div>
+                </div>
+
+                <button style="width: 100%; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: 8px;">
+                  Scan This Site
+                </button>
+                <button style="width: 100%; padding: 10px; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                  View Full Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: Pricing -->
+  <div id="pricing" class="page" style="display: none;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 80px 24px;">
+      <!-- Header -->
+      <div style="text-align: center; margin-bottom: 64px;">
+        <div style="font-size: 14px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
+          Pricing
+        </div>
+        <h1 style="font-size: 48px; font-weight: 800; margin-bottom: 16px;">
+          Simple, transparent pricing
+        </h1>
+        <p style="font-size: 18px; color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
+          Start free. Upgrade when you need continuous monitoring and deeper scans.
+        </p>
+      </div>
+
+      <!-- Pricing Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; max-width: 900px; margin: 0 auto;">
+
+        <!-- Free Plan -->
+        <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 16px; padding: 40px; position: relative;">
+          <div style="margin-bottom: 24px;">
+            <h3 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Free</h3>
+            <p style="font-size: 14px; color: var(--text-secondary);">For individual projects and testing</p>
+          </div>
+
+          <div style="margin-bottom: 32px;">
+            <div style="font-size: 48px; font-weight: 800; margin-bottom: 4px;">$0</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">Forever free</div>
+          </div>
+
+          <button onclick="showPage('login')" style="width: 100%; padding: 14px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 10px; font-size: 15px; font-weight: 700; color: var(--text); cursor: pointer; margin-bottom: 32px; transition: all 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface-secondary)'">
+            Get Started Free
+          </button>
+
+          <div style="border-top: 1px solid var(--border); padding-top: 24px;">
+            <div style="font-size: 13px; font-weight: 700; margin-bottom: 16px; color: var(--text-secondary);">What's included:</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>3 manual scans per month</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Basic security & SEO checks</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>AI-generated fix prompts</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Email support</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px; color: var(--text-tertiary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                <span>No continuous monitoring</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px; color: var(--text-tertiary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                <span>No compliance reports</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pro Plan -->
+        <div style="background: var(--surface); border: 2px solid var(--accent); border-radius: 16px; padding: 40px; position: relative; box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.1);">
+          <!-- Popular Badge -->
+          <div style="position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+            Most Popular
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <h3 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Pro</h3>
+            <p style="font-size: 14px; color: var(--text-secondary);">For professionals and growing teams</p>
+          </div>
+
+          <div style="margin-bottom: 32px;">
+            <div style="font-size: 48px; font-weight: 800; margin-bottom: 4px;">$29</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">per month</div>
+          </div>
+
+          <button onclick="showPaymentModal()" style="width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 10px; font-size: 15px; font-weight: 700; color: white; cursor: pointer; margin-bottom: 32px; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+            Start 14-Day Free Trial
+          </button>
+
+          <div style="border-top: 1px solid var(--border); padding-top: 24px;">
+            <div style="font-size: 13px; font-weight: 700; margin-bottom: 16px; color: var(--text-secondary);">Everything in Free, plus:</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span><strong>Unlimited scans</strong></span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span><strong>Daily automatic monitoring</strong></span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Email & Slack alerts</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Full compliance reports (GDPR, WCAG)</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Chrome extension access</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 10px; font-size: 14px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Priority support</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FAQ Section -->
+      <div style="max-width: 700px; margin: 80px auto 0;">
+        <h3 style="font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 40px;">Frequently Asked Questions</h3>
+
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <div>
+            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Can I cancel anytime?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Yes. No long-term contracts. Cancel with one click from your dashboard.</div>
+          </div>
+
+          <div>
+            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Do I need to verify my domain?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">For Free plan: No. For Pro plan: Yes (to enable continuous monitoring). We support DNS, meta tag, file upload, and email verification methods.</div>
+          </div>
+
+          <div>
+            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">What payment methods do you accept?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Credit card, debit card, and Apple Pay via Stripe. All payments are secure and PCI-compliant.</div>
+          </div>
+
+          <div>
+            <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Is there a refund policy?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Yes. Full refund within 14 days if you're not satisfied.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: Docs -->
+  <div id="docs" class="page" style="display: none;">
+    <div style="max-width: 1400px; margin: 0 auto; padding: 40px 24px; display: grid; grid-template-columns: 280px 1fr; gap: 40px;">
+
+      <!-- Sidebar -->
+      <div style="position: sticky; top: 80px; height: fit-content;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;">
+          Documentation
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <a href="#" onclick="showDocsSection('getting-started'); return false;" style="padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='var(--surface)'; this.style.color='var(--text)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
+            Getting Started
+          </a>
+          <a href="#" onclick="showDocsSection('security'); return false;" style="padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='var(--surface)'; this.style.color='var(--text)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
+            🔒 Security Issues
+          </a>
+          <a href="#" onclick="showDocsSection('compliance'); return false;" style="padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='var(--surface)'; this.style.color='var(--text)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
+            ⚖️ Compliance
+          </a>
+          <a href="#" onclick="showDocsSection('performance'); return false;" style="padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='var(--surface)'; this.style.color='var(--text)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
+            ⚡ Performance
+          </a>
+          <a href="#" onclick="showDocsSection('accessibility'); return false;" style="padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='var(--surface)'; this.style.color='var(--text)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
+            ♿ Accessibility
+          </a>
+          <a href="#" onclick="showDocsSection('seo'); return false;" style="padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='var(--surface)'; this.style.color='var(--text)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-secondary)'">
+            🔍 SEO
+          </a>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div id="docsContent" style="max-width: 800px;">
+        <!-- Content will be loaded dynamically -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PAGE 4: Login/Signup -->
+  <div id="login" class="page" style="display: none;">
+    <div style="min-height: calc(100vh - 56px); display: flex; align-items: center; justify-content: center; padding: 24px;">
+      <div style="max-width: 420px; width: 100%;">
+        <!-- Login Card -->
+        <div style="background: var(--surface); border-radius: 16px; border: 1px solid var(--border); padding: 40px; box-shadow: var(--shadow-lg);">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Welcome to VibeSafe</h2>
+            <p style="font-size: 14px; color: var(--text-secondary);">Sign in to start scanning your sites</p>
+          </div>
+
+          <!-- OAuth Buttons -->
+          <button style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; transition: all 0.2s;" onmouseover="this.style.background='var(--surface-secondary)'" onmouseout="this.style.background='var(--bg)'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            Continue with GitHub
+          </button>
+
+          <button style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px; transition: all 0.2s;" onmouseover="this.style.background='var(--surface-secondary)'" onmouseout="this.style.background='var(--bg)'">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Continue with Google
+          </button>
+
+          <!-- Divider -->
+          <div style="display: flex; align-items: center; margin: 24px 0;">
+            <div style="flex: 1; height: 1px; background: var(--border);"></div>
+            <span style="padding: 0 16px; font-size: 13px; color: var(--text-tertiary);">or</span>
+            <div style="flex: 1; height: 1px; background: var(--border);"></div>
+          </div>
+
+          <!-- Email/Password Form -->
+          <form onsubmit="handleLogin(event)">
+            <div style="margin-bottom: 16px;">
+              <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Email</label>
+              <input type="email" placeholder="you@company.com" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; outline: none; font-family: var(--font);">
+            </div>
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Password</label>
+              <input type="password" placeholder="••••••••" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; outline: none; font-family: var(--font);">
+            </div>
+            <button type="submit" style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent); color: white; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+              Sign In
+            </button>
+          </form>
+
+          <div style="margin-top: 20px; text-align: center;">
+            <a href="#" style="font-size: 13px; color: var(--accent); text-decoration: none; font-weight: 600;">Forgot password?</a>
+          </div>
+
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center;">
+            <p style="font-size: 14px; color: var(--text-secondary);">
+              Don't have an account?
+              <a href="#" style="color: var(--accent); text-decoration: none; font-weight: 600;">Sign up for free</a>
+            </p>
+          </div>
+        </div>
+
+        <!-- Trust Indicators -->
+        <div style="margin-top: 32px; text-align: center; font-size: 12px; color: var(--text-tertiary);">
+          <div style="display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              SOC 2 Compliant
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              256-bit SSL
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              Free tier available
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: Dashboard -->
+  <div id="dashboard" class="page">
+    <div class="container-wide" style="padding-top: 80px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+        <div>
+          <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 4px;">Dashboard</h1>
+          <p style="font-size: 14px; color: var(--text-secondary);">Manage and monitor your website scans</p>
+        </div>
+        <button class="scan-btn" onclick="showPage('landing')" style="margin: 0;">
+          New Scan
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Stats Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 40px;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+          <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Scans</div>
+          <div style="font-size: 32px; font-weight: 800; color: var(--text); margin-bottom: 4px;">24</div>
+          <div style="font-size: 12px; color: var(--text-secondary);">
+            <span style="color: #059669;">↑ 12%</span> from last month
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+          <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Critical Issues</div>
+          <div style="font-size: 32px; font-weight: 800; color: #E11D48; margin-bottom: 4px;">7</div>
+          <div style="font-size: 12px; color: var(--text-secondary);">
+            Require immediate attention
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+          <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Avg. Grade</div>
+          <div style="font-size: 32px; font-weight: 800; color: #0D9488; margin-bottom: 4px;">B</div>
+          <div style="font-size: 12px; color: var(--text-secondary);">
+            <span style="color: #059669;">↑ 1 grade</span> improved
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px;">
+          <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Monitored Sites</div>
+          <div style="font-size: 32px; font-weight: 800; color: var(--text); margin-bottom: 4px;">3</div>
+          <div style="font-size: 12px; color: var(--text-secondary);">
+            With continuous scanning
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Scans -->
+      <div>
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Recent Scans</h2>
+
+        <!-- Scan List -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+          <!-- Scan Item 1 -->
+          <div style="padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 20px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--surface-secondary)'" onmouseout="this.style.background='transparent'" onclick="showPage('report')">
+            <div class="grade-letter" style="width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; background: #FFF7ED; color: #EA580C;">
+              D
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">taskflow.app</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">
+                2 Critical • 4 High • 3 Medium • Scanned 2 hours ago
+              </div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div style="text-align: right; margin-right: 12px;">
+                <div style="font-size: 20px; font-weight: 800; color: #EA580C;">35/100</div>
+                <div style="font-size: 11px; color: var(--text-tertiary);">Security Score</div>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Scan Item 2 -->
+          <div style="padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 20px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--surface-secondary)'" onmouseout="this.style.background='transparent'">
+            <div class="grade-letter" style="width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; background: #F0FDFA; color: #0D9488;">
+              B
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">mycompany.io</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">
+                0 Critical • 1 High • 2 Medium • Scanned yesterday
+              </div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div style="text-align: right; margin-right: 12px;">
+                <div style="font-size: 20px; font-weight: 800; color: #0D9488;">82/100</div>
+                <div style="font-size: 11px; color: var(--text-tertiary);">Security Score</div>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Scan Item 3 -->
+          <div style="padding: 20px; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--surface-secondary)'" onmouseout="this.style.background='transparent'">
+            <div class="grade-letter" style="width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; background: #ECFDF5; color: #059669;">
+              A
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">secure-app.com</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">
+                0 Critical • 0 High • 1 Medium • Scanned 3 days ago
+              </div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div style="text-align: right; margin-right: 12px;">
+                <div style="font-size: 20px; font-weight: 800; color: #059669;">94/100</div>
+                <div style="font-size: 11px; color: var(--text-tertiary);">Security Score</div>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 4: DNS Verification -->
+  <div id="verify" class="page">
+    <div class="container" style="padding-top: 80px; max-width: 800px;">
+      <div style="text-align: center; margin-bottom: 40px;">
+        <div style="width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%; background: var(--accent-light); display: flex; align-items: center; justify-content: center;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 8px;">Verify Domain Ownership</h1>
+        <p style="font-size: 15px; color: var(--text-secondary); max-width: 520px; margin: 0 auto;">
+          To enable advanced security scans and continuous monitoring, verify that you own <strong style="color: var(--text);">taskflow.app</strong>
+        </p>
+      </div>
+
+      <!-- Approach Selector -->
+      <div style="display: flex; gap: 12px; margin-bottom: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 6px;">
+        <button id="technicalBtn" class="approach-btn active" onclick="switchApproach('technical')" style="flex: 1; padding: 12px 20px; border: none; border-radius: 8px; background: var(--accent); color: white; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+          I'm Technical
+        </button>
+        <button id="guidedBtn" class="approach-btn" onclick="switchApproach('guided')" style="flex: 1; padding: 12px 20px; border: none; border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+          Guide Me Through It
+        </button>
+      </div>
+
+      <!-- Technical Approach -->
+      <div id="technicalApproach" style="display: block;">
+        <!-- Clear Instructions -->
+        <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
+          <div style="display: flex; align-items: start; gap: 12px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4M12 8h.01"/>
+            </svg>
+            <div style="flex: 1;">
+              <div style="font-size: 14px; font-weight: 700; color: #1E40AF; margin-bottom: 4px;">Choose ONE method below</div>
+              <div style="font-size: 13px; color: #1E3A8A; line-height: 1.5;">
+                You don't need to complete all methods. Pick whichever is easiest based on what you have access to.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      <!-- Verification Methods -->
+      <div style="display: grid; gap: 20px; margin-bottom: 32px;">
+        <!-- Method 1: DNS TXT Record -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+              🔧
+            </div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="font-size: 16px; font-weight: 700;">Method 1: DNS TXT Record</div>
+                <span style="background: var(--accent-light); color: var(--accent); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px;">RECOMMENDED</span>
+              </div>
+              <div style="font-size: 13px; color: var(--text-secondary);">✅ Best if you have DNS access • ❌ Skip if you can't edit DNS</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">1. Add this TXT record to your DNS:</div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Monaco', monospace; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: var(--text-tertiary);">Name:</span>
+                <span style="color: var(--text); font-weight: 600;">_vibesafe-verify</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: var(--text-tertiary);">Type:</span>
+                <span style="color: var(--text); font-weight: 600;">TXT</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: start;">
+                <span style="color: var(--text-tertiary);">Value:</span>
+                <div style="flex: 1; text-align: right; overflow-wrap: break-word;">
+                  <span style="color: var(--accent); font-weight: 600;">vibesafe-verify=a8f3e2b9c1d4e5f6</span>
+                  <button class="copy-btn" style="margin-left: 12px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('vibesafe-verify=a8f3e2b9c1d4e5f6')">Copy</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">2. Wait for DNS propagation (5-30 minutes)</div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">3. Click "Verify DNS Record" below</div>
+          </div>
+
+          <button class="scan-btn" style="width: 100%; margin: 0;" onclick="verifyDNS()">
+            Verify DNS Record
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Method 2: Meta Tag -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: #EDE9FE; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+              📄
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 700;">Method 2: HTML Meta Tag</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">✅ Best if you can deploy code • ❌ Skip if you can't edit HTML</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">1. Add this meta tag to your <code style="background: var(--surface-secondary); padding: 2px 6px; border-radius: 4px; font-family: 'Monaco', monospace;">&lt;head&gt;</code> section:</div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Monaco', monospace; font-size: 12px; overflow-x: auto; position: relative;">
+              <code style="color: var(--text);">&lt;meta name="vibesafe-verify" content="a8f3e2b9c1d4e5f6" /&gt;</code>
+              <button class="copy-btn" style="position: absolute; top: 12px; right: 12px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('<meta name=&quot;vibesafe-verify&quot; content=&quot;a8f3e2b9c1d4e5f6&quot; />')">Copy</button>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">2. Deploy your site</div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">3. Click "Verify Meta Tag" below</div>
+          </div>
+
+          <button class="scan-btn" style="width: 100%; margin: 0; background: #7C3AED;" onclick="verifyMetaTag()">
+            Verify Meta Tag
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Method 3: CNAME Record -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: #FEF3C7; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+              🔗
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 700;">Method 3: CNAME Record</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">✅ Easier than TXT in some registrars • ❌ Requires subdomain control</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">1. Add this CNAME record to your DNS:</div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Monaco', monospace; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: var(--text-tertiary);">Name:</span>
+                <span style="color: var(--text); font-weight: 600;">verify.taskflow.app</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: var(--text-tertiary);">Type:</span>
+                <span style="color: var(--text); font-weight: 600;">CNAME</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: start;">
+                <span style="color: var(--text-tertiary);">Points to:</span>
+                <div style="flex: 1; text-align: right;">
+                  <span style="color: var(--accent); font-weight: 600;">a8f3e2b9c1d4e5f6.verify.vibesafe.app</span>
+                  <button class="copy-btn" style="margin-left: 12px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('a8f3e2b9c1d4e5f6.verify.vibesafe.app')">Copy</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="scan-btn" style="width: 100%; margin: 0; background: #CA8A04;" onclick="verifyCNAME()">
+            Verify CNAME Record
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Method 4: File Upload -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: #DBEAFE; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+              📁
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 700;">Method 4: File Upload</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">✅ No DNS needed • ❌ Requires FTP/server access</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">1. Create a text file named <code style="background: var(--surface-secondary); padding: 2px 6px; border-radius: 4px; font-family: 'Monaco', monospace;">vibesafe-verify.txt</code></div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">2. Add this content to the file:</div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Monaco', monospace; font-size: 13px; position: relative;">
+              <code style="color: var(--accent);">vibesafe-verify=a8f3e2b9c1d4e5f6</code>
+              <button class="copy-btn" style="position: absolute; top: 12px; right: 12px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('vibesafe-verify=a8f3e2b9c1d4e5f6')">Copy</button>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">3. Upload to your website root so it's accessible at:</div>
+            <div style="background: var(--surface-secondary); padding: 12px 16px; border-radius: 8px; font-family: 'Monaco', monospace; font-size: 13px; color: var(--text);">
+              https://taskflow.app/vibesafe-verify.txt
+            </div>
+          </div>
+
+          <button class="scan-btn" style="width: 100%; margin: 0; background: #2563EB;" onclick="verifyFile()">
+            Verify File Upload
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Method 5: Email Verification -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: #DCFCE7; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+              ✉️
+            </div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="font-size: 16px; font-weight: 700;">Method 5: Email Verification</div>
+                <span style="background: #DCFCE7; color: #059669; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px;">EASIEST</span>
+              </div>
+              <div style="font-size: 13px; color: var(--text-secondary);">✅ No technical setup • ❌ Requires admin email access</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px;">1. Send an email from one of these addresses:</div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+              <div style="background: var(--surface-secondary); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-family: 'Monaco', monospace;">admin@taskflow.app</div>
+              <div style="background: var(--surface-secondary); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-family: 'Monaco', monospace;">webmaster@taskflow.app</div>
+              <div style="background: var(--surface-secondary); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-family: 'Monaco', monospace;">postmaster@taskflow.app</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">2. Email details:</div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-size: 13px;">
+              <div style="margin-bottom: 8px;"><strong>To:</strong> verify@vibesafe.app</div>
+              <div style="margin-bottom: 8px;"><strong>Subject:</strong> Verify taskflow.app</div>
+              <div><strong>Body:</strong> <span style="color: var(--accent); font-family: 'Monaco', monospace;">a8f3e2b9c1d4e5f6</span>
+                <button class="copy-btn" style="margin-left: 12px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('a8f3e2b9c1d4e5f6')">Copy Token</button>
+              </div>
+            </div>
+          </div>
+
+          <button class="scan-btn" style="width: 100%; margin: 0; background: #059669;" onclick="verifyEmail()">
+            I've Sent the Email
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      </div>
+
+      <!-- Guided Approach (Non-Technical) -->
+      <div id="guidedApproach" style="display: none;">
+        <!-- Step-by-Step Wizard -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin-bottom: 24px;">
+          <!-- Step 1: Select Registrar -->
+          <div id="step1" style="display: block;">
+            <div style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">Step 1: Where is your domain registered?</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">
+              Select your domain registrar or hosting provider below:
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+              <button class="registrar-btn" onclick="selectRegistrar('godaddy')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size: 24px;">🌐</div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text);">GoDaddy</div>
+              </button>
+              <button class="registrar-btn" onclick="selectRegistrar('namecheap')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size: 24px;">💰</div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text);">Namecheap</div>
+              </button>
+              <button class="registrar-btn" onclick="selectRegistrar('cloudflare')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size: 24px;">☁️</div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text);">Cloudflare</div>
+              </button>
+              <button class="registrar-btn" onclick="selectRegistrar('vercel')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size: 24px;">▲</div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text);">Vercel</div>
+              </button>
+              <button class="registrar-btn" onclick="selectRegistrar('netlify')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size: 24px;">🌊</div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text);">Netlify</div>
+              </button>
+              <button class="registrar-btn" onclick="selectRegistrar('other')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-size: 24px;">❓</div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text);">Other / Not Sure</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2: Provider-Specific Instructions (shown after selection) -->
+          <div id="step2" style="display: none;">
+            <button onclick="backToStep1()" style="background: transparent; border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+
+            <div style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">Step 2: Follow these instructions for <span id="selectedProvider"></span></div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">
+              We've customized these steps for your provider
+            </div>
+
+            <!-- Method Selection with Smart Recommendations -->
+            <div id="providerInstructions">
+              <!-- Will be populated by JavaScript with:
+                   - Recommended method (expanded by default)
+                   - Alternative methods (collapsed)
+              -->
+            </div>
+
+            <!-- AI Prompt Generator -->
+            <div style="margin-top: 24px; padding: 20px; background: linear-gradient(135deg, rgba(13, 148, 136, 0.1), rgba(20, 184, 166, 0.05)); border: 1px solid var(--accent); border-radius: 12px;">
+              <div style="display: flex; align-items: start; gap: 16px;">
+                <div style="font-size: 32px;">🤖</div>
+                <div style="flex: 1;">
+                  <div style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Stuck? Use this AI prompt</div>
+                  <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                    Copy this prompt and paste it into Cursor, Claude, or your AI coding tool
+                  </div>
+                  <div id="aiPromptBox" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Monaco', monospace; font-size: 13px; margin-bottom: 12px; position: relative; line-height: 1.6;">
+                    <!-- Prompt will be inserted here -->
+                  </div>
+                  <button class="copy-btn" onclick="copyAIPrompt()" style="padding: 8px 16px; font-size: 13px;">
+                    Copy AI Prompt
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Why Verify? -->
+      <div style="background: var(--surface-secondary); border-left: 3px solid var(--accent); padding: 20px; border-radius: 8px;">
+        <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+          Why verify domain ownership?
+        </div>
+        <ul style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 0; padding-left: 20px;">
+          <li>Enable continuous security monitoring (daily scans)</li>
+          <li>Access deeper scans (server-side checks, authenticated endpoints)</li>
+          <li>Configure custom scan policies and exclusions</li>
+          <li>Receive email/Slack alerts for new vulnerabilities</li>
+          <li>Prove ownership for compliance reports (SOC 2, ISO 27001)</li>
+        </ul>
+      </div>
+
+      <!-- Skip for Now -->
+      <div style="text-align: center; margin-top: 32px;">
+        <button style="background: transparent; border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; color: var(--text-secondary); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onclick="showPage('dashboard')" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+          Skip for now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 5: Scan Progress -->
+  <div id="scan" class="page">
+    <div class="scan-container">
+      <div class="progress-card">
+        <div class="spinner"></div>
+        <div class="progress-title">Scanning taskflow.app</div>
+        <div class="progress-subtitle">Running 31 security, performance, and compliance checks...</div>
+
+        <!-- Security Fact -->
+        <div class="scan-fact" id="scanFact">
+          <div class="scan-fact-label">💡 Did you know?</div>
+          <div id="factText">The average data breach costs $4.45 million and takes 277 days to identify and contain.</div>
+        </div>
+
+        <div class="module-list">
+          <div class="module-item">
+            <div class="module-status done">✓</div>
+            <div>Client-Side Secrets</div>
+          </div>
+          <div class="module-item">
+            <div class="module-status done">✓</div>
+            <div>Security Headers</div>
+          </div>
+          <div class="module-item">
+            <div class="module-status running">⏳</div>
+            <div>Performance Analysis</div>
+          </div>
+          <div class="module-item">
+            <div class="module-status pending">○</div>
+            <div>Accessibility Check</div>
+          </div>
+          <div class="module-item">
+            <div class="module-status pending">○</div>
+            <div>SEO Optimization</div>
+          </div>
+          <div class="module-item">
+            <div class="module-status pending">○</div>
+            <div>GDPR Compliance</div>
+          </div>
+          <div class="module-item">
+            <div class="module-status pending">○</div>
+            <div>AI Enrichment</div>
+          </div>
+        </div>
+
+        <p style="font-size: 13px; color: var(--text-tertiary); margin-top: 24px;">
+          Estimated time remaining: <span id="timeRemaining">45</span> seconds
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: Report -->
+  <div id="report" class="page">
+    <div class="container">
+      <!-- Report Header -->
+      <div class="report-header">
+        <div class="grade-ring" id="gradeRing">
+          <svg width="140" height="140">
+            <circle class="bg-circle" cx="70" cy="70" r="58"/>
+            <circle class="fill-circle" cx="70" cy="70" r="58"
+                    stroke="#EA580C"
+                    stroke-dasharray="364.4"
+                    stroke-dashoffset="236.9"
+                    style="transition: stroke-dashoffset 1.5s ease;"/>
+          </svg>
+          <div class="grade-letter" style="color: #EA580C;">D</div>
+          <div class="grade-score">35/100</div>
+        </div>
+
+        <div class="report-info">
+          <div class="report-url">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            taskflow.app
+          </div>
+          <div class="report-meta">
+            <span>Next.js on Vercel</span>
+            <span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              73s
+            </span>
+            <span>May 13, 2026</span>
+          </div>
+          <div class="exec-summary">
+            This site has <strong style="color: var(--text);">critical security issues</strong> that need immediate attention. Exposed secrets and misconfigured access controls put user data and finances at risk.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('security')">🛡️ Security</button>
+        <button class="tab" onclick="showTab('compliance')">⚖️ Compliance</button>
+        <button class="tab" onclick="showTab('performance')">⚡ Performance</button>
+        <button class="tab" onclick="showTab('accessibility')">♿ Accessibility</button>
+        <button class="tab" onclick="showTab('seo')">🔍 SEO</button>
+      </div>
+
+      <!-- SECURITY TAB -->
+      <div id="securityTab" class="tab-content active">
+        <!-- Severity Summary -->
+        <div class="severity-summary">
+          <div class="severity-badge active" onclick="filterSeverity('ALL')"
+               style="background: var(--surface); border-color: var(--border);">
+            <span>All Findings</span>
+            <span style="background: var(--text-tertiary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">11</span>
+          </div>
+          <div class="severity-badge" onclick="filterSeverity('CRITICAL')"
+               style="background: #FFF1F2; color: #E11D48;">
+            <span>Critical</span>
+            <span style="background: #E11D48; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">2</span>
+          </div>
+          <div class="severity-badge" onclick="filterSeverity('HIGH')"
+               style="background: #FFF7ED; color: #EA580C;">
+            <span>High</span>
+            <span style="background: #EA580C; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">4</span>
+          </div>
+          <div class="severity-badge" onclick="filterSeverity('MEDIUM')"
+               style="background: #FEFCE8; color: #CA8A04;">
+            <span>Medium</span>
+            <span style="background: #CA8A04; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">3</span>
+          </div>
+          <div class="severity-badge" onclick="filterSeverity('LOW')"
+               style="background: #EFF6FF; color: #2563EB;">
+            <span>Low</span>
+            <span style="background: #2563EB; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">1</span>
+          </div>
+          <div class="severity-badge" onclick="filterSeverity('INFO')"
+               style="background: #F9FAFB; color: #6B7280;">
+            <span>Info</span>
+            <span style="background: #6B7280; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">1</span>
+          </div>
+        </div>
+
+        <!-- Finding 1: Critical -->
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('finding1')">
+            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">
+              🚨
+            </div>
+            <div class="finding-content">
+              <div class="finding-title">Stripe live secret key exposed in JavaScript bundle</div>
+              <div class="finding-location">/assets/index-3f7a2c.js (line 1,847)</div>
+            </div>
+            <div class="expand-icon" id="icon1">▼</div>
+          </div>
+          <div class="finding-details" id="finding1">
+            <div class="detail-section">
+              <div class="detail-label">Evidence</div>
+              <div class="code-block">const stripeClient = new Stripe("sk_live_51Hx****...****e4Rk");</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Explanation</div>
+              <div class="detail-content">
+                Your Stripe live secret key is hardcoded in client-side JavaScript. Unlike publishable keys (pk_live_), secret keys grant full access to your Stripe account and are visible to anyone who opens browser dev tools.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Impact</div>
+              <div class="detail-content">
+                An attacker could create charges, issue refunds, access customer payment data, and modify your Stripe account settings.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Manual Fix</div>
+              <ul class="fix-steps">
+                <li>Remove the secret key from all client-side code immediately.</li>
+                <li>Create a server-side API route (e.g., /api/create-payment-intent) that uses the key.</li>
+                <li>Rotate the compromised key in Stripe Dashboard → Developers → API keys.</li>
+                <li>Use only the publishable key (pk_live_) in client-side code.</li>
+              </ul>
+            </div>
+            <div class="detail-section">
+              <div class="ai-prompt-box">
+                <div class="ai-prompt-header">
+                  🤖 AI Fix Prompt
+                  <button class="copy-btn" onclick="copyPrompt('prompt1')">Copy</button>
+                </div>
+                <div class="ai-prompt-content" id="prompt1">I have a Stripe live secret key hardcoded in my client-side JS. Move all Stripe API calls to a server-side API route in Next.js, use only the publishable key on the client, and create a /api/create-payment-intent endpoint.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Finding 2: Critical -->
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('finding2')">
+            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">
+              🚨
+            </div>
+            <div class="finding-content">
+              <div class="finding-title">Environment file (.env) publicly accessible</div>
+              <div class="finding-location">/.env</div>
+            </div>
+            <div class="expand-icon" id="icon2">▼</div>
+          </div>
+          <div class="finding-details" id="finding2">
+            <div class="detail-section">
+              <div class="detail-label">Evidence</div>
+              <div class="code-block">DATABASE_URL=postgres://taskflow:****@db.supa****.co:5432/postgres
+STRIPE_SECRET_KEY=sk_live_51Hx****...****e4Rk
+OPENAI_API_KEY=sk-proj-****...****</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Explanation</div>
+              <div class="detail-content">
+                Your .env file is accessible to anyone on the internet, exposing database credentials, API keys, and other secrets.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Impact</div>
+              <div class="detail-content" style="color: #E11D48; font-weight: 600;">
+                Full access to your database, Stripe account, and OpenAI billing. All secrets are compromised simultaneously.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Manual Fix</div>
+              <ul class="fix-steps">
+                <li>Block access to /.env immediately via your hosting platform.</li>
+                <li>Rotate ALL keys listed in the file — every one is compromised.</li>
+                <li>Move environment variables to Vercel Settings → Environment Variables.</li>
+                <li>Add .env to .gitignore if not already there.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Finding 3: High Severity -->
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('finding3')">
+            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">
+              ⚠️
+            </div>
+            <div class="finding-content">
+              <div class="finding-title">Missing Content-Security-Policy header</div>
+              <div class="finding-location">Response headers</div>
+            </div>
+            <div class="expand-icon" id="icon3">▼</div>
+          </div>
+          <div class="finding-details" id="finding3">
+            <div class="detail-section">
+              <div class="detail-label">Explanation</div>
+              <div class="detail-content">
+                Content-Security-Policy (CSP) is missing, allowing any script to execute on your site. This makes XSS attacks trivial.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Impact</div>
+              <div class="detail-content">
+                Attackers can inject malicious scripts to steal session tokens, redirect users, or modify page content.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Manual Fix</div>
+              <ul class="fix-steps">
+                <li>Add CSP header in next.config.js or middleware</li>
+                <li>Start with a restrictive policy and relax as needed</li>
+                <li>Test thoroughly to avoid breaking legitimate scripts</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPLIANCE TAB -->
+      <div id="complianceTab" class="tab-content">
+        <div style="background: var(--surface); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px;">
+          <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">⚖️ Compliance Overview</h3>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-value" style="color: #EA580C;">Partial</div>
+              <div class="metric-label">GDPR Status</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" style="color: #CA8A04;">Warning</div>
+              <div class="metric-label">Cookie Consent</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" style="color: #E11D48;">Missing</div>
+              <div class="metric-label">Privacy Policy</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Compliance Finding -->
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('compliance1')">
+            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">
+              ⚖️
+            </div>
+            <div class="finding-content">
+              <div class="finding-title">Missing cookie consent banner (GDPR/CCPA violation)</div>
+              <div class="finding-location">Cookie Policy</div>
+            </div>
+            <div class="expand-icon" id="iconComp1">▼</div>
+          </div>
+          <div class="finding-details" id="compliance1">
+            <div class="detail-section">
+              <div class="detail-label">Explanation</div>
+              <div class="detail-content">
+                Your site sets third-party cookies without user consent, violating GDPR Article 7 and CCPA requirements.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Legal Impact</div>
+              <div class="detail-content" style="background: #FFF7ED; padding: 12px; border-radius: 8px; border-left: 4px solid #EA580C;">
+                <strong>Potential fines:</strong> Up to €20M or 4% of global annual revenue (GDPR). Class-action lawsuits under CCPA.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Manual Fix</div>
+              <ul class="fix-steps">
+                <li>Implement cookie consent banner before setting any cookies</li>
+                <li>Block third-party scripts until user accepts</li>
+                <li>Provide granular consent options (analytics, marketing, etc.)</li>
+                <li>Document consent choices in your database</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('compliance2')">
+            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">
+              📄
+            </div>
+            <div class="finding-content">
+              <div class="finding-title">No accessible privacy policy</div>
+              <div class="finding-location">/privacy (404 Not Found)</div>
+            </div>
+            <div class="expand-icon" id="iconComp2">▼</div>
+          </div>
+          <div class="finding-details" id="compliance2">
+            <div class="detail-section">
+              <div class="detail-label">Explanation</div>
+              <div class="detail-content">
+                GDPR Article 13 requires a clear, accessible privacy policy. Your site has no privacy policy page.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Impact</div>
+              <div class="detail-content">
+                Users cannot understand how their data is collected, processed, or stored. Violates GDPR transparency requirements.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PERFORMANCE TAB -->
+      <div id="performanceTab" class="tab-content">
+        <div style="background: var(--surface); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <h3 style="font-size: 18px; font-weight: 700;">⚡ Core Web Vitals</h3>
+            <div style="font-size: 24px; font-weight: 800; color: #CA8A04;">B (84/100)</div>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-value" style="color: #CA8A04;">
+                2.8s
+                <span class="metric-status needs-improvement"></span>
+              </div>
+              <div class="metric-label">LCP (Largest Contentful Paint)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" style="color: #059669;">
+                1.2s
+                <span class="metric-status good"></span>
+              </div>
+              <div class="metric-label">FCP (First Contentful Paint)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" style="color: #059669;">
+                0.05
+                <span class="metric-status good"></span>
+              </div>
+              <div class="metric-label">CLS (Cumulative Layout Shift)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" style="color: #E11D48;">
+                420ms
+                <span class="metric-status poor"></span>
+              </div>
+              <div class="metric-label">TBT (Total Blocking Time)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Performance Finding -->
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('perf1')">
+            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">
+              ⚡
+            </div>
+            <div class="finding-content">
+              <div class="finding-title">Large JavaScript bundle blocking main thread</div>
+              <div class="finding-location">/assets/index-3f7a2c.js (847 KB)</div>
+            </div>
+            <div class="expand-icon" id="iconPerf1">▼</div>
+          </div>
+          <div class="finding-details" id="perf1">
+            <div class="detail-section">
+              <div class="detail-label">Explanation</div>
+              <div class="detail-content">
+                Your main JavaScript bundle is 847 KB (uncompressed), causing 420ms of Total Blocking Time. Users experience lag during page load.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Impact</div>
+              <div class="detail-content">
+                53% of mobile users abandon sites that take >3 seconds to load. Your LCP of 2.8s is borderline.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="ai-prompt-box">
+                <div class="ai-prompt-header">
+                  🤖 AI Fix Prompt
+                  <button class="copy-btn">Copy</button>
+                </div>
+                <div class="ai-prompt-content">My Next.js app has an 847KB JavaScript bundle. Implement code splitting using dynamic imports for heavy components, analyze bundle size with @next/bundle-analyzer, and lazy-load non-critical features.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACCESSIBILITY TAB -->
+      <div id="accessibilityTab" class="tab-content">
+        <div style="background: var(--surface); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <h3 style="font-size: 18px; font-weight: 700;">♿ WCAG 2.2 Level AA</h3>
+            <div style="font-size: 24px; font-weight: 800; color: #E11D48;">F (42/100)</div>
+          </div>
+
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+            Your site has <strong style="color: #E11D48;">12 WCAG violations</strong> affecting screen reader users, keyboard navigation, and color contrast. 71% of users with disabilities leave inaccessible sites immediately.
+          </p>
+        </div>
+
+        <!-- Accessibility Finding -->
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('a11y1')">
+            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">
+              ♿
+            </div>
+            <div class="finding-content">
+              <div class="finding-title">Buttons missing accessible labels</div>
+              <div class="finding-location">7 instances detected</div>
+            </div>
+            <div class="expand-icon" id="iconA11y1">▼</div>
+          </div>
+          <div class="finding-details" id="a11y1">
+            <div class="detail-section">
+              <div class="detail-label">Explanation</div>
+              <div class="detail-content">
+                7 buttons use only icons without text labels or aria-label attributes. Screen reader users cannot understand button purpose.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">WCAG Reference</div>
+              <div class="detail-content">
+                <strong>WCAG 2.2 Level A - 1.1.1 Non-text Content</strong><br>
+                All non-text content must have a text alternative.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Manual Fix</div>
+              <ul class="fix-steps">
+                <li>Add aria-label="Close" to icon-only buttons</li>
+                <li>Or use visually-hidden text: &lt;span class="sr-only"&gt;Close&lt;/span&gt;</li>
+                <li>Test with VoiceOver (macOS) or NVDA (Windows)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEO TAB -->
+      <div id="seoTab" class="tab-content">
+        <div style="background: var(--surface); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <h3 style="font-size: 18px; font-weight: 700;">🔍 SEO Analysis</h3>
+            <div style="font-size: 24px; font-weight: 800; color: #0D9488;">B (88/100)</div>
+          </div>
+
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+            Your SEO is generally good, but missing Open Graph tags hurt social media performance. 53% of traffic comes from organic search.
+          </p>
+        </div>
+
+        <!-- SEO Finding -->
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('seo1')">
+            <div class="severity-icon" style="background: #FEFCE8; color: #CA8A04;">
+              🔍
+            </div>
+            <div class="finding-content">
+              <div class="finding-title">Missing Open Graph meta tags</div>
+              <div class="finding-location">HTML &lt;head&gt; element</div>
+            </div>
+            <div class="expand-icon" id="iconSEO1">▼</div>
+          </div>
+          <div class="finding-details" id="seo1">
+            <div class="detail-section">
+              <div class="detail-label">Explanation</div>
+              <div class="detail-content">
+                Your site has no og:title, og:description, or og:image tags. Social media platforms will use generic previews instead of your branding.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Impact</div>
+              <div class="detail-content">
+                40% lower click-through rate on social media shares. No control over how your site appears on Twitter, LinkedIn, Facebook.
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Manual Fix</div>
+              <div class="code-block">&lt;meta property="og:title" content="TaskFlow - Project Management"&gt;
+&lt;meta property="og:description" content="Visual boards for remote teams"&gt;
+&lt;meta property="og:image" content="https://taskflow.app/og.png"&gt;</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // Security Facts for Scanning Page
+    const securityFacts = [
+      "The average data breach costs $4.45 million and takes 277 days to identify and contain.",
+      "43% of cyber attacks target small businesses, but only 14% are prepared to defend themselves.",
+      "Over 60% of data breaches involve credentials that were stolen, weak, or reused.",
+      "A website is attacked every 39 seconds on average. Automated scanners probe for vulnerabilities 24/7.",
+      "95% of cybersecurity breaches are caused by human error, not sophisticated hacking techniques.",
+      "GDPR violations can result in fines up to €20 million or 4% of global annual revenue, whichever is higher.",
+      "71% of users with disabilities leave websites that are inaccessible, losing you potential customers.",
+      "53% of mobile users abandon sites that take longer than 3 seconds to load.",
+      "Exposed API keys can be exploited within hours. Credential stuffing attacks happen in real-time.",
+      "Content Security Policy (CSP) can prevent 85% of XSS attacks with proper configuration."
+    ];
+
+    let currentFactIndex = 0;
+
+    // Theme Toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const themeIcon = document.getElementById('themeIcon');
+
+      if (currentTheme === 'light') {
+        html.removeAttribute('data-theme');
+        // Moon icon (dark mode)
+        themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+      } else {
+        html.setAttribute('data-theme', 'light');
+        // Sun icon (light mode)
+        themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+      }
+    }
+
+    // Download PDF
+    function downloadPDF() {
+      alert('PDF download functionality would generate a report PDF here.\n\nIn the real app, this uses Playwright to render the report page as PDF.');
+    }
+
+    // Handle Login
+    function handleLogin(event) {
+      event.preventDefault();
+      showPage('dashboard');
+      // Update page switcher
+      document.querySelectorAll('.page-btn').forEach(btn => {
+        if (btn.textContent === 'Dashboard') {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    // DNS Verification
+    function verifyDNS() {
+      alert('✅ DNS Record Verified!\n\nYour DNS TXT record was successfully found:\n_vibesafe-verify.taskflow.app\n\nContinuous monitoring is now enabled.\n\nIn the real app, this polls your DNS records every 60 seconds for up to 5 minutes.');
+    }
+
+    // Meta Tag Verification
+    function verifyMetaTag() {
+      alert('✅ Meta Tag Verified!\n\nWe found the verification meta tag in your <head> section.\n\nContinuous monitoring is now enabled.\n\nIn the real app, this fetches your homepage and checks for the meta tag.');
+    }
+
+    // CNAME Verification
+    function verifyCNAME() {
+      alert('✅ CNAME Record Verified!\n\nYour CNAME record was successfully found:\nverify.taskflow.app CNAME a8f3e2b9c1d4e5f6.verify.vibesafe.app\n\nContinuous monitoring is now enabled.\n\nIn the real app, this performs a DNS lookup: dig CNAME verify.taskflow.app');
+    }
+
+    // File Upload Verification
+    function verifyFile() {
+      alert('✅ File Verified!\n\nWe found your verification file at:\nhttps://taskflow.app/vibesafe-verify.txt\n\nContinuous monitoring is now enabled.\n\nIn the real app, this fetches: https://taskflow.app/vibesafe-verify.txt');
+    }
+
+    // Email Verification
+    function verifyEmail() {
+      alert('✅ Email Received!\n\nWe\'ve received your verification email from admin@taskflow.app.\n\nContinuous monitoring is now enabled.\n\nIn the real app, this checks our email inbox for messages from admin@, webmaster@, or postmaster@ with your verification token.');
+    }
+
+    // Switch between Technical and Guided approach
+    function switchApproach(approach) {
+      const technicalBtn = document.getElementById('technicalBtn');
+      const guidedBtn = document.getElementById('guidedBtn');
+      const technicalApproach = document.getElementById('technicalApproach');
+      const guidedApproach = document.getElementById('guidedApproach');
+
+      if (approach === 'technical') {
+        technicalBtn.style.background = 'var(--accent)';
+        technicalBtn.style.color = 'white';
+        guidedBtn.style.background = 'transparent';
+        guidedBtn.style.color = 'var(--text-secondary)';
+        technicalApproach.style.display = 'block';
+        guidedApproach.style.display = 'none';
+      } else {
+        guidedBtn.style.background = 'var(--accent)';
+        guidedBtn.style.color = 'white';
+        technicalBtn.style.background = 'transparent';
+        technicalBtn.style.color = 'var(--text-secondary)';
+        guidedApproach.style.display = 'block';
+        technicalApproach.style.display = 'none';
+      }
+    }
+
+    // Select registrar in guided flow
+    function selectRegistrar(provider) {
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+
+      const providerNames = {
+        'godaddy': 'GoDaddy',
+        'namecheap': 'Namecheap',
+        'cloudflare': 'Cloudflare',
+        'vercel': 'Vercel',
+        'netlify': 'Netlify',
+        'other': 'your provider'
+      };
+
+      const providerName = providerNames[provider];
+      document.getElementById('selectedProvider').textContent = providerName;
+
+      // Generate provider-specific instructions
+      const instructions = generateProviderInstructions(provider);
+      document.getElementById('providerInstructions').innerHTML = instructions;
+
+      // Generate AI prompt for this provider
+      const aiPrompt = generateAIPrompt(provider, providerName);
+      document.getElementById('aiPromptBox').textContent = aiPrompt;
+      window.currentAIPrompt = aiPrompt; // Store for copying
+    }
+
+    // Back to step 1
+    function backToStep1() {
+      document.getElementById('step1').style.display = 'block';
+      document.getElementById('step2').style.display = 'none';
+    }
+
+    // Generate provider-specific instructions with smart recommendations
+    function generateProviderInstructions(provider) {
+      const baseToken = 'a8f3e2b9c1d4e5f6';
+      const domain = 'taskflow.app';
+
+      // Define what methods to recommend for each provider
+      const recommendations = {
+        'godaddy': { primary: 'dns', reason: 'GoDaddy gives you full DNS access, making this the most reliable method.', alternatives: ['cname', 'meta', 'file', 'email'] },
+        'namecheap': { primary: 'dns', reason: 'Namecheap\'s Advanced DNS tab makes TXT records straightforward.', alternatives: ['cname', 'meta', 'file', 'email'] },
+        'cloudflare': { primary: 'dns', reason: 'Cloudflare DNS changes propagate fast (1-5 minutes).', alternatives: ['cname', 'meta', 'file', 'email'] },
+        'vercel': { primary: 'meta', reason: 'Vercel doesn\'t provide DNS management. Meta tag works instantly after deployment.', alternatives: ['file', 'email'] },
+        'netlify': { primary: 'meta', reason: 'Netlify makes deploying code easy. Meta tag is faster than DNS.', alternatives: ['dns', 'cname', 'file', 'email'] },
+        'other': { primary: 'email', reason: 'Email verification works for any provider without technical setup.', alternatives: ['dns', 'cname', 'meta', 'file'] }
+      };
+
+      const rec = recommendations[provider] || recommendations['other'];
+
+      // Build the HTML with recommended method expanded, alternatives collapsed
+      let html = `
+        <div style="margin-bottom: 20px;">
+          <div style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-bottom: 16px;">
+            Choose ONE method below based on what you have access to:
+          </div>
+      `;
+
+      // Add recommended method (expanded)
+      html += generateMethodCard(rec.primary, true, rec.reason, baseToken, domain);
+
+      // Add alternatives (collapsed)
+      html += `
+        <div style="margin-top: 16px; margin-bottom: 12px;">
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            Alternative options if you can't use the recommended method:
+          </div>
+        </div>
+      `;
+
+      rec.alternatives.forEach(method => {
+        html += generateMethodCard(method, false, null, baseToken, domain);
+      });
+
+      html += `</div>`;
+
+      return html;
+    }
+
+    // Generate individual method card
+    function generateMethodCard(method, isExpanded, reason, token, domain) {
+      const methods = {
+        'dns': {
+          icon: '🔧',
+          title: 'DNS TXT Record',
+          badge: 'RECOMMENDED',
+          summary: 'Add a TXT record to your DNS settings',
+          instructions: `
+            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin: 12px 0;">
+              <li>Log in to your DNS provider</li>
+              <li>Navigate to DNS settings for "${domain}"</li>
+              <li>Add a new TXT record:
+                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 8px 0; font-family: monospace; font-size: 13px;">
+                  <div>Name: <strong>_vibesafe-verify</strong></div>
+                  <div>Value: <strong>${token}</strong></div>
+                </div>
+              </li>
+              <li>Save the record</li>
+              <li>Wait 5-30 minutes for DNS propagation</li>
+              <li>Click verify button below</li>
+            </ol>
+          `
+        },
+        'cname': {
+          icon: '🔗',
+          title: 'CNAME Record',
+          badge: null,
+          summary: 'Add a CNAME record (simpler in some registrars)',
+          instructions: `
+            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin: 12px 0;">
+              <li>Log in to your DNS provider</li>
+              <li>Navigate to DNS settings for "${domain}"</li>
+              <li>Add a new CNAME record:
+                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 8px 0; font-family: monospace; font-size: 13px;">
+                  <div>Name: <strong>verify</strong></div>
+                  <div>Points to: <strong>${token}.verify.vibesafe.app</strong></div>
+                </div>
+              </li>
+              <li>Save the record</li>
+              <li>Wait 5-30 minutes for DNS propagation</li>
+              <li>Click verify button</li>
+            </ol>
+          `
+        },
+        'meta': {
+          icon: '📄',
+          title: 'HTML Meta Tag',
+          badge: null,
+          summary: 'Add a meta tag to your website\'s HTML',
+          instructions: `
+            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin: 12px 0;">
+              <li>Open your website's code</li>
+              <li>Find the <code>&lt;head&gt;</code> section</li>
+              <li>Add this meta tag:
+                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 8px 0; font-family: monospace; font-size: 13px; position: relative;">
+                  &lt;meta name="vibesafe-verify" content="${token}" /&gt;
+                  <button onclick="copyToClipboard('&lt;meta name=&quot;vibesafe-verify&quot; content=&quot;${token}&quot; /&gt;', event)" style="position: absolute; top: 8px; right: 8px; background: var(--surface); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-family: sans-serif;">Copy</button>
+                </div>
+              </li>
+              <li>Deploy your changes</li>
+              <li>Click verify button (instant verification!)</li>
+            </ol>
+          `
+        },
+        'file': {
+          icon: '📁',
+          title: 'File Upload',
+          badge: null,
+          summary: 'Upload a verification file to your website',
+          instructions: `
+            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin: 12px 0;">
+              <li>Create a file named <code>vibesafe-verify.txt</code></li>
+              <li>Add this content:
+                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 8px 0; font-family: monospace; font-size: 13px;">
+                  vibesafe-verify=${token}
+                </div>
+              </li>
+              <li>Upload to your website root directory</li>
+              <li>File should be accessible at: <code>https://${domain}/vibesafe-verify.txt</code></li>
+              <li>Click verify button</li>
+            </ol>
+          `
+        },
+        'email': {
+          icon: '✉️',
+          title: 'Email Verification',
+          badge: 'EASIEST',
+          summary: 'Send an email from your admin address',
+          instructions: `
+            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin: 12px 0;">
+              <li>Send an email from one of these addresses:
+                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 8px 0;">
+                  • admin@${domain}<br>
+                  • webmaster@${domain}<br>
+                  • postmaster@${domain}
+                </div>
+              </li>
+              <li>To: <strong>verify@vibesafe.app</strong></li>
+              <li>Subject: <strong>Verify ${domain}</strong></li>
+              <li>Body: <strong>${token}</strong></li>
+              <li>Click "I've Sent the Email" button below</li>
+              <li>Wait 5-10 minutes for processing</li>
+            </ol>
+          `
+        }
+      };
+
+      const m = methods[method];
+      if (!m) return '';
+
+      const cardId = `method-${method}-${Math.random().toString(36).substr(2, 9)}`;
+      const badgeHtml = m.badge ? `<span style="background: var(--success); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px;">${m.badge}</span>` : '';
+      const reasonHtml = reason ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px; margin-left: 36px;">${reason}</div>` : '';
+
+      return `
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; overflow: hidden;">
+          <div onclick="toggleMethodCard('${cardId}')" style="padding: 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center;">
+                <span style="font-size: 24px; margin-right: 12px;">${m.icon}</span>
+                <span style="font-size: 15px; font-weight: 700;">${m.title}</span>
+                ${badgeHtml}
+              </div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px; margin-left: 36px;">${m.summary}</div>
+              ${reasonHtml}
+            </div>
+            <svg id="${cardId}-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s; transform: ${isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'};">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div id="${cardId}" style="display: ${isExpanded ? 'block' : 'none'}; padding: 0 16px 16px 16px; border-top: 1px solid var(--border);">
+            ${m.instructions}
+          </div>
+        </div>
+      `;
+    }
+
+    // Toggle method card expand/collapse
+    function toggleMethodCard(cardId) {
+      const card = document.getElementById(cardId);
+      const icon = document.getElementById(cardId + '-icon');
+
+      if (card.style.display === 'none') {
+        card.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+      } else {
+        card.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)';
+      }
+    }
+
+
+    // Generate AI Prompt for provider help
+    function generateAIPrompt(provider, providerName) {
+      const prompts = {
+        'godaddy': `I need to add a DNS TXT record in GoDaddy for domain verification. Can you provide step-by-step instructions on how to:
+
+1. Navigate to DNS settings in GoDaddy for my domain "taskflow.app"
+2. Add a new TXT record with:
+   - Name: _vibesafe-verify
+   - Value: vibesafe-verify=a8f3e2b9c1d4e5f6
+3. Save the record and wait for propagation
+
+Please include exact button names and where to find them in the GoDaddy interface.`,
+
+        'namecheap': `I need to add a DNS TXT record in Namecheap for domain verification. Please guide me through:
+
+1. Finding DNS settings in Namecheap for "taskflow.app"
+2. Adding a TXT record in the "Advanced DNS" section with:
+   - Host: _vibesafe-verify
+   - Value: vibesafe-verify=a8f3e2b9c1d4e5f6
+3. Saving and verifying the record
+
+Include specific steps for Namecheap's interface.`,
+
+        'cloudflare': `I need to add a DNS TXT record in Cloudflare for domain verification. Help me:
+
+1. Navigate to DNS settings in Cloudflare dashboard
+2. Add a new TXT record with:
+   - Name: _vibesafe-verify.taskflow.app
+   - Content: vibesafe-verify=a8f3e2b9c1d4e5f6
+3. Save and verify
+
+Please provide Cloudflare-specific steps.`,
+
+        'vercel': `I'm using Vercel and need to verify my domain "taskflow.app". Since Vercel doesn't provide DNS management, what's the best approach?
+
+Options I'm considering:
+1. Add an HTML meta tag to my Next.js app's <head>
+2. Upload a verification file to the public directory
+3. Manage DNS through my actual registrar (where is my domain registered?)
+
+Can you provide code examples for adding this meta tag in Next.js:
+<meta name="vibesafe-verify" content="a8f3e2b9c1d4e5f6" />`,
+
+        'netlify': `I need to verify my domain "taskflow.app" on Netlify. Can you help me:
+
+1. Add a DNS TXT record in Netlify's DNS settings with:
+   - Name: _vibesafe-verify
+   - Value: vibesafe-verify=a8f3e2b9c1d4e5f6
+
+OR
+
+2. Add an HTML meta tag to my site's <head> section:
+   <meta name="vibesafe-verify" content="a8f3e2b9c1d4e5f6" />
+
+Which method is easier for Netlify, and how do I implement it?`,
+
+        'other': `I need to add a DNS TXT record for domain verification but I'm not sure how. My domain is "taskflow.app" and I need to:
+
+1. Find my DNS management panel (where is it usually located?)
+2. Add a TXT record with:
+   - Name/Host: _vibesafe-verify
+   - Type: TXT
+   - Value: vibesafe-verify=a8f3e2b9c1d4e5f6
+
+Can you provide general instructions that work for most DNS providers? Also, what if I can't access DNS - what are alternative verification methods?`
+      };
+
+      return prompts[provider] || prompts['other'];
+    }
+
+    // Copy AI Prompt
+    function copyAIPrompt() {
+      const prompt = window.currentAIPrompt;
+      if (prompt) {
+        navigator.clipboard.writeText(prompt).then(() => {
+          event.target.textContent = '✓ Copied! Paste into Cursor/Claude';
+          setTimeout(() => {
+            event.target.textContent = 'Copy AI Prompt';
+          }, 3000);
+        });
+      }
+    }
+
+    // Copy to Clipboard
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        event.target.textContent = '✓ Copied!';
+        setTimeout(() => {
+          event.target.textContent = 'Copy';
+        }, 2000);
+      });
+    }
+
+    // Page Navigation
+    function showPage(pageId) {
+      // Hide all pages
+      document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+      });
+
+      // Show selected page
+      document.getElementById(pageId).classList.add('active');
+
+      // Update button states
+      document.querySelectorAll('.page-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      // Show user section and PDF button on appropriate pages
+      const pagesWithUser = ['scan', 'report', 'dashboard', 'verify'];
+      if (pagesWithUser.includes(pageId)) {
+        document.getElementById('userSection').style.display = 'flex';
+      } else {
+        document.getElementById('userSection').style.display = 'none';
+      }
+
+      // PDF button only on report page
+      if (pageId === 'report') {
+        document.getElementById('pdfBtn').style.display = 'flex';
+      } else {
+        document.getElementById('pdfBtn').style.display = 'none';
+      }
+    }
+
+    // Start Scan (Landing -> Scan page)
+    function startScan() {
+      showPage('scan');
+      document.querySelectorAll('.page-btn').forEach(btn => {
+        if (btn.textContent === 'Scanning') {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Simulate scan completion after 3 seconds
+      setTimeout(() => {
+        showPage('report');
+        document.querySelectorAll('.page-btn').forEach(btn => {
+          if (btn.textContent === 'Report') {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+      }, 3000);
+    }
+
+    // Tab Navigation
+    function showTab(tabId) {
+      // Hide all tab contents
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+
+      // Show selected tab content
+      document.getElementById(tabId + 'Tab').classList.add('active');
+
+      // Update tab button states
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      event.target.classList.add('active');
+    }
+
+    // Toggle Finding Details
+    function toggleFinding(findingId) {
+      const details = document.getElementById(findingId);
+      const iconId = 'icon' + findingId.replace('finding', '').replace('compliance', 'Comp').replace('perf', 'Perf').replace('a11y', 'A11y').replace('seo', 'SEO');
+      const icon = document.getElementById(iconId);
+
+      if (details.classList.contains('visible')) {
+        details.classList.remove('visible');
+        if (icon) icon.classList.remove('expanded');
+      } else {
+        details.classList.add('visible');
+        if (icon) icon.classList.add('expanded');
+      }
+    }
+
+    // Filter Severity (placeholder)
+    function filterSeverity(severity) {
+      document.querySelectorAll('.severity-badge').forEach(badge => {
+        badge.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      // In a real app, this would filter the findings list
+      console.log('Filtering by:', severity);
+    }
+
+    // Copy AI Prompt
+    function copyPrompt(promptId) {
+      const promptText = document.getElementById(promptId).textContent;
+      navigator.clipboard.writeText(promptText).then(() => {
+        event.target.textContent = '✓ Copied!';
+        setTimeout(() => {
+          event.target.textContent = 'Copy';
+        }, 2000);
+      });
+    }
+
+    // Rotate Security Facts
+    function rotateFact() {
+      const factElement = document.getElementById('factText');
+      if (factElement && document.getElementById('scan').classList.contains('active')) {
+        currentFactIndex = (currentFactIndex + 1) % securityFacts.length;
+        factElement.style.opacity = '0';
+        setTimeout(() => {
+          factElement.textContent = securityFacts[currentFactIndex];
+          factElement.style.opacity = '1';
+        }, 300);
+      }
+    }
+
+    // Start fact rotation when on scan page
+    let factInterval;
+    setInterval(() => {
+      if (document.getElementById('scan').classList.contains('active')) {
+        if (!factInterval) {
+          factInterval = setInterval(rotateFact, 5000);
+        }
+      } else {
+        if (factInterval) {
+          clearInterval(factInterval);
+          factInterval = null;
+        }
+      }
+    }, 500);
+
+    // Countdown timer for scan
+    let timeLeft = 45;
+    setInterval(() => {
+      const timeElement = document.getElementById('timeRemaining');
+      if (timeElement && document.getElementById('scan').classList.contains('active')) {
+        timeLeft = Math.max(0, timeLeft - 1);
+        timeElement.textContent = timeLeft;
+      } else {
+        timeLeft = 45; // Reset when not on scan page
+      }
+    }, 1000);
+
+    // Auto-advance scan modules (demo animation)
+    let moduleIndex = 3;
+    setInterval(() => {
+      const modules = document.querySelectorAll('.module-status');
+      if (modules.length > moduleIndex && document.getElementById('scan').classList.contains('active')) {
+        modules[moduleIndex].classList.remove('pending');
+        modules[moduleIndex].classList.add('running');
+
+        if (moduleIndex > 0) {
+          modules[moduleIndex - 1].classList.remove('running');
+          modules[moduleIndex - 1].classList.add('done');
+        }
+
+        moduleIndex++;
+        if (moduleIndex >= modules.length) {
+          moduleIndex = 3; // Reset to keep animation going
+        }
+      }
+    }, 1500);
+
+    // Add smooth transition for fact text
+    document.addEventListener('DOMContentLoaded', () => {
+      const factText = document.getElementById('factText');
+      if (factText) {
+        factText.style.transition = 'opacity 0.3s ease';
+      }
+
+      // Load default docs section
+      showDocsSection('getting-started');
+    });
+
+    // Show payment modal
+    function showPaymentModal() {
+      const modal = document.getElementById('paymentModal');
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    }
+
+    // Close payment modal
+    function closePaymentModal() {
+      const modal = document.getElementById('paymentModal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    // Process payment (demo)
+    function processPayment() {
+      // Simulate payment processing
+      alert('✅ Payment Successful!\\n\\nWelcome to VibeSafe Pro!\\n\\nYour 14-day free trial has started.\\nYou won\\'t be charged until ' + new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString() + '.\\n\\nRedirecting to dashboard...');
+      closePaymentModal();
+      showPage('dashboard');
+    }
+
+    // Show docs section
+    function showDocsSection(section) {
+      const content = document.getElementById('docsContent');
+      if (!content) return;
+
+      const sections = {
+        'getting-started': `
+          <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 16px;">Getting Started</h1>
+          <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 40px;">Learn how to scan your first website and understand the results.</p>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">Quick Start</h2>
+          <ol style="font-size: 15px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin-bottom: 32px;">
+            <li>Enter your website URL in the search bar</li>
+            <li>Click "Scan Now" to start the security scan</li>
+            <li>Wait 30-60 seconds for the scan to complete</li>
+            <li>Review the findings organized by severity (Critical, High, Medium, Low)</li>
+            <li>Click on any finding to see AI-generated fix prompts</li>
+            <li>Copy the prompts into Cursor, Claude, or your AI coding tool</li>
+          </ol>
+
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 32px 0;">
+            <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">💡 Pro Tip</div>
+            <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+              For best results, verify your domain ownership to unlock continuous monitoring and deeper scans. Go to Settings → Domain Verification to get started.
+            </div>
+          </div>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">Understanding Scan Results</h2>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 16px;">
+            VibeSafe scans your website across 6 categories:
+          </p>
+          <ul style="font-size: 15px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin-bottom: 32px;">
+            <li><strong>Security:</strong> Missing headers, XSS vulnerabilities, insecure cookies</li>
+            <li><strong>Compliance:</strong> GDPR violations, missing privacy policy, cookie consent</li>
+            <li><strong>Performance:</strong> Unoptimized images, render-blocking resources</li>
+            <li><strong>Accessibility:</strong> Missing alt text, color contrast, keyboard navigation</li>
+            <li><strong>SEO:</strong> Missing meta tags, broken links, sitemap issues</li>
+            <li><strong>AI Marketing:</strong> Brand analysis, meta tag optimization (Pro only)</li>
+          </ul>
+        `,
+
+        'security': `
+          <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 16px;">🔒 Security Issues</h1>
+          <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 40px;">Common security vulnerabilities and how to fix them.</p>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">Missing Security Headers</h2>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 16px;">
+            Security headers protect your site from common attacks like XSS, clickjacking, and MIME sniffing.
+          </p>
+
+          <div style="background: var(--surface); border-left: 3px solid #DC2626; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">❌ Critical: Content-Security-Policy Missing</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+              This header prevents XSS attacks by controlling which resources can load on your page.
+            </div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: monospace; font-size: 13px;">
+              Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'
+            </div>
+          </div>
+
+          <div style="background: var(--surface); border-left: 3px solid #F59E0B; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">⚠️ High: X-Frame-Options Missing</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+              Prevents your site from being embedded in iframes (clickjacking protection).
+            </div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: monospace; font-size: 13px;">
+              X-Frame-Options: DENY
+            </div>
+          </div>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">AI-Generated Fixes</h2>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 16px;">
+            Every security finding includes a prompt you can paste into Cursor, Claude, or Lovable. For example:
+          </p>
+
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 24px 0;">
+            <div style="font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--accent);">Copy this into Cursor:</div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 1.6;">
+              Add Content-Security-Policy header to my Next.js app to prevent XSS attacks.<br><br>
+              Requirements:<br>
+              - Allow scripts from same origin only<br>
+              - Block inline scripts (except with nonce)<br>
+              - Add to middleware.ts for all routes<br><br>
+              Show me the exact code to implement this.
+            </div>
+          </div>
+        `,
+
+        'compliance': `
+          <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 16px;">⚖️ Compliance</h1>
+          <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 40px;">GDPR, CCPA, and accessibility compliance explained.</p>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">GDPR Requirements</h2>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 16px;">
+            If you have EU users, you must comply with GDPR regulations.
+          </p>
+
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 24px 0;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">Required Elements:</h3>
+            <ul style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px;">
+              <li>✅ Cookie consent banner (before setting non-essential cookies)</li>
+              <li>✅ Privacy policy with data collection details</li>
+              <li>✅ User data export functionality</li>
+              <li>✅ User data deletion functionality</li>
+              <li>✅ Clear opt-in for marketing emails</li>
+            </ul>
+          </div>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">Cookie Consent Implementation</h2>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 24px 0;">
+            <div style="font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--accent);">Example AI Prompt:</div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 1.6;">
+              Add GDPR-compliant cookie consent banner to my Next.js app.<br><br>
+              Requirements:<br>
+              - Show before any cookies are set<br>
+              - Allow users to accept/reject non-essential cookies<br>
+              - Save preference in localStorage<br>
+              - Include link to privacy policy<br><br>
+              Use shadcn/ui components and Tailwind CSS.
+            </div>
+          </div>
+        `,
+
+        'performance': `
+          <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 16px;">⚡ Performance</h1>
+          <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 40px;">Speed optimization and Core Web Vitals.</p>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">Core Web Vitals</h2>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 16px;">
+            Google uses these metrics to rank your site in search results.
+          </p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin: 32px 0;">
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+              <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">LCP (Largest Contentful Paint)</div>
+              <div style="font-size: 32px; font-weight: 800; color: var(--accent); margin-bottom: 4px;">< 2.5s</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">Good loading performance</div>
+            </div>
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+              <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">FID (First Input Delay)</div>
+              <div style="font-size: 32px; font-weight: 800; color: var(--accent); margin-bottom: 4px;">< 100ms</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">Good interactivity</div>
+            </div>
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+              <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">CLS (Cumulative Layout Shift)</div>
+              <div style="font-size: 32px; font-weight: 800; color: var(--accent); margin-bottom: 4px;">< 0.1</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">Good visual stability</div>
+            </div>
+          </div>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">Common Performance Issues</h2>
+
+          <div style="background: var(--surface); border-left: 3px solid #F59E0B; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">⚠️ Unoptimized Images</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+              Large images slow down your page load. Use Next.js Image component for automatic optimization.
+            </div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: monospace; font-size: 13px;">
+              import Image from 'next/image'<br>
+              &lt;Image src="/hero.jpg" width={800} height={600} alt="Hero" /&gt;
+            </div>
+          </div>
+        `,
+
+        'accessibility': `
+          <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 16px;">♿ Accessibility</h1>
+          <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 40px;">Making your site usable for everyone, including people with disabilities.</p>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">WCAG 2.1 Compliance</h2>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 16px;">
+            Web Content Accessibility Guidelines (WCAG) ensure your site is accessible to users with disabilities.
+          </p>
+
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 24px 0;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">Common Issues:</h3>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <div>
+                <div style="font-size: 14px; font-weight: 700; margin-bottom: 4px;">Missing Alt Text</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">Every image must have descriptive alt text for screen readers</div>
+              </div>
+              <div>
+                <div style="font-size: 14px; font-weight: 700; margin-bottom: 4px;">Low Color Contrast</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">Text must have 4.5:1 contrast ratio against background</div>
+              </div>
+              <div>
+                <div style="font-size: 14px; font-weight: 700; margin-bottom: 4px;">Missing Form Labels</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">Every input must have a visible label or aria-label</div>
+              </div>
+              <div>
+                <div style="font-size: 14px; font-weight: 700; margin-bottom: 4px;">Keyboard Navigation</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">All interactive elements must be keyboard-accessible</div>
+              </div>
+            </div>
+          </div>
+        `,
+
+        'seo': `
+          <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 16px;">🔍 SEO</h1>
+          <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 40px;">Search engine optimization best practices.</p>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">Essential Meta Tags</h2>
+
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 24px 0;">
+            <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Required Meta Tags:</div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 1.8;">
+              &lt;title&gt;VibeSafe - Web Security Scanner&lt;/title&gt;<br>
+              &lt;meta name="description" content="Scan your website for security issues..." /&gt;<br>
+              &lt;meta property="og:title" content="VibeSafe" /&gt;<br>
+              &lt;meta property="og:description" content="..." /&gt;<br>
+              &lt;meta property="og:image" content="/og-image.jpg" /&gt;<br>
+              &lt;meta name="twitter:card" content="summary_large_image" /&gt;
+            </div>
+          </div>
+
+          <h2 style="font-size: 24px; font-weight: 700; margin-top: 40px; margin-bottom: 16px;">Sitemap & Robots.txt</h2>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 16px;">
+            Help search engines discover and index your pages.
+          </p>
+
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 24px 0;">
+            <div style="font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--accent);">Example robots.txt:</div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 1.6;">
+              User-agent: *<br>
+              Allow: /<br>
+              Sitemap: https://vibesafe.app/sitemap.xml
+            </div>
+          </div>
+        `
+      };
+
+      content.innerHTML = sections[section] || sections['getting-started'];
+      content.scrollTop = 0;
+    }
+  </script>
+
+  <!-- Payment Modal -->
+  <div id="paymentModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 10000; align-items: center; justify-content: center; padding: 24px;">
+    <div onclick="event.stopPropagation()" style="background: var(--surface); border-radius: 16px; max-width: 480px; width: 100%; padding: 40px; position: relative; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);">
+      <!-- Close button -->
+      <button onclick="closePaymentModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+
+      <!-- Header -->
+      <div style="text-align: center; margin-bottom: 32px;">
+        <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Subscribe to VibeSafe Pro</h2>
+        <p style="font-size: 14px; color: var(--text-secondary);">$29/month • 14-day free trial</p>
+      </div>
+
+      <!-- Stripe-style payment form -->
+      <form onsubmit="processPayment(); return false;">
+        <div style="margin-bottom: 20px;">
+          <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">Email</label>
+          <input type="email" placeholder="you@example.com" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">Card Information</label>
+          <input type="text" placeholder="1234 1234 1234 1234" required pattern="[0-9 ]+" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px 8px 0 0; background: var(--bg); color: var(--text); font-size: 14px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px; overflow: hidden;">
+            <input type="text" placeholder="MM / YY" required pattern="[0-9 /]+" style="padding: 12px; border: none; border-right: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px;">
+            <input type="text" placeholder="CVC" required pattern="[0-9]+" style="padding: 12px; border: none; background: var(--bg); color: var(--text); font-size: 14px;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">Cardholder Name</label>
+          <input type="text" placeholder="John Doe" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px;">
+        </div>
+
+        <div style="background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+          ℹ️ You won't be charged today. Your 14-day free trial starts now. Cancel anytime.
+        </div>
+
+        <button type="submit" style="width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 10px; font-size: 15px; font-weight: 700; color: white; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+          Start Free Trial
+        </button>
+
+        <div style="text-align: center; margin-top: 16px; font-size: 12px; color: var(--text-tertiary);">
+          Powered by Stripe • Secure & PCI-compliant
+        </div>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>

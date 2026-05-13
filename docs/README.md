@@ -42,6 +42,10 @@ React vs Next.js → Learning Guide → Try Exercises → Use Cheat Sheet as ref
 ### Core Documentation (docs/core/)
 **Product & Technical Specifications**
 
+- **[VISION.md](./VISION.md)** ⭐ **NEW!** - Product Vision & Strategy
+  - Why we exist, our mission, security-first philosophy
+  - How we're different, brand messaging, long-term roadmap
+
 - **PRD.md** - Product Requirements Document
   - Vision, goals, features, user personas, success metrics
 
@@ -61,6 +65,11 @@ React vs Next.js → Learning Guide → Try Exercises → Use Cheat Sheet as ref
 
 - **SECURITY_MODULES.md**
   - 15 security checks: what, how, false positives, improvements
+
+- **[COMPLIANCE_MODULES.md](./modules/COMPLIANCE_MODULES.md)** ⭐ **NEW!**
+  - GDPR/CCPA privacy compliance, WCAG 2.2 attestation
+  - Cookie consent, privacy policies, user rights
+  - PCI-DSS, HIPAA (future)
 
 - **PERFORMANCE_MODULES.md**
   - Core Web Vitals, Lighthouse, performance analysis
