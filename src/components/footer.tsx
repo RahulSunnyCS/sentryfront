@@ -5,177 +5,116 @@ export function Footer() {
 
   return (
     <footer
+      role="contentinfo"
       style={{
         borderTop: '1px solid var(--border-light)',
-        backgroundColor: 'var(--surface)',
-        padding: '48px 24px 32px',
+        background: 'var(--surface)',
+        padding: 'var(--space-12) 0 var(--space-8)',
+        marginTop: 'auto',
       }}
     >
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <div className="container">
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 40,
-            marginBottom: 40,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: 'var(--space-10)',
+            marginBottom: 'var(--space-10)',
           }}
         >
-          {/* About */}
           <div>
             <h3
               style={{
-                fontSize: 14,
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 700,
                 color: 'var(--text)',
-                marginBottom: 16,
+                marginBottom: 'var(--space-4)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
               }}
             >
               VibeSafe
             </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-              Security scanner for AI-built sites. Get a full security report in under 90 seconds.
+            <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+              Security, performance &amp; compliance scanner for AI-built sites. Full report in under 90 seconds.
             </p>
           </div>
 
-          {/* Product */}
-          <div>
-            <h3
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color: 'var(--text)',
-                marginBottom: 16,
-              }}
-            >
-              Product
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <Link
-                href="/"
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-secondary)',
-                  textDecoration: 'none',
-                }}
-              >
-                Home
-              </Link>
-              <Link
-                href="/report/demo"
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-secondary)',
-                  textDecoration: 'none',
-                }}
-              >
-                Demo Report
-              </Link>
-            </div>
-          </div>
+          <FooterCol title="Product">
+            <FooterLink href="/">Home</FooterLink>
+            <FooterLink href="/pricing">Pricing</FooterLink>
+            <FooterLink href="/#features">Features</FooterLink>
+            <FooterLink href="/#faq">FAQ</FooterLink>
+            <FooterLink href="/report/demo">Demo report</FooterLink>
+            <FooterLink href="/docs">Docs</FooterLink>
+          </FooterCol>
 
-          {/* Legal */}
-          <div>
-            <h3
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color: 'var(--text)',
-                marginBottom: 16,
-              }}
-            >
-              Legal
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <Link
-                href="/legal/terms"
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-secondary)',
-                  textDecoration: 'none',
-                }}
-              >
-                Terms of Service
-              </Link>
-              <Link
-                href="/legal/privacy"
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-secondary)',
-                  textDecoration: 'none',
-                }}
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="/legal/contact"
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-secondary)',
-                  textDecoration: 'none',
-                }}
-              >
-                Contact
-              </Link>
-            </div>
-          </div>
+          <FooterCol title="Legal">
+            <FooterLink href="/legal/terms">Terms of service</FooterLink>
+            <FooterLink href="/legal/privacy">Privacy policy</FooterLink>
+            <FooterLink href="/legal/contact">Contact</FooterLink>
+          </FooterCol>
 
-          {/* Support */}
-          <div>
-            <h3
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color: 'var(--text)',
-                marginBottom: 16,
-              }}
-            >
-              Support
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <a
-                href="mailto:security@vibesafe.app"
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-secondary)',
-                  textDecoration: 'none',
-                }}
-              >
-                Security
-              </a>
-              <a
-                href="mailto:abuse@vibesafe.app"
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-secondary)',
-                  textDecoration: 'none',
-                }}
-              >
-                Report Abuse
-              </a>
-            </div>
-          </div>
+          <FooterCol title="Support">
+            <FooterLink href="mailto:security@vibesafe.app">Security</FooterLink>
+            <FooterLink href="mailto:abuse@vibesafe.app">Report abuse</FooterLink>
+            <FooterLink href="mailto:support@vibesafe.app">Support</FooterLink>
+          </FooterCol>
         </div>
 
-        {/* Bottom bar */}
         <div
           style={{
-            paddingTop: 24,
+            paddingTop: 'var(--space-6)',
             borderTop: '1px solid var(--border-light)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 16,
+            gap: 'var(--space-4)',
           }}
         >
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
+          <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
             © {currentYear} VibeSafe. All rights reserved.
           </p>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
-            Made with ❤️ for the AI coding community
+          <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
+            Made for the AI coding community.
           </p>
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h3
+        style={{
+          fontSize: 'var(--fs-sm)',
+          fontWeight: 700,
+          color: 'var(--text)',
+          marginBottom: 'var(--space-4)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+        }}
+      >
+        {title}
+      </h3>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {Array.isArray(children) ? children.map((c, i) => <li key={i}>{c}</li>) : <li>{children}</li>}
+      </ul>
+    </div>
+  );
+}
+
+function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="nav-link"
+      style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}
+    >
+      {children}
+    </Link>
   );
 }
