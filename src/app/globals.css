@@ -513,6 +513,15 @@ input, textarea, select, button { font: inherit; color: inherit; }
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Dashboard — table ↔ cards swap
+   ───────────────────────────────────────────────────────────── */
+.scans-cards-mobile { display: none; }
+@media (max-width: 720px) {
+  .scans-table-wrap { display: none; }
+  .scans-cards-mobile { display: flex; }
+}
+
+/* ─────────────────────────────────────────────────────────────
    Legal content (terms / privacy)
    ───────────────────────────────────────────────────────────── */
 .legal-content h2 { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 40px; margin-bottom: 16px; }
