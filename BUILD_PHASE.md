@@ -140,6 +140,107 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 
 ---
 
+## Phase 2.5 — Truth-in-marketing audit (overclaiming review)
+
+**Goal:** Every public-facing claim — README, landing page, `/docs`, vision docs, comparison tables, social copy — accurately reflects what the code actually does today. No aspirational features described in the present tense. No regulatory/legal terminology that the implementation can't defend. Either bring the code up to the claim or bring the claim down to the code.
+
+**Why now:** A skeptical reviewer (security engineer, accessibility consultant, compliance lawyer, due-diligence analyst) who reads our docs and then `git clone`s the repo should find no gap. Right now there are several. Until this is fixed, the docs are a liability — they downgrade trust in the rest of the work the moment a single overclaim is spotted.
+
+**Estimated effort:** 1 week (mostly copy + audit, minor code changes)
+
+**Operating rule:** No new marketing-facing copy ships during this phase. Patches and bug fixes are fine; net-new claims are not.
+
+### 2.5.1 Accessibility claims vs. implementation
+
+- [ ] `README.md:21` reads "WCAG 2.2 Level AA — Legal compliance checking." Audit what is actually checked: `src/lib/scanner/modules/accessibility.ts` orchestrates `p3-01` through `p3-05` which parse Lighthouse's accessibility audits. No `@axe-core/*` package is in `package.json`. Either:
+  - [ ] Add real `@axe-core/playwright` (or similar) integration and document which WCAG 2.2 AA criteria are actually evaluated, OR
+  - [ ] Rewrite README + landing copy to: "Accessibility checks via Lighthouse's accessibility audit (subset of WCAG 2.2 AA)" — no "compliance" / "legal" language without an attestation pipeline behind it
+- [ ] Remove "axe-core" references from `docs/core/TDD.md` and `src/lib/scanner/modules/accessibility.ts` comments unless axe-core is actually wired
+- [ ] Map every accessibility finding back to a specific WCAG SC number; publish the coverage map in `docs/core/WCAG_COVERAGE.md` (which we'd commit to maintaining as we add/remove checks)
+
+### 2.5.2 Compliance claims vs. implementation
+
+- [ ] `COMPLIANCE_VISION_SUMMARY.md` lists P5-01 through P5-08 (GDPR, CCPA, PCI-DSS, HIPAA) as documented modules with implementation roadmap. Zero `p5-*.ts` files exist in `src/lib/scanner/modules/`. Either:
+  - [ ] Move the entire compliance module section into `docs/specs/COMPLIANCE_FUTURE.md` clearly labeled "Future / Not Implemented", OR
+  - [ ] Drop compliance from the "5 pillars" framing in `docs/VISION.md`, `docs/VISION_SUMMARY.md`, and any landing/marketing copy until at least one P5 module ships
+- [ ] Remove "Compliance protects your business. GDPR, WCAG, CCPA—we check them all" from `docs/VISION.md` and any place it's used as marketing copy
+- [ ] Remove every "✅" marker from `COMPLIANCE_VISION_SUMMARY.md` that's adjacent to an unimplemented module
+- [ ] Any GDPR / CCPA / HIPAA / PCI-DSS mention on any user-facing page must link to a docs page that names the specific checks performed — or be removed
+- [ ] Legal review: confirm we are not implying regulatory attestation we can't deliver
+
+### 2.5.3 Security feature claims vs. implementation
+
+- [ ] `README.md:124` lists "Dependency Vulnerabilities (npm audit)" as a security module. There is no npm-audit integration in `src/lib/scanner/`. Either:
+  - [ ] Add a real dependency-vuln check (integrate npm audit / OSV.dev / GitHub Advisory) as P1-XX, OR
+  - [ ] Remove the line from the README and from any module list that implies it ships today
+- [ ] Verify every other line in `README.md` "What's Included" against `src/lib/scanner/modules/`:
+  - [ ] "Known Vulnerabilities (Nuclei)" — is `src/lib/scanner/tools/nuclei.ts` actually integrated end-to-end, or is it a stub like the gitleaks fallback?
+  - [ ] "Subdomain Enumeration" — does `subfinder.ts` actually run in production deploys, or is it dev-only?
+  - [ ] "WAF Detection" / "CDN Detection" — point to the modules that implement these or remove
+  - [ ] "Outdated Software Detection" — point to the module or remove
+- [ ] Every README bullet must map to a specific module file. Anything that can't be mapped gets cut.
+
+### 2.5.4 AI claims vs. implementation
+
+- [ ] `README.md:13` says "AI-Powered Enrichment - Claude explains findings in plain English." Acceptable claim — but audit for stronger language elsewhere:
+  - [ ] Remove or downgrade any copy that implies AI is doing detection (the AI only rewords deterministic findings; the prompt explicitly forbids invention)
+  - [ ] Landing page, social copy, and `/docs` describe the AI layer as "explanation + fix-prompt generation," not "AI-powered scanning"
+- [ ] When the eval harness from Phase 4.1 doesn't yet exist, do not publish hallucination-rate, accuracy-rate, or "X% precision" claims anywhere
+
+### 2.5.5 Scale & performance claims
+
+- [ ] `docs/core/TDD.md` §10.1 claims "10,000 scans/day, 1,000 concurrent users" capacity. There is no load test backing this. Either:
+  - [ ] Run a real load test (Phase 12 has this scoped) and publish the measured ceiling, OR
+  - [ ] Reword to "design target" not "current capacity"
+- [ ] `docs/core/TDD.md` §13.3 cost projection table and `PRD.md` §2.1 "Year 1 business goals" with MRR/customer targets do not belong in a technical design doc shown to engineering reviewers. Either:
+  - [ ] Move financial projections to `docs/business/PROJECTIONS.md` (separate from TDD), OR
+  - [ ] Strip them and keep TDD purely technical
+- [ ] Any "<90 second scan" or "<60 second scan" claim must be backed by measured p95 from real production scans, not aspirational targets
+
+### 2.5.6 Artifact integrity
+
+- [ ] `docs/compliance/sbom.json` is a 158KB `npm ls` dump, not a CycloneDX or SPDX-formatted SBOM. Either:
+  - [ ] Generate a real CycloneDX SBOM with `@cyclonedx/cyclonedx-npm` and commit that, OR
+  - [ ] Rename the file to `dependency-tree.json` and remove the word "SBOM" from any reference to it
+- [ ] `verify-domain.html` and `vibesafe-demo.html` (4,385 lines) are standalone HTML mockups checked into the repo root. Decide: are these reference designs (move to `/design/` or `/mockups/` with a README explaining they're not shipped code), or stale and removable?
+
+### 2.5.7 Roadmap honesty in user-facing surfaces
+
+- [ ] Landing page "Chrome extension" promo section: either link to a real waitlist with a "not yet released" disclaimer, or remove until Phase 6 ships
+- [ ] Landing page comparison table (`docs/VISION.md` §"vs. Traditional Security Scanners"): every ✅ in the VibeSafe column must map to shipped code, not roadmap. Move any roadmap items to "coming soon" rows
+- [ ] `docs/specs/MARKETING_INTELLIGENCE_SPEC.md`, `docs/specs/FUTURE_FEATURES.md`, `docs/specs/CHROME_EXTENSION_SPEC.md` — confirm each has a clear "STATUS: NOT IMPLEMENTED" banner at the top, not just in the metadata block
+- [ ] Audit `/docs` site copy (`src/app/docs/`) for present-tense descriptions of features that don't exist yet
+
+### 2.5.8 Phase 1 ✅ verification
+
+The Phase 1 checklist in this document is marked complete. Before showing this repo to anyone external, verify each ✅ against running code, not against memory:
+
+- [ ] Boot the app cold (`npm install && npm run dev`) and click through every page listed in Phase 1; record any that 404, error, or silently render mock content as a Phase 2 carry-over
+- [ ] OAuth login (GitHub + Google + credentials) actually completes a session end-to-end in dev, not just renders a button
+- [ ] Theme toggle, mobile nav close-on-route-change, ESC-close, scroll-spy — manually validated
+- [ ] Any ✅ that is partially true gets demoted to 🚧 with a one-line note
+
+### 2.5.9 Public-claim style guide
+
+- [ ] Write `docs/core/CLAIMS_RULES.md` — one page covering:
+  - [ ] Never use "compliance" / "compliant" / "attestation" without a documented attestation process behind it
+  - [ ] Never use "AI-powered" for deterministic logic with an AI cosmetic layer
+  - [ ] Never use regulatory terms (GDPR / WCAG / HIPAA / PCI-DSS / SOC 2) in copy unless we can defend the specific checks
+  - [ ] Capacity / performance numbers cite measured data or are labeled "design target"
+  - [ ] Every "what we check" bullet maps to a specific module file
+- [ ] PR review checklist updated to include "no new public-facing claims introduced without a code reference"
+
+### Exit checklist for Phase 2.5
+
+- [ ] Every claim in `README.md` maps to a specific file in `src/lib/scanner/modules/` or `src/lib/llm/` (no orphans)
+- [ ] Every ✅ in `docs/VISION.md`, `COMPLIANCE_VISION_SUMMARY.md`, and the Phase 1 section of this doc reflects shipped, runnable code
+- [ ] No "compliance" / "attestation" / regulatory-acronym language anywhere user-facing without a backing module
+- [ ] `CLAIMS_RULES.md` written and referenced from the PR template
+- [ ] One external reviewer (not the project owner) reads `README.md` + landing + `/docs`, then `git clone`s and tries each claim; their gap list is empty
+- [ ] `docs/compliance/sbom.json` either replaced with a real SBOM or renamed
+
+---
+
 ## Phase 3 — Review & harden existing scan modules
 
 **Goal:** Audit what we already check, fix what's wrong, fill obvious gaps. **No new product surface added in this phase.** The output is confidence that "VibeSafe says your site is a B" is something we'd defend in front of a security engineer.
@@ -747,6 +848,7 @@ These are not phase-specific; they're baseline expectations applied throughout.
 |-------|--------|---------|--------------|
 | 1. Frontend redesign + SEO | ✅ Done | 2026-05-01 | 2026-05-13 |
 | 2. Wire backend / kill mocks | 🚧 Next | — | TBD |
+| 2.5. Truth-in-marketing audit | ⏳ Queued | — | — |
 | 3. Review & harden scan modules | ⏳ Queued | — | — |
 | 4. AI enrichment review & strengthen | ⏳ Queued | — | — |
 | 5. Active testing engine | ⏳ Queued | — | — |
