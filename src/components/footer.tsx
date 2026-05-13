@@ -61,6 +61,16 @@ export function Footer() {
                 Home
               </Link>
               <Link
+                href="/pricing"
+                style={{
+                  fontSize: 13,
+                  color: 'var(--text-secondary)',
+                  textDecoration: 'none',
+                }}
+              >
+                Pricing
+              </Link>
+              <Link
                 href="/report/demo"
                 style={{
                   fontSize: 13,

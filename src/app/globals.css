@@ -3,33 +3,44 @@
 @tailwind utilities;
 
 :root {
-  /* Accent — overridable at runtime via JS (AccentThemeProvider) */
+  /* Accent */
   --accent:       #0D9488;
-  --accent-light: #CCFBF1;
+  --accent-light: rgba(13, 148, 136, 0.15);
   --accent-dark:  #0F766E;
 
-  /* Surface */
-  --bg:       #FAFAF8;
-  --surface:  #FFFFFF;
-
-  /* Text */
-  --text:           #111110;
-  --text-secondary: #4A4A46;
-  --text-tertiary:  #9B9B94;
-
-  /* Borders */
-  --border:            #E4E4E0;
-  --border-light:      #F0F0EC;
-  --surface-secondary: #F9F9F7;
+  /* Dark theme (default) */
+  --bg:                #000000;
+  --surface:           #0F0F0F;
+  --surface-secondary: #1A1A1A;
+  --border:            #2A2A2A;
+  --border-light:      #1A1A1A;
+  --text:              #FFFFFF;
+  --text-secondary:    #A1A1AA;
+  --text-tertiary:     #71717A;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
 
   /* Fonts — resolved from next/font in layout.tsx */
   --font: ui-sans-serif, system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', monospace;
+}
+
+[data-theme="light"] {
+  --bg:                #FFFFFF;
+  --surface:           #F9FAFB;
+  --surface-secondary: #F3F4F6;
+  --border:            #E5E7EB;
+  --border-light:      #F3F4F6;
+  --text:              #111827;
+  --text-secondary:    #6B7280;
+  --text-tertiary:     #9CA3AF;
+  --accent-light:      #CCFBF1;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
 }
 
 * {
@@ -49,6 +60,15 @@ html, body {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
 }
 
 /* Fade-in for screen transitions */

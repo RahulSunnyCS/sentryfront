@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { IconShield, IconExternalLink } from './icons';
 import { PdfExportButton } from './pdf-export-button';
 import { AuthButton } from './auth-button';
+import { ThemeToggle } from './theme-toggle';
 
 interface Props {
   showReportActions?: boolean;
@@ -15,19 +16,36 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      display: 'flex', alignItems: 'center',
       padding: '0 24px', height: 56,
-      backgroundColor: 'rgba(250,250,248,0.85)', backdropFilter: 'blur(12px)',
-      borderBottom: '1px solid var(--border-light)',
+      backgroundColor: 'rgba(10, 10, 11, 0.8)', backdropFilter: 'blur(12px)',
+      borderBottom: '1px solid var(--border)',
     }}>
-      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-        <IconShield size={24} color="var(--accent)" />
-        <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
+        <IconShield size={20} color="var(--accent)" />
+        <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>
           VibeSafe
         </span>
       </Link>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginLeft: 40 }}>
+        <Link href="/pricing" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none', transition: 'color 0.2s' }}
+          onMouseOver={e => (e.currentTarget.style.color = 'var(--text)')}
+          onMouseOut={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+        >
+          Pricing
+        </Link>
+        <Link href="/report/demo" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none', transition: 'color 0.2s' }}
+          onMouseOver={e => (e.currentTarget.style.color = 'var(--text)')}
+          onMouseOut={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+        >
+          Demo
+        </Link>
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {showReportActions && (
           <>
             {scanId && <PdfExportButton scanId={scanId} />}
@@ -54,6 +72,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
             )}
           </>
         )}
+        <ThemeToggle />
         <AuthButton />
       </div>
     </nav>
