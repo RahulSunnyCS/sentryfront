@@ -16,7 +16,6 @@
     "db:studio": "prisma studio",
     "db:reset": "node scripts/db-config.js development && prisma migrate reset",
     "db:push": "node scripts/db-config.js production && prisma db push",
-    "db:deploy": "node scripts/db-config.js production && prisma db push",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
