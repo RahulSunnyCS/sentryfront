@@ -399,6 +399,30 @@
       to { transform: rotate(360deg); }
     }
 
+    /* Verify page — platform picker buttons (guided path) */
+    .vplatform-btn {
+      padding: 16px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font);
+      color: var(--text);
+    }
+    .vplatform-btn:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 640px) {
+      .verify-methods-grid { grid-template-columns: 1fr !important; }
+    }
+
     /* PDF Download Button */
     .pdf-download-btn {
       padding: 10px 20px;
@@ -1245,6 +1269,131 @@
         dnsBtn.style.color = 'var(--text-secondary)';
         dnsBtn.style.border = '1px solid var(--border)';
       }
+    }
+
+    // Verify page — two-path switcher (Technical / Guided)
+    function switchVerifyPath(path) {
+      const techBtn = document.getElementById('vTechBtn');
+      const guidedBtn = document.getElementById('vGuidedBtn');
+      const techPath = document.getElementById('vTechPath');
+      const guidedPath = document.getElementById('vGuidedPath');
+      if (!techBtn) return;
+      if (path === 'tech') {
+        techBtn.style.background = 'var(--accent)';
+        techBtn.style.color = 'white';
+        guidedBtn.style.background = 'transparent';
+        guidedBtn.style.color = 'var(--text-secondary)';
+        techPath.style.display = '';
+        guidedPath.style.display = 'none';
+      } else {
+        guidedBtn.style.background = 'var(--accent)';
+        guidedBtn.style.color = 'white';
+        techBtn.style.background = 'transparent';
+        techBtn.style.color = 'var(--text-secondary)';
+        guidedPath.style.display = '';
+        techPath.style.display = 'none';
+      }
+    }
+
+    // Verify page — platform-specific instructions (auto-picks DNS or Meta method per platform)
+    const V_PLATFORMS = {
+      wix: { name: 'Wix', method: 'meta', steps: [
+        { label: 'Open your Wix Editor', sub: 'Go to wix.com → Sites → click "Edit" on your site' },
+        { label: 'Go to Settings → Custom Code', sub: 'Click ⚙️ Settings, then "Custom Code"' },
+        { label: 'Click "+ Add Custom Code"', sub: 'Pick "Head" as the location so it loads on every page' },
+        { label: 'Paste this snippet:', sub: 'This is the only line you need:', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+        { label: 'Click Apply and publish your site', sub: 'Then come back and click Verify below' }
+      ]},
+      squarespace: { name: 'Squarespace', method: 'meta', steps: [
+        { label: 'Open your Squarespace dashboard', sub: 'Log in at squarespace.com' },
+        { label: 'Go to Settings → Advanced → Code Injection', sub: '' },
+        { label: 'Paste this into the "Header" field:', sub: '', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+        { label: 'Click Save at the top right', sub: 'Then click Verify below' }
+      ]},
+      webflow: { name: 'Webflow', method: 'meta', steps: [
+        { label: 'Open your Webflow Designer', sub: 'webflow.com → click your project' },
+        { label: 'Project Settings (⚙️ bottom-left) → Custom Code tab', sub: '' },
+        { label: 'Paste this in "Head Code":', sub: '', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+        { label: 'Save Changes, then click Publish', sub: 'Only takes effect after publishing' }
+      ]},
+      framer: { name: 'Framer', method: 'meta', steps: [
+        { label: 'Open your Framer project', sub: 'framer.com → click your site' },
+        { label: 'Site Settings (cog top-right) → General → Custom Code', sub: '' },
+        { label: 'Paste this in "Head":', sub: '', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+        { label: 'Publish your site', sub: 'Click Publish top-right' }
+      ]},
+      shopify: { name: 'Shopify', method: 'meta', steps: [
+        { label: 'Open your Shopify admin → Online Store', sub: '' },
+        { label: 'Themes → "..." → Edit Code on your active theme', sub: '' },
+        { label: 'Open theme.liquid (under Layout)', sub: '' },
+        { label: 'Paste this right after <head>:', sub: '', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+        { label: 'Click Save', sub: 'No publish step needed for Shopify' }
+      ]},
+      wordpress: { name: 'WordPress', method: 'meta', steps: [
+        { label: 'Easiest: install a plugin', sub: 'Plugins → Add New → search "Insert Headers and Footers" → Install + Activate' },
+        { label: 'Go to Settings → Insert Headers and Footers', sub: '' },
+        { label: 'Paste this in "Scripts in Header":', sub: '', codeBlock: '<meta name="vibesafe-verify" content="a7f3c2e1d4b8">' },
+        { label: 'Click Save', sub: 'If you have DNS access, use the DNS TXT method instead — switch to developer view' }
+      ]},
+      cloudflare: { name: 'Cloudflare', method: 'dns', steps: [
+        { label: 'Open Cloudflare dashboard', sub: 'dash.cloudflare.com → pick your domain' },
+        { label: 'Click "DNS" in the sidebar', sub: '' },
+        { label: 'Click "Add record"', sub: '' },
+        { label: 'Type = TXT, Name = @, Content =', sub: 'Then click Save', codeBlock: 'vibesafe-verify=a7f3c2e1d4b8' },
+        { label: 'Wait ~1 minute, then click Verify below', sub: 'Cloudflare DNS propagates almost instantly' }
+      ]},
+      vercel: { name: 'Vercel', method: 'dns', steps: [
+        { label: 'Open Vercel dashboard → Domains', sub: 'vercel.com/dashboard' },
+        { label: 'Click your domain → DNS Records', sub: '' },
+        { label: 'Click Add Record', sub: '' },
+        { label: 'Type = TXT, Name = @, Value =', sub: '', codeBlock: 'vibesafe-verify=a7f3c2e1d4b8' },
+        { label: 'Click Save, then click Verify below', sub: '' }
+      ]},
+      other: { name: 'Not sure yet?', method: 'help', steps: [
+        { label: 'Can you log into your domain registrar?', sub: 'That\'s where you bought your domain (GoDaddy, Namecheap, Cloudflare, etc.). If yes → use DNS TXT.' },
+        { label: 'Can you edit your site\'s HTML <head>?', sub: 'If your platform allows custom HTML in head → use the Meta tag method.' },
+        { label: 'Still stuck? Email support@vibesafe.app', sub: 'Tell us where your site is hosted and we\'ll walk you through it.' }
+      ]}
+    };
+
+    function vPickPlatform(key) {
+      const p = V_PLATFORMS[key];
+      if (!p) return;
+      document.getElementById('vPlatformName').textContent = p.name + ' — step-by-step';
+      const wrap = document.getElementById('vGuidedInstructions');
+      let html = '<div style="display: flex; flex-direction: column; gap: 18px; margin-bottom: 20px;">';
+      p.steps.forEach((s, i) => {
+        html += '<div style="display: flex; gap: 14px; align-items: flex-start;">';
+        html += '  <div style="width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: white; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">' + (i + 1) + '</div>';
+        html += '  <div style="flex: 1; font-size: 14px; color: var(--text); line-height: 1.6;">';
+        html += '    <div style="font-weight: 700; margin-bottom: 4px;">' + s.label + '</div>';
+        if (s.sub) html += '    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">' + s.sub + '</div>';
+        if (s.codeBlock) {
+          const escaped = s.codeBlock.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+          html += '    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; margin-top: 8px; position: relative;">';
+          html += '      <code style="color: var(--accent); display: block; padding-right: 56px;">' + escaped + '</code>';
+          html += '      <button class="copy-btn" style="position: absolute; top: 8px; right: 8px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard(\'' + s.codeBlock.replace(/'/g, "\\'").replace(/"/g, '&quot;') + '\')">Copy</button>';
+          html += '    </div>';
+        }
+        html += '  </div>';
+        html += '</div>';
+      });
+      html += '</div>';
+      if (p.method !== 'help') {
+        const verifyFn = p.method === 'dns' ? 'verifyDNS()' : 'verifyMetaTag()';
+        html += '<button class="scan-btn" style="width: 100%; margin: 0;" onclick="' + verifyFn + '">Verify now →</button>';
+        html += '<div style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px; text-align: center;">We\'ll re-check every 60s for the next 10 minutes if it\'s not ready yet</div>';
+      }
+      wrap.innerHTML = html;
+      document.getElementById('vGuidedStep1').style.display = 'none';
+      document.getElementById('vGuidedStep2').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function vBackToPicker() {
+      document.getElementById('vGuidedStep2').style.display = 'none';
+      document.getElementById('vGuidedStep1').style.display = '';
+      document.getElementById('vGuidedStatus').innerHTML = '';
     }
 
     // Animate live scan counter — increments slowly to feel real
@@ -2680,364 +2829,153 @@
     </div>
   </div>
 
-  <!-- PAGE 4: DNS Verification -->
+  <!-- PAGE 4: DNS Verification (2 methods · two-path UX) -->
   <div id="verify" class="page">
-    <div class="container" style="padding-top: 80px; max-width: 800px;">
-      <div style="text-align: center; margin-bottom: 40px;">
-        <div style="width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%; background: var(--accent-light); display: flex; align-items: center; justify-content: center;">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+    <div class="container" style="padding-top: 80px; max-width: 760px;">
+
+      <!-- Header — DAST-anchored value prop -->
+      <div style="text-align: center; margin-bottom: 32px;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; background: rgba(220, 38, 38, 0.08); border: 1px solid rgba(220, 38, 38, 0.2); font-size: 12px; font-weight: 700; color: #DC2626; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #DC2626; animation: pulse-dot 1.6s ease-in-out infinite;"></span>
+          Required for Active Testing
         </div>
-        <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 8px;">Verify Domain Ownership</h1>
+        <h1 style="font-size: clamp(26px, 4vw, 32px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 10px;">Verify you own this domain</h1>
         <p style="font-size: 15px; color: var(--text-secondary); max-width: 520px; margin: 0 auto;">
-          To enable advanced security scans and continuous monitoring, verify that you own <strong style="color: var(--text);">taskflow.app</strong>
+          To run active security tests on <span style="font-family: monospace; background: var(--surface); border: 1px solid var(--border); padding: 2px 8px; border-radius: 5px; font-size: 13px; color: var(--text);">taskflow.app</span>, we need proof you own or are authorized to test it.
         </p>
       </div>
 
-      <!-- Approach Selector -->
-      <div style="display: flex; gap: 12px; margin-bottom: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 6px;">
-        <button id="technicalBtn" class="approach-btn active" onclick="switchApproach('technical')" style="flex: 1; padding: 12px 20px; border: none; border-radius: 8px; background: var(--accent); color: white; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-          I'm Technical
+      <!-- Why verify - legal context (replaces vague "Why Verify?" box) -->
+      <div style="background: linear-gradient(135deg, rgba(220,38,38,0.06), rgba(124,58,237,0.06)); border: 1px solid rgba(220, 38, 38, 0.2); border-radius: 12px; padding: 16px 20px; margin-bottom: 28px; display: flex; gap: 14px; align-items: flex-start;">
+        <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(220,38,38,0.12); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">⚖️</div>
+        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+          <strong style="color: var(--text);">Why verify?</strong> Active testing sends real attack probes (SQL injection, XSS, fuzzing). Verification is your legal authorization — it protects you under the Computer Fraud and Abuse Act and equivalent laws globally. Without it, scanning is potentially illegal. With it, you're explicitly testing your own property.
+        </div>
+      </div>
+
+      <!-- Path Selector -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 6px; margin-bottom: 28px;">
+        <button id="vTechBtn" onclick="switchVerifyPath('tech')" style="padding: 14px 18px; border: none; border-radius: 9px; background: var(--accent); color: white; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; flex-direction: column; gap: 2px;">
+          <div>👨‍💻 I'm a developer</div>
+          <div style="font-size: 11px; font-weight: 500; opacity: 0.9;">Has DNS or can edit HTML — show methods</div>
         </button>
-        <button id="guidedBtn" class="approach-btn" onclick="switchApproach('guided')" style="flex: 1; padding: 12px 20px; border: none; border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-          Guide Me Through It
-        </button>
-      </div>
-
-      <!-- Technical Approach -->
-      <div id="technicalApproach" style="display: block;">
-        <!-- Clear Instructions -->
-        <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
-          <div style="display: flex; align-items: start; gap: 12px;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 16v-4M12 8h.01"/>
-            </svg>
-            <div style="flex: 1;">
-              <div style="font-size: 14px; font-weight: 700; color: #1E40AF; margin-bottom: 4px;">Choose ONE method below</div>
-              <div style="font-size: 13px; color: #1E3A8A; line-height: 1.5;">
-                You don't need to complete all methods. Pick whichever is easiest based on what you have access to.
-              </div>
-            </div>
-          </div>
-        </div>
-
-      <!-- Verification Methods -->
-      <div style="display: grid; gap: 20px; margin-bottom: 32px;">
-        <!-- Method 1: DNS TXT Record -->
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-            <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 20px;">
-              🔧
-            </div>
-            <div style="flex: 1;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="font-size: 16px; font-weight: 700;">Method 1: DNS TXT Record</div>
-                <span style="background: var(--accent-light); color: var(--accent); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px;">RECOMMENDED</span>
-              </div>
-              <div style="font-size: 13px; color: var(--text-secondary);">✅ Best if you have DNS access • ❌ Skip if you can't edit DNS</div>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">1. Add this TXT record to your DNS:</div>
-            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Monaco', monospace; font-size: 13px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="color: var(--text-tertiary);">Name:</span>
-                <span style="color: var(--text); font-weight: 600;">_vibesafe-verify</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="color: var(--text-tertiary);">Type:</span>
-                <span style="color: var(--text); font-weight: 600;">TXT</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; align-items: start;">
-                <span style="color: var(--text-tertiary);">Value:</span>
-                <div style="flex: 1; text-align: right; overflow-wrap: break-word;">
-                  <span style="color: var(--accent); font-weight: 600;">vibesafe-verify=a8f3e2b9c1d4e5f6</span>
-                  <button class="copy-btn" style="margin-left: 12px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('vibesafe-verify=a8f3e2b9c1d4e5f6')">Copy</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 20px;">
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">2. Wait for DNS propagation (5-30 minutes)</div>
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">3. Click "Verify DNS Record" below</div>
-          </div>
-
-          <button class="scan-btn" style="width: 100%; margin: 0;" onclick="verifyDNS()">
-            Verify DNS Record
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Method 2: Meta Tag -->
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-            <div style="width: 40px; height: 40px; border-radius: 8px; background: #EDE9FE; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-              📄
-            </div>
-            <div style="flex: 1;">
-              <div style="font-size: 16px; font-weight: 700;">Method 2: HTML Meta Tag</div>
-              <div style="font-size: 13px; color: var(--text-secondary);">✅ Best if you can deploy code • ❌ Skip if you can't edit HTML</div>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">1. Add this meta tag to your <code style="background: var(--surface-secondary); padding: 2px 6px; border-radius: 4px; font-family: 'Monaco', monospace;">&lt;head&gt;</code> section:</div>
-            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Monaco', monospace; font-size: 12px; overflow-x: auto; position: relative;">
-              <code style="color: var(--text);">&lt;meta name="vibesafe-verify" content="a8f3e2b9c1d4e5f6" /&gt;</code>
-              <button class="copy-btn" style="position: absolute; top: 12px; right: 12px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('<meta name=&quot;vibesafe-verify&quot; content=&quot;a8f3e2b9c1d4e5f6&quot; />')">Copy</button>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 20px;">
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">2. Deploy your site</div>
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">3. Click "Verify Meta Tag" below</div>
-          </div>
-
-          <button class="scan-btn" style="width: 100%; margin: 0; background: #7C3AED;" onclick="verifyMetaTag()">
-            Verify Meta Tag
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Method 3: CNAME Record -->
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-            <div style="width: 40px; height: 40px; border-radius: 8px; background: #FEF3C7; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-              🔗
-            </div>
-            <div style="flex: 1;">
-              <div style="font-size: 16px; font-weight: 700;">Method 3: CNAME Record</div>
-              <div style="font-size: 13px; color: var(--text-secondary);">✅ Easier than TXT in some registrars • ❌ Requires subdomain control</div>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">1. Add this CNAME record to your DNS:</div>
-            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Monaco', monospace; font-size: 13px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="color: var(--text-tertiary);">Name:</span>
-                <span style="color: var(--text); font-weight: 600;">verify.taskflow.app</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="color: var(--text-tertiary);">Type:</span>
-                <span style="color: var(--text); font-weight: 600;">CNAME</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; align-items: start;">
-                <span style="color: var(--text-tertiary);">Points to:</span>
-                <div style="flex: 1; text-align: right;">
-                  <span style="color: var(--accent); font-weight: 600;">a8f3e2b9c1d4e5f6.verify.vibesafe.app</span>
-                  <button class="copy-btn" style="margin-left: 12px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('a8f3e2b9c1d4e5f6.verify.vibesafe.app')">Copy</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button class="scan-btn" style="width: 100%; margin: 0; background: #CA8A04;" onclick="verifyCNAME()">
-            Verify CNAME Record
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Method 4: File Upload -->
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-            <div style="width: 40px; height: 40px; border-radius: 8px; background: #DBEAFE; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-              📁
-            </div>
-            <div style="flex: 1;">
-              <div style="font-size: 16px; font-weight: 700;">Method 4: File Upload</div>
-              <div style="font-size: 13px; color: var(--text-secondary);">✅ No DNS needed • ❌ Requires FTP/server access</div>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">1. Create a text file named <code style="background: var(--surface-secondary); padding: 2px 6px; border-radius: 4px; font-family: 'Monaco', monospace;">vibesafe-verify.txt</code></div>
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">2. Add this content to the file:</div>
-            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Monaco', monospace; font-size: 13px; position: relative;">
-              <code style="color: var(--accent);">vibesafe-verify=a8f3e2b9c1d4e5f6</code>
-              <button class="copy-btn" style="position: absolute; top: 12px; right: 12px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('vibesafe-verify=a8f3e2b9c1d4e5f6')">Copy</button>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 20px;">
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">3. Upload to your website root so it's accessible at:</div>
-            <div style="background: var(--surface-secondary); padding: 12px 16px; border-radius: 8px; font-family: 'Monaco', monospace; font-size: 13px; color: var(--text);">
-              https://taskflow.app/vibesafe-verify.txt
-            </div>
-          </div>
-
-          <button class="scan-btn" style="width: 100%; margin: 0; background: #2563EB;" onclick="verifyFile()">
-            Verify File Upload
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Method 5: Email Verification -->
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-            <div style="width: 40px; height: 40px; border-radius: 8px; background: #DCFCE7; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-              ✉️
-            </div>
-            <div style="flex: 1;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="font-size: 16px; font-weight: 700;">Method 5: Email Verification</div>
-                <span style="background: #DCFCE7; color: #059669; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px;">EASIEST</span>
-              </div>
-              <div style="font-size: 13px; color: var(--text-secondary);">✅ No technical setup • ❌ Requires admin email access</div>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px;">1. Send an email from one of these addresses:</div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-              <div style="background: var(--surface-secondary); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-family: 'Monaco', monospace;">admin@taskflow.app</div>
-              <div style="background: var(--surface-secondary); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-family: 'Monaco', monospace;">webmaster@taskflow.app</div>
-              <div style="background: var(--surface-secondary); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-family: 'Monaco', monospace;">postmaster@taskflow.app</div>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 20px;">
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">2. Email details:</div>
-            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-size: 13px;">
-              <div style="margin-bottom: 8px;"><strong>To:</strong> verify@vibesafe.app</div>
-              <div style="margin-bottom: 8px;"><strong>Subject:</strong> Verify taskflow.app</div>
-              <div><strong>Body:</strong> <span style="color: var(--accent); font-family: 'Monaco', monospace;">a8f3e2b9c1d4e5f6</span>
-                <button class="copy-btn" style="margin-left: 12px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('a8f3e2b9c1d4e5f6')">Copy Token</button>
-              </div>
-            </div>
-          </div>
-
-          <button class="scan-btn" style="width: 100%; margin: 0; background: #059669;" onclick="verifyEmail()">
-            I've Sent the Email
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle;">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-      </div>
-
-      <!-- Guided Approach (Non-Technical) -->
-      <div id="guidedApproach" style="display: none;">
-        <!-- Step-by-Step Wizard -->
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin-bottom: 24px;">
-          <!-- Step 1: Select Registrar -->
-          <div id="step1" style="display: block;">
-            <div style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">Step 1: Where is your domain registered?</div>
-            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">
-              Select your domain registrar or hosting provider below:
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
-              <button class="registrar-btn" onclick="selectRegistrar('godaddy')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div style="font-size: 24px;">🌐</div>
-                <div style="font-size: 14px; font-weight: 700; color: var(--text);">GoDaddy</div>
-              </button>
-              <button class="registrar-btn" onclick="selectRegistrar('namecheap')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div style="font-size: 24px;">💰</div>
-                <div style="font-size: 14px; font-weight: 700; color: var(--text);">Namecheap</div>
-              </button>
-              <button class="registrar-btn" onclick="selectRegistrar('cloudflare')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div style="font-size: 24px;">☁️</div>
-                <div style="font-size: 14px; font-weight: 700; color: var(--text);">Cloudflare</div>
-              </button>
-              <button class="registrar-btn" onclick="selectRegistrar('vercel')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div style="font-size: 24px;">▲</div>
-                <div style="font-size: 14px; font-weight: 700; color: var(--text);">Vercel</div>
-              </button>
-              <button class="registrar-btn" onclick="selectRegistrar('netlify')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div style="font-size: 24px;">🌊</div>
-                <div style="font-size: 14px; font-weight: 700; color: var(--text);">Netlify</div>
-              </button>
-              <button class="registrar-btn" onclick="selectRegistrar('other')" style="padding: 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-                <div style="font-size: 24px;">❓</div>
-                <div style="font-size: 14px; font-weight: 700; color: var(--text);">Other / Not Sure</div>
-              </button>
-            </div>
-          </div>
-
-          <!-- Step 2: Provider-Specific Instructions (shown after selection) -->
-          <div id="step2" style="display: none;">
-            <button onclick="backToStep1()" style="background: transparent; border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-              Back
-            </button>
-
-            <div style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">Step 2: Follow these instructions for <span id="selectedProvider"></span></div>
-            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">
-              We've customized these steps for your provider
-            </div>
-
-            <!-- Method Selection with Smart Recommendations -->
-            <div id="providerInstructions">
-              <!-- Will be populated by JavaScript with:
-                   - Recommended method (expanded by default)
-                   - Alternative methods (collapsed)
-              -->
-            </div>
-
-            <!-- AI Prompt Generator -->
-            <div style="margin-top: 24px; padding: 20px; background: linear-gradient(135deg, rgba(13, 148, 136, 0.1), rgba(20, 184, 166, 0.05)); border: 1px solid var(--accent); border-radius: 12px;">
-              <div style="display: flex; align-items: start; gap: 16px;">
-                <div style="font-size: 32px;">🤖</div>
-                <div style="flex: 1;">
-                  <div style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Stuck? Use this AI prompt</div>
-                  <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-                    Copy this prompt and paste it into Cursor, Claude, or your AI coding tool
-                  </div>
-                  <div id="aiPromptBox" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'Monaco', monospace; font-size: 13px; margin-bottom: 12px; position: relative; line-height: 1.6;">
-                    <!-- Prompt will be inserted here -->
-                  </div>
-                  <button class="copy-btn" onclick="copyAIPrompt()" style="padding: 8px 16px; font-size: 13px;">
-                    Copy AI Prompt
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Why Verify? -->
-      <div style="background: var(--surface-secondary); border-left: 3px solid var(--accent); padding: 20px; border-radius: 8px;">
-        <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 16v-4M12 8h.01"/>
-          </svg>
-          Why verify domain ownership?
-        </div>
-        <ul style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 0; padding-left: 20px;">
-          <li>Enable continuous security monitoring (daily scans)</li>
-          <li>Access deeper scans (server-side checks, authenticated endpoints)</li>
-          <li>Configure custom scan policies and exclusions</li>
-          <li>Receive email/Slack alerts for new vulnerabilities</li>
-          <li>Prove ownership for compliance reports (SOC 2, ISO 27001)</li>
-        </ul>
-      </div>
-
-      <!-- Skip for Now -->
-      <div style="text-align: center; margin-top: 32px;">
-        <button style="background: transparent; border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; color: var(--text-secondary); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onclick="showPage('dashboard')" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
-          Skip for now
+        <button id="vGuidedBtn" onclick="switchVerifyPath('guided')" style="padding: 14px 18px; border: none; border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; flex-direction: column; gap: 2px;">
+          <div>🌐 I use a website builder</div>
+          <div style="font-size: 11px; font-weight: 500; opacity: 0.85;">Wix, Squarespace, Webflow, etc. — walk me through</div>
         </button>
       </div>
+
+      <!-- =================== -->
+      <!-- TECHNICAL PATH -->
+      <!-- =================== -->
+      <div id="vTechPath">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;" class="verify-methods-grid">
+
+          <!-- DNS TXT (Recommended) -->
+          <div style="background: var(--surface); border: 1px solid var(--accent); border-radius: 14px; padding: 22px; box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.08); display: flex; flex-direction: column;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+              <div style="width: 36px; height: 36px; border-radius: 9px; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">🔧</div>
+              <div>
+                <div style="font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                  DNS TXT Record
+                  <span style="background: var(--accent); color: white; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Recommended</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 2px;">~60 seconds · most reliable</div>
+              </div>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">1. Add this TXT record in your DNS panel:</div>
+              <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: 'Monaco', monospace; font-size: 12px; line-height: 1.7; margin-bottom: 12px; position: relative;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="color: var(--text-tertiary);">Type</span><span style="color: var(--text); font-weight: 600;">TXT</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="color: var(--text-tertiary);">Name</span><span style="color: var(--text); font-weight: 600;">@</span></div>
+                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-tertiary);">Value</span><span style="color: var(--accent); font-weight: 600;">vibesafe-verify=a7f3c2e1d4b8</span></div>
+                <button class="copy-btn" style="position: absolute; top: 10px; right: 10px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('vibesafe-verify=a7f3c2e1d4b8')">Copy</button>
+              </div>
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">2. Wait 1–5 minutes for DNS propagation</div>
+            </div>
+            <button class="scan-btn" style="width: 100%; margin: 12px 0 0;" onclick="verifyDNS()">Verify DNS Record →</button>
+            <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px;">Cloudflare · Namecheap · GoDaddy · Route 53 · Google Domains</div>
+          </div>
+
+          <!-- HTML Meta Tag -->
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; display: flex; flex-direction: column;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+              <div style="width: 36px; height: 36px; border-radius: 9px; background: rgba(124,58,237,0.12); color: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">📄</div>
+              <div>
+                <div style="font-size: 15px; font-weight: 700;">HTML Meta Tag</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 2px;">Use if you can edit your site's HTML</div>
+              </div>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">1. Add this inside your site's <code style="background: var(--bg); padding: 2px 5px; border-radius: 4px; font-family: 'Monaco', monospace; font-size: 11px;">&lt;head&gt;</code>:</div>
+              <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: 'Monaco', monospace; font-size: 11px; margin-bottom: 12px; position: relative; overflow-x: auto;">
+                <code style="color: var(--accent); display: block; padding-right: 52px;">&lt;meta name="vibesafe-verify" content="a7f3c2e1d4b8"&gt;</code>
+                <button class="copy-btn" style="position: absolute; top: 10px; right: 10px; padding: 4px 10px; font-size: 11px;" onclick="copyToClipboard('&lt;meta name=&quot;vibesafe-verify&quot; content=&quot;a7f3c2e1d4b8&quot;&gt;')">Copy</button>
+              </div>
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">2. Deploy your site so it's live</div>
+            </div>
+            <button class="scan-btn" style="width: 100%; margin: 12px 0 0; background: #7C3AED;" onclick="verifyMetaTag()">Verify Meta Tag →</button>
+            <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px;">We fetch your homepage and check the &lt;head&gt;</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- =================== -->
+      <!-- GUIDED PATH -->
+      <!-- =================== -->
+      <div id="vGuidedPath" style="display: none;">
+
+        <!-- Step 1: pick platform -->
+        <div id="vGuidedStep1">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: 800; margin-bottom: 6px;">Where is your site hosted?</div>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">Pick where you built your site — we'll show the exact place to add the verification.</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">
+              <button class="vplatform-btn" onclick="vPickPlatform('wix')"><div style="font-size: 26px;">🟣</div><div style="font-size: 13px; font-weight: 700;">Wix</div><div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;">Meta tag</div></button>
+              <button class="vplatform-btn" onclick="vPickPlatform('squarespace')"><div style="font-size: 26px;">⬛</div><div style="font-size: 13px; font-weight: 700;">Squarespace</div><div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;">Meta tag</div></button>
+              <button class="vplatform-btn" onclick="vPickPlatform('webflow')"><div style="font-size: 26px;">🔷</div><div style="font-size: 13px; font-weight: 700;">Webflow</div><div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;">Meta tag</div></button>
+              <button class="vplatform-btn" onclick="vPickPlatform('framer')"><div style="font-size: 26px;">⬡</div><div style="font-size: 13px; font-weight: 700;">Framer</div><div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;">Meta tag</div></button>
+              <button class="vplatform-btn" onclick="vPickPlatform('shopify')"><div style="font-size: 26px;">🟢</div><div style="font-size: 13px; font-weight: 700;">Shopify</div><div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;">Meta tag</div></button>
+              <button class="vplatform-btn" onclick="vPickPlatform('wordpress')"><div style="font-size: 26px;">🔵</div><div style="font-size: 13px; font-weight: 700;">WordPress</div><div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;">Plugin / DNS</div></button>
+              <button class="vplatform-btn" onclick="vPickPlatform('cloudflare')"><div style="font-size: 26px;">🟠</div><div style="font-size: 13px; font-weight: 700;">Cloudflare</div><div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;">DNS TXT</div></button>
+              <button class="vplatform-btn" onclick="vPickPlatform('vercel')"><div style="font-size: 26px;">▲</div><div style="font-size: 13px; font-weight: 700;">Vercel</div><div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;">DNS TXT</div></button>
+              <button class="vplatform-btn" onclick="vPickPlatform('other')"><div style="font-size: 26px;">❓</div><div style="font-size: 13px; font-weight: 700;">Other / Not sure</div><div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;">Help me decide</div></button>
+            </div>
+            <a href="#" onclick="switchVerifyPath('tech'); return false;" style="display: block; text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-tertiary); text-decoration: none;">I actually know what I'm doing → switch to developer view</a>
+          </div>
+        </div>
+
+        <!-- Step 2: platform-specific instructions -->
+        <div id="vGuidedStep2" style="display: none;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 12px;">
+              <button onclick="vBackToPicker()" style="background: transparent; border: 1px solid var(--border); padding: 6px 12px; border-radius: 7px; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer;">← Pick a different platform</button>
+              <div id="vPlatformName" style="font-size: 18px; font-weight: 800;"></div>
+            </div>
+            <div id="vGuidedInstructions"></div>
+            <div id="vGuidedStatus"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Trust footer -->
+      <div style="margin-top: 24px; padding: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 11px; display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; font-size: 12px; color: var(--text-tertiary);">
+        <div style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>One-time setup</div>
+        <div style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Remove anytime</div>
+        <div style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>We re-check on each scan</div>
+        <div style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>No tracking pixel</div>
+      </div>
+
+      <!-- Skip -->
+      <div style="text-align: center; margin-top: 24px;">
+        <button style="background: transparent; border: 1px solid var(--border); padding: 9px 18px; border-radius: 8px; color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;" onclick="showPage('dashboard')">Skip for now</button>
+      </div>
+
     </div>
   </div>
+
 
   <!-- PAGE 5: Scan Progress -->
   <div id="scan" class="page">
@@ -3651,360 +3589,6 @@ OPENAI_API_KEY=sk-proj-****...****</div>
     // Meta Tag Verification
     function verifyMetaTag() {
       alert('✅ Meta Tag Verified!\n\nWe found the verification meta tag in your <head> section.\n\nContinuous monitoring is now enabled.\n\nIn the real app, this fetches your homepage and checks for the meta tag.');
-    }
-
-    // CNAME Verification
-    function verifyCNAME() {
-      alert('✅ CNAME Record Verified!\n\nYour CNAME record was successfully found:\nverify.taskflow.app CNAME a8f3e2b9c1d4e5f6.verify.vibesafe.app\n\nContinuous monitoring is now enabled.\n\nIn the real app, this performs a DNS lookup: dig CNAME verify.taskflow.app');
-    }
-
-    // File Upload Verification
-    function verifyFile() {
-      alert('✅ File Verified!\n\nWe found your verification file at:\nhttps://taskflow.app/vibesafe-verify.txt\n\nContinuous monitoring is now enabled.\n\nIn the real app, this fetches: https://taskflow.app/vibesafe-verify.txt');
-    }
-
-    // Email Verification
-    function verifyEmail() {
-      alert('✅ Email Received!\n\nWe\'ve received your verification email from admin@taskflow.app.\n\nContinuous monitoring is now enabled.\n\nIn the real app, this checks our email inbox for messages from admin@, webmaster@, or postmaster@ with your verification token.');
-    }
-
-    // Switch between Technical and Guided approach
-    function switchApproach(approach) {
-      const technicalBtn = document.getElementById('technicalBtn');
-      const guidedBtn = document.getElementById('guidedBtn');
-      const technicalApproach = document.getElementById('technicalApproach');
-      const guidedApproach = document.getElementById('guidedApproach');
-
-      if (approach === 'technical') {
-        technicalBtn.style.background = 'var(--accent)';
-        technicalBtn.style.color = 'white';
-        guidedBtn.style.background = 'transparent';
-        guidedBtn.style.color = 'var(--text-secondary)';
-        technicalApproach.style.display = 'block';
-        guidedApproach.style.display = 'none';
-      } else {
-        guidedBtn.style.background = 'var(--accent)';
-        guidedBtn.style.color = 'white';
-        technicalBtn.style.background = 'transparent';
-        technicalBtn.style.color = 'var(--text-secondary)';
-        guidedApproach.style.display = 'block';
-        technicalApproach.style.display = 'none';
-      }
-    }
-
-    // Select registrar in guided flow
-    function selectRegistrar(provider) {
-      document.getElementById('step1').style.display = 'none';
-      document.getElementById('step2').style.display = 'block';
-
-      const providerNames = {
-        'godaddy': 'GoDaddy',
-        'namecheap': 'Namecheap',
-        'cloudflare': 'Cloudflare',
-        'vercel': 'Vercel',
-        'netlify': 'Netlify',
-        'other': 'your provider'
-      };
-
-      const providerName = providerNames[provider];
-      document.getElementById('selectedProvider').textContent = providerName;
-
-      // Generate provider-specific instructions
-      const instructions = generateProviderInstructions(provider);
-      document.getElementById('providerInstructions').innerHTML = instructions;
-
-      // Generate AI prompt for this provider
-      const aiPrompt = generateAIPrompt(provider, providerName);
-      document.getElementById('aiPromptBox').textContent = aiPrompt;
-      window.currentAIPrompt = aiPrompt; // Store for copying
-    }
-
-    // Back to step 1
-    function backToStep1() {
-      document.getElementById('step1').style.display = 'block';
-      document.getElementById('step2').style.display = 'none';
-    }
-
-    // Generate provider-specific instructions with smart recommendations
-    function generateProviderInstructions(provider) {
-      const baseToken = 'a8f3e2b9c1d4e5f6';
-      const domain = 'taskflow.app';
-
-      // Define what methods to recommend for each provider
-      const recommendations = {
-        'godaddy': { primary: 'dns', reason: 'GoDaddy gives you full DNS access, making this the most reliable method.', alternatives: ['cname', 'meta', 'file', 'email'] },
-        'namecheap': { primary: 'dns', reason: 'Namecheap\'s Advanced DNS tab makes TXT records straightforward.', alternatives: ['cname', 'meta', 'file', 'email'] },
-        'cloudflare': { primary: 'dns', reason: 'Cloudflare DNS changes propagate fast (1-5 minutes).', alternatives: ['cname', 'meta', 'file', 'email'] },
-        'vercel': { primary: 'meta', reason: 'Vercel doesn\'t provide DNS management. Meta tag works instantly after deployment.', alternatives: ['file', 'email'] },
-        'netlify': { primary: 'meta', reason: 'Netlify makes deploying code easy. Meta tag is faster than DNS.', alternatives: ['dns', 'cname', 'file', 'email'] },
-        'other': { primary: 'email', reason: 'Email verification works for any provider without technical setup.', alternatives: ['dns', 'cname', 'meta', 'file'] }
-      };
-
-      const rec = recommendations[provider] || recommendations['other'];
-
-      // Build the HTML with recommended method expanded, alternatives collapsed
-      let html = `
-        <div style="margin-bottom: 20px;">
-          <div style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-bottom: 16px;">
-            Choose ONE method below based on what you have access to:
-          </div>
-      `;
-
-      // Add recommended method (expanded)
-      html += generateMethodCard(rec.primary, true, rec.reason, baseToken, domain);
-
-      // Add alternatives (collapsed)
-      html += `
-        <div style="margin-top: 16px; margin-bottom: 12px;">
-          <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-            Alternative options if you can't use the recommended method:
-          </div>
-        </div>
-      `;
-
-      rec.alternatives.forEach(method => {
-        html += generateMethodCard(method, false, null, baseToken, domain);
-      });
-
-      html += `</div>`;
-
-      return html;
-    }
-
-    // Generate individual method card
-    function generateMethodCard(method, isExpanded, reason, token, domain) {
-      const methods = {
-        'dns': {
-          icon: '🔧',
-          title: 'DNS TXT Record',
-          badge: 'RECOMMENDED',
-          summary: 'Add a TXT record to your DNS settings',
-          instructions: `
-            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin: 12px 0;">
-              <li>Log in to your DNS provider</li>
-              <li>Navigate to DNS settings for "${domain}"</li>
-              <li>Add a new TXT record:
-                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 8px 0; font-family: monospace; font-size: 13px;">
-                  <div>Name: <strong>_vibesafe-verify</strong></div>
-                  <div>Value: <strong>${token}</strong></div>
-                </div>
-              </li>
-              <li>Save the record</li>
-              <li>Wait 5-30 minutes for DNS propagation</li>
-              <li>Click verify button below</li>
-            </ol>
-          `
-        },
-        'cname': {
-          icon: '🔗',
-          title: 'CNAME Record',
-          badge: null,
-          summary: 'Add a CNAME record (simpler in some registrars)',
-          instructions: `
-            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin: 12px 0;">
-              <li>Log in to your DNS provider</li>
-              <li>Navigate to DNS settings for "${domain}"</li>
-              <li>Add a new CNAME record:
-                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 8px 0; font-family: monospace; font-size: 13px;">
-                  <div>Name: <strong>verify</strong></div>
-                  <div>Points to: <strong>${token}.verify.vibesafe.app</strong></div>
-                </div>
-              </li>
-              <li>Save the record</li>
-              <li>Wait 5-30 minutes for DNS propagation</li>
-              <li>Click verify button</li>
-            </ol>
-          `
-        },
-        'meta': {
-          icon: '📄',
-          title: 'HTML Meta Tag',
-          badge: null,
-          summary: 'Add a meta tag to your website\'s HTML',
-          instructions: `
-            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin: 12px 0;">
-              <li>Open your website's code</li>
-              <li>Find the <code>&lt;head&gt;</code> section</li>
-              <li>Add this meta tag:
-                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 8px 0; font-family: monospace; font-size: 13px; position: relative;">
-                  &lt;meta name="vibesafe-verify" content="${token}" /&gt;
-                  <button onclick="copyToClipboard('&lt;meta name=&quot;vibesafe-verify&quot; content=&quot;${token}&quot; /&gt;', event)" style="position: absolute; top: 8px; right: 8px; background: var(--surface); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-family: sans-serif;">Copy</button>
-                </div>
-              </li>
-              <li>Deploy your changes</li>
-              <li>Click verify button (instant verification!)</li>
-            </ol>
-          `
-        },
-        'file': {
-          icon: '📁',
-          title: 'File Upload',
-          badge: null,
-          summary: 'Upload a verification file to your website',
-          instructions: `
-            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin: 12px 0;">
-              <li>Create a file named <code>vibesafe-verify.txt</code></li>
-              <li>Add this content:
-                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 8px 0; font-family: monospace; font-size: 13px;">
-                  vibesafe-verify=${token}
-                </div>
-              </li>
-              <li>Upload to your website root directory</li>
-              <li>File should be accessible at: <code>https://${domain}/vibesafe-verify.txt</code></li>
-              <li>Click verify button</li>
-            </ol>
-          `
-        },
-        'email': {
-          icon: '✉️',
-          title: 'Email Verification',
-          badge: 'EASIEST',
-          summary: 'Send an email from your admin address',
-          instructions: `
-            <ol style="font-size: 14px; line-height: 2; color: var(--text-secondary); padding-left: 20px; margin: 12px 0;">
-              <li>Send an email from one of these addresses:
-                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 8px 0;">
-                  • admin@${domain}<br>
-                  • webmaster@${domain}<br>
-                  • postmaster@${domain}
-                </div>
-              </li>
-              <li>To: <strong>verify@vibesafe.app</strong></li>
-              <li>Subject: <strong>Verify ${domain}</strong></li>
-              <li>Body: <strong>${token}</strong></li>
-              <li>Click "I've Sent the Email" button below</li>
-              <li>Wait 5-10 minutes for processing</li>
-            </ol>
-          `
-        }
-      };
-
-      const m = methods[method];
-      if (!m) return '';
-
-      const cardId = `method-${method}-${Math.random().toString(36).substr(2, 9)}`;
-      const badgeHtml = m.badge ? `<span style="background: var(--success); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px;">${m.badge}</span>` : '';
-      const reasonHtml = reason ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px; margin-left: 36px;">${reason}</div>` : '';
-
-      return `
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; overflow: hidden;">
-          <div onclick="toggleMethodCard('${cardId}')" style="padding: 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
-            <div style="flex: 1;">
-              <div style="display: flex; align-items: center;">
-                <span style="font-size: 24px; margin-right: 12px;">${m.icon}</span>
-                <span style="font-size: 15px; font-weight: 700;">${m.title}</span>
-                ${badgeHtml}
-              </div>
-              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px; margin-left: 36px;">${m.summary}</div>
-              ${reasonHtml}
-            </div>
-            <svg id="${cardId}-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s; transform: ${isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'};">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-          <div id="${cardId}" style="display: ${isExpanded ? 'block' : 'none'}; padding: 0 16px 16px 16px; border-top: 1px solid var(--border);">
-            ${m.instructions}
-          </div>
-        </div>
-      `;
-    }
-
-    // Toggle method card expand/collapse
-    function toggleMethodCard(cardId) {
-      const card = document.getElementById(cardId);
-      const icon = document.getElementById(cardId + '-icon');
-
-      if (card.style.display === 'none') {
-        card.style.display = 'block';
-        icon.style.transform = 'rotate(180deg)';
-      } else {
-        card.style.display = 'none';
-        icon.style.transform = 'rotate(0deg)';
-      }
-    }
-
-
-    // Generate AI Prompt for provider help
-    function generateAIPrompt(provider, providerName) {
-      const prompts = {
-        'godaddy': `I need to add a DNS TXT record in GoDaddy for domain verification. Can you provide step-by-step instructions on how to:
-
-1. Navigate to DNS settings in GoDaddy for my domain "taskflow.app"
-2. Add a new TXT record with:
-   - Name: _vibesafe-verify
-   - Value: vibesafe-verify=a8f3e2b9c1d4e5f6
-3. Save the record and wait for propagation
-
-Please include exact button names and where to find them in the GoDaddy interface.`,
-
-        'namecheap': `I need to add a DNS TXT record in Namecheap for domain verification. Please guide me through:
-
-1. Finding DNS settings in Namecheap for "taskflow.app"
-2. Adding a TXT record in the "Advanced DNS" section with:
-   - Host: _vibesafe-verify
-   - Value: vibesafe-verify=a8f3e2b9c1d4e5f6
-3. Saving and verifying the record
-
-Include specific steps for Namecheap's interface.`,
-
-        'cloudflare': `I need to add a DNS TXT record in Cloudflare for domain verification. Help me:
-
-1. Navigate to DNS settings in Cloudflare dashboard
-2. Add a new TXT record with:
-   - Name: _vibesafe-verify.taskflow.app
-   - Content: vibesafe-verify=a8f3e2b9c1d4e5f6
-3. Save and verify
-
-Please provide Cloudflare-specific steps.`,
-
-        'vercel': `I'm using Vercel and need to verify my domain "taskflow.app". Since Vercel doesn't provide DNS management, what's the best approach?
-
-Options I'm considering:
-1. Add an HTML meta tag to my Next.js app's <head>
-2. Upload a verification file to the public directory
-3. Manage DNS through my actual registrar (where is my domain registered?)
-
-Can you provide code examples for adding this meta tag in Next.js:
-<meta name="vibesafe-verify" content="a8f3e2b9c1d4e5f6" />`,
-
-        'netlify': `I need to verify my domain "taskflow.app" on Netlify. Can you help me:
-
-1. Add a DNS TXT record in Netlify's DNS settings with:
-   - Name: _vibesafe-verify
-   - Value: vibesafe-verify=a8f3e2b9c1d4e5f6
-
-OR
-
-2. Add an HTML meta tag to my site's <head> section:
-   <meta name="vibesafe-verify" content="a8f3e2b9c1d4e5f6" />
-
-Which method is easier for Netlify, and how do I implement it?`,
-
-        'other': `I need to add a DNS TXT record for domain verification but I'm not sure how. My domain is "taskflow.app" and I need to:
-
-1. Find my DNS management panel (where is it usually located?)
-2. Add a TXT record with:
-   - Name/Host: _vibesafe-verify
-   - Type: TXT
-   - Value: vibesafe-verify=a8f3e2b9c1d4e5f6
-
-Can you provide general instructions that work for most DNS providers? Also, what if I can't access DNS - what are alternative verification methods?`
-      };
-
-      return prompts[provider] || prompts['other'];
-    }
-
-    // Copy AI Prompt
-    function copyAIPrompt() {
-      const prompt = window.currentAIPrompt;
-      if (prompt) {
-        navigator.clipboard.writeText(prompt).then(() => {
-          event.target.textContent = '✓ Copied! Paste into Cursor/Claude';
-          setTimeout(() => {
-            event.target.textContent = 'Copy AI Prompt';
-          }, 3000);
-        });
-      }
     }
 
     // Copy to Clipboard
