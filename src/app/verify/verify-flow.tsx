@@ -11,16 +11,73 @@ interface Props {
   token: string;
 }
 
-const PLATFORMS: Array<{ key: string; name: string; icon: string; method: Method; steps: string[] }> = [
-  { key: 'wix',         name: 'Wix',         icon: '🟣', method: 'meta', steps: ['Open Wix Editor → Settings → Custom code', 'Click "Add Custom Code"', 'Paste the meta tag in <head>, set "All pages"', 'Save and publish your site'] },
-  { key: 'squarespace', name: 'Squarespace', icon: '⬛', method: 'meta', steps: ['Settings → Advanced → Code Injection', 'Paste the meta tag into the Header field', 'Save and your site updates instantly'] },
-  { key: 'webflow',     name: 'Webflow',     icon: '🔷', method: 'meta', steps: ['Project Settings → Custom Code → Head Code', 'Paste the meta tag', 'Save changes and publish'] },
-  { key: 'framer',      name: 'Framer',      icon: '⬡',  method: 'meta', steps: ['Site Settings → General → Custom Code → Head Start', 'Paste the meta tag', 'Publish your site'] },
-  { key: 'shopify',     name: 'Shopify',     icon: '🟢', method: 'meta', steps: ['Online Store → Themes → Edit code', 'Open theme.liquid', 'Paste the meta tag inside <head>', 'Save'] },
-  { key: 'wordpress',   name: 'WordPress',   icon: '🔵', method: 'meta', steps: ['Install a header/footer plugin (e.g. WPCode)', 'Add the meta tag to "Header"', 'Save and clear any cache'] },
-  { key: 'cloudflare',  name: 'Cloudflare',  icon: '🟠', method: 'dns',  steps: ['Open your domain in Cloudflare DNS', 'Add a TXT record — Name: @, Value: the token below', 'Save and wait 1–5 minutes for propagation'] },
-  { key: 'vercel',      name: 'Vercel',      icon: '▲',  method: 'dns',  steps: ['Project → Settings → Domains', 'Open your domain → DNS records', 'Add TXT record — Host: @, Value: the token below', 'Save'] },
-  { key: 'other',       name: 'Other',       icon: '❓', method: 'dns',  steps: ['Log into your DNS provider', 'Add a TXT record on the apex (@) with the token below', 'Wait 1–5 minutes and click "Verify"'] },
+const DNS_FALLBACK_STEPS = [
+  'Log into your domain registrar or DNS provider',
+  'Add a TXT record — Name: @, Value: the token below',
+  'Wait 1–5 minutes for propagation',
+  'Click Verify',
+];
+
+const META_FALLBACK_STEPS = [
+  'Find the "Custom code" or "Header injection" section in your platform settings',
+  'Paste the meta tag inside the <head> area',
+  'Save and publish so the change is live',
+  'Click Verify',
+];
+
+const PLATFORMS: Array<{
+  key: string;
+  name: string;
+  icon: string;
+  defaultMethod: Method;
+  metaSteps: string[];
+  dnsSteps: string[];
+}> = [
+  {
+    key: 'wix', name: 'Wix', icon: '🟣', defaultMethod: 'meta',
+    metaSteps: ['Open Wix Editor → Settings → Custom code', 'Click "Add Custom Code"', 'Paste the meta tag in <head>, set "All pages"', 'Save and publish your site'],
+    dnsSteps: DNS_FALLBACK_STEPS,
+  },
+  {
+    key: 'squarespace', name: 'Squarespace', icon: '⬛', defaultMethod: 'meta',
+    metaSteps: ['Settings → Advanced → Code Injection', 'Paste the meta tag into the Header field', 'Save and your site updates instantly'],
+    dnsSteps: DNS_FALLBACK_STEPS,
+  },
+  {
+    key: 'webflow', name: 'Webflow', icon: '🔷', defaultMethod: 'meta',
+    metaSteps: ['Project Settings → Custom Code → Head Code', 'Paste the meta tag', 'Save changes and publish'],
+    dnsSteps: DNS_FALLBACK_STEPS,
+  },
+  {
+    key: 'framer', name: 'Framer', icon: '⬡', defaultMethod: 'meta',
+    metaSteps: ['Site Settings → General → Custom Code → Head Start', 'Paste the meta tag', 'Publish your site'],
+    dnsSteps: DNS_FALLBACK_STEPS,
+  },
+  {
+    key: 'shopify', name: 'Shopify', icon: '🟢', defaultMethod: 'meta',
+    metaSteps: ['Online Store → Themes → Edit code', 'Open theme.liquid', 'Paste the meta tag inside <head>', 'Save'],
+    dnsSteps: DNS_FALLBACK_STEPS,
+  },
+  {
+    key: 'wordpress', name: 'WordPress', icon: '🔵', defaultMethod: 'meta',
+    metaSteps: ['Install a header/footer plugin (e.g. WPCode)', 'Add the meta tag to "Header"', 'Save and clear any cache'],
+    dnsSteps: DNS_FALLBACK_STEPS,
+  },
+  {
+    key: 'cloudflare', name: 'Cloudflare', icon: '🟠', defaultMethod: 'dns',
+    dnsSteps: ['Open your domain in Cloudflare DNS', 'Add a TXT record — Name: @, Value: the token below', 'Save and wait 1–5 minutes for propagation'],
+    metaSteps: META_FALLBACK_STEPS,
+  },
+  {
+    key: 'vercel', name: 'Vercel', icon: '▲', defaultMethod: 'dns',
+    dnsSteps: ['Project → Settings → Domains', 'Open your domain → DNS records', 'Add TXT record — Host: @, Value: the token below', 'Save'],
+    metaSteps: META_FALLBACK_STEPS,
+  },
+  {
+    key: 'other', name: 'Other', icon: '❓', defaultMethod: 'dns',
+    dnsSteps: ['Log into your DNS provider', 'Add a TXT record on the apex (@) with the token below', 'Wait 1–5 minutes and click "Verify"'],
+    metaSteps: META_FALLBACK_STEPS,
+  },
 ];
 
 export function VerifyFlow({ domain, token }: Props) {
@@ -32,6 +89,12 @@ export function VerifyFlow({ domain, token }: Props) {
 
   const metaTag = `<meta name="vibesafe-verify" content="${token.replace('vibesafe-verify=', '')}" />`;
   const platform = PLATFORMS.find((p) => p.key === platformKey);
+
+  const selectPlatform = (key: string) => {
+    const p = PLATFORMS.find((pl) => pl.key === key);
+    setPlatformKey(key);
+    setMethod(p?.defaultMethod ?? 'dns');
+  };
 
   const handleVerify = () => {
     setVerifying(true);
@@ -154,7 +217,7 @@ export function VerifyFlow({ domain, token }: Props) {
                   <li key={p.key}>
                     <button
                       type="button"
-                      onClick={() => { setPlatformKey(p.key); setMethod(p.method); }}
+                      onClick={() => selectPlatform(p.key)}
                       className="card card-interactive"
                       style={{
                         width: '100%',
@@ -170,7 +233,7 @@ export function VerifyFlow({ domain, token }: Props) {
                       <span aria-hidden="true" style={{ fontSize: 24 }}>{p.icon}</span>
                       <strong>{p.name}</strong>
                       <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
-                        {p.method === 'dns' ? 'via DNS' : 'via meta tag'}
+                        {p.defaultMethod === 'dns' ? 'DNS · meta tag' : 'meta tag · DNS'}
                       </span>
                     </button>
                   </li>
@@ -188,7 +251,7 @@ export function VerifyFlow({ domain, token }: Props) {
             </>
           ) : (
             <article className="card">
-              <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
+              <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-5)', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => setPlatformKey(null)}
@@ -199,17 +262,54 @@ export function VerifyFlow({ domain, token }: Props) {
                 </button>
                 <span aria-hidden="true" style={{ fontSize: 28 }}>{platform.icon}</span>
                 <h2 className="text-h3" style={{ margin: 0 }}>{platform.name}</h2>
-                <span className="pill" style={{ marginLeft: 'auto' }}>
-                  {platform.method === 'dns' ? 'via DNS' : 'via Meta tag'}
-                </span>
+                {platform.defaultMethod === method && (
+                  <span className="pill pill-accent" style={{ marginLeft: 'auto', fontSize: 'var(--fs-xs)' }}>
+                    Recommended for {platform.name}
+                  </span>
+                )}
               </header>
+
+              {/* Method tabs */}
+              <div
+                role="tablist"
+                aria-label="Verification method"
+                style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-5)' }}
+              >
+                {(['dns', 'meta'] as Method[]).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    role="tab"
+                    aria-selected={method === m}
+                    onClick={() => setMethod(m)}
+                    style={{
+                      padding: '7px 16px',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid',
+                      borderColor: method === m ? 'var(--accent)' : 'var(--border)',
+                      background: method === m ? 'var(--accent-light)' : 'var(--surface-secondary)',
+                      color: method === m ? 'var(--accent)' : 'var(--text-secondary)',
+                      fontSize: 'var(--fs-sm)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'border-color 0.15s, background 0.15s',
+                    }}
+                  >
+                    {m === 'dns' ? '🌐 DNS TXT record' : '🏷 HTML meta tag'}
+                    {platform.defaultMethod === m && (
+                      <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.75 }}>★ recommended</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
               <ol style={{ ...olCss, paddingLeft: 20 }}>
-                {platform.steps.map((step, i) => (
+                {(method === 'dns' ? platform.dnsSteps : platform.metaSteps).map((step, i) => (
                   <li key={i}>{step}</li>
                 ))}
               </ol>
               <div style={{ marginTop: 'var(--space-5)' }}>
-                {platform.method === 'dns'
+                {method === 'dns'
                   ? <RecordBox lines={[['Type', 'TXT'], ['Name', '@'], ['Value', token]]} />
                   : <CodeBlock code={metaTag} />}
               </div>

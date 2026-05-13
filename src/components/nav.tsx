@@ -60,7 +60,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
         display: 'flex',
         alignItems: 'center',
         padding: '0 var(--space-6)',
-        background: 'rgba(10,10,11,0.78)',
+        background: 'var(--nav-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border)',
