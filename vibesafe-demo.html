@@ -882,6 +882,78 @@
       display: block;
     }
 
+    /* Report Filter Buttons */
+    .report-filter-btn {
+      padding: 9px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .report-filter-btn:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+    .report-filter-btn.active {
+      background: rgba(13,148,136,0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Report Views */
+    .report-view {
+      display: block;
+    }
+
+    /* Pro Lock Overlay */
+    .pro-lock-overlay {
+      margin-top: 16px;
+      background: linear-gradient(135deg, rgba(13,148,136,0.08), rgba(124,58,237,0.06));
+      border: 1px dashed rgba(13,148,136,0.4);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .pro-lock-overlay:hover {
+      background: linear-gradient(135deg, rgba(13,148,136,0.14), rgba(124,58,237,0.1));
+      border-style: solid;
+    }
+    .pro-lock-content {
+      pointer-events: none;
+    }
+
+    /* Passed Check Row */
+    .passed-check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid rgba(5,150,105,0.2);
+      border-radius: 10px;
+    }
+    .passed-icon {
+      width: 24px;
+      height: 24px;
+      background: #059669;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
     /* Performance Section */
     .metrics-grid {
       display: grid;
@@ -3087,62 +3159,55 @@
         </div>
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab active" onclick="showTab('security')">🛡️ Security</button>
-        <button class="tab" onclick="showTab('compliance')">⚖️ Compliance</button>
-        <button class="tab" onclick="showTab('performance')">⚡ Performance</button>
-        <button class="tab" onclick="showTab('accessibility')">♿ Accessibility</button>
-        <button class="tab" onclick="showTab('seo')">🔍 SEO</button>
+      <!-- Grade Percentile + Improvement Bar -->
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+        <div style="background: rgba(13,148,136,0.1); border: 1px solid rgba(13,148,136,0.25); border-radius: 8px; padding: 8px 14px; font-size: 13px; color: var(--accent); font-weight: 600;">
+          📊 Better than 27% of sites scanned
+        </div>
+        <div style="background: rgba(5,150,105,0.1); border: 1px solid rgba(5,150,105,0.25); border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #059669; font-weight: 600; cursor: pointer;" onclick="document.getElementById('upgradePrompt').scrollIntoView({behavior:'smooth'})">
+          ✨ Fix 3 issues → grade improves from D to B
+        </div>
       </div>
 
-      <!-- SECURITY TAB -->
-      <div id="securityTab" class="tab-content active">
-        <!-- Severity Summary -->
-        <div class="severity-summary">
-          <div class="severity-badge active" onclick="filterSeverity('ALL')"
-               style="background: var(--surface); border-color: var(--border);">
-            <span>All Findings</span>
-            <span style="background: var(--text-tertiary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">11</span>
-          </div>
-          <div class="severity-badge" onclick="filterSeverity('CRITICAL')"
-               style="background: #FFF1F2; color: #E11D48;">
-            <span>Critical</span>
-            <span style="background: #E11D48; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">2</span>
-          </div>
-          <div class="severity-badge" onclick="filterSeverity('HIGH')"
-               style="background: #FFF7ED; color: #EA580C;">
-            <span>High</span>
-            <span style="background: #EA580C; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">4</span>
-          </div>
-          <div class="severity-badge" onclick="filterSeverity('MEDIUM')"
-               style="background: #FEFCE8; color: #CA8A04;">
-            <span>Medium</span>
-            <span style="background: #CA8A04; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">3</span>
-          </div>
-          <div class="severity-badge" onclick="filterSeverity('LOW')"
-               style="background: #EFF6FF; color: #2563EB;">
-            <span>Low</span>
-            <span style="background: #2563EB; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">1</span>
-          </div>
-          <div class="severity-badge" onclick="filterSeverity('INFO')"
-               style="background: #F9FAFB; color: #6B7280;">
-            <span>Info</span>
-            <span style="background: #6B7280; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">1</span>
-          </div>
+      <!-- Red Urgency Box -->
+      <div style="background: linear-gradient(135deg, rgba(225,29,72,0.12), rgba(220,38,38,0.06)); border: 2px solid rgba(225,29,72,0.4); border-radius: 14px; padding: 20px 24px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+        <div style="font-size: 28px; flex-shrink: 0;">🚨</div>
+        <div style="flex: 1; min-width: 200px;">
+          <div style="font-size: 16px; font-weight: 800; color: #E11D48; margin-bottom: 4px;">2 CRITICAL issues need immediate action</div>
+          <div style="font-size: 13px; color: var(--text-secondary);">Your Stripe key and .env file are exposed right now. These can be exploited in minutes.</div>
         </div>
+        <button onclick="showReportFilter('critical')" style="padding: 10px 20px; background: #E11D48; color: white; border: none; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">View Critical Issues →</button>
+      </div>
+
+      <!-- Report Filter Buttons -->
+      <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;" id="reportFilterRow">
+        <button class="report-filter-btn active" id="filterBtnCritical" onclick="showReportFilter('critical')">
+          🚨 Critical <span style="background: #E11D48; color: white; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-left: 4px;">2</span>
+        </button>
+        <button class="report-filter-btn" id="filterBtnAll" onclick="showReportFilter('all')">
+          📋 All Issues <span style="background: var(--text-tertiary); color: white; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-left: 4px;">11</span>
+        </button>
+        <button class="report-filter-btn" id="filterBtnPassed" onclick="showReportFilter('passed')">
+          ✅ Passed <span style="background: #059669; color: white; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-left: 4px;">8</span>
+        </button>
+      </div>
+
+      <!-- CRITICAL ISSUES VIEW -->
+      <div id="reportViewCritical" class="report-view">
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Showing 2 critical issues across all categories — fix these first.</div>
 
         <!-- Finding 1: Critical -->
         <div class="finding-card">
           <div class="finding-header" onclick="toggleFinding('finding1')">
-            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">
-              🚨
-            </div>
+            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">🚨</div>
             <div class="finding-content">
               <div class="finding-title">Stripe live secret key exposed in JavaScript bundle</div>
               <div class="finding-location">/assets/index-3f7a2c.js (line 1,847)</div>
             </div>
-            <div class="expand-icon" id="icon1">▼</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FFF1F2; color: #E11D48; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(225,29,72,0.3);">CRITICAL</span>
+              <div class="expand-icon" id="icon1">▼</div>
+            </div>
           </div>
           <div class="finding-details" id="finding1">
             <div class="detail-section">
@@ -3170,13 +3235,12 @@
                 <li>Use only the publishable key (pk_live_) in client-side code.</li>
               </ul>
             </div>
-            <div class="detail-section">
-              <div class="ai-prompt-box">
-                <div class="ai-prompt-header">
-                  🤖 AI Fix Prompt
-                  <button class="copy-btn" onclick="copyPrompt('prompt1')">Copy</button>
-                </div>
-                <div class="ai-prompt-content" id="prompt1">I have a Stripe live secret key hardcoded in my client-side JS. Move all Stripe API calls to a server-side API route in Next.js, use only the publishable key on the client, and create a /api/create-payment-intent endpoint.</div>
+            <div class="pro-lock-overlay" onclick="showPaymentModal('growth')">
+              <div class="pro-lock-content">
+                <div style="font-size: 20px; margin-bottom: 6px;">🔒</div>
+                <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Pro: Get the exact Cursor fix</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">AI will code it for you in 5 minutes</div>
+                <button style="padding: 7px 16px; background: var(--accent); color: white; border: none; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;">Unlock AI Fix Prompt →</button>
               </div>
             </div>
           </div>
@@ -3185,14 +3249,15 @@
         <!-- Finding 2: Critical -->
         <div class="finding-card">
           <div class="finding-header" onclick="toggleFinding('finding2')">
-            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">
-              🚨
-            </div>
+            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">🚨</div>
             <div class="finding-content">
               <div class="finding-title">Environment file (.env) publicly accessible</div>
               <div class="finding-location">/.env</div>
             </div>
-            <div class="expand-icon" id="icon2">▼</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FFF1F2; color: #E11D48; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(225,29,72,0.3);">CRITICAL</span>
+              <div class="expand-icon" id="icon2">▼</div>
+            </div>
           </div>
           <div class="finding-details" id="finding2">
             <div class="detail-section">
@@ -3228,14 +3293,15 @@ OPENAI_API_KEY=sk-proj-****...****</div>
         <!-- Finding 3: High Severity -->
         <div class="finding-card">
           <div class="finding-header" onclick="toggleFinding('finding3')">
-            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">
-              ⚠️
-            </div>
+            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">⚠️</div>
             <div class="finding-content">
               <div class="finding-title">Missing Content-Security-Policy header</div>
               <div class="finding-location">Response headers</div>
             </div>
-            <div class="expand-icon" id="icon3">▼</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FFF7ED; color: #EA580C; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(234,88,12,0.3);">HIGH</span>
+              <div class="expand-icon" id="icon3">▼</div>
+            </div>
           </div>
           <div class="finding-details" id="finding3">
             <div class="detail-section">
@@ -3258,262 +3324,252 @@ OPENAI_API_KEY=sk-proj-****...****</div>
                 <li>Test thoroughly to avoid breaking legitimate scripts</li>
               </ul>
             </div>
+            <div class="pro-lock-overlay" onclick="showPaymentModal('growth')">
+              <div class="pro-lock-content">
+                <div style="font-size: 20px; margin-bottom: 6px;">🔒</div>
+                <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Pro: Get the exact Cursor fix</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">AI will code it for you in 5 minutes</div>
+                <button style="padding: 7px 16px; background: var(--accent); color: white; border: none; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;">Unlock AI Fix Prompt →</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- COMPLIANCE TAB -->
-      <div id="complianceTab" class="tab-content">
-        <div style="background: var(--surface); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px;">
-          <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">⚖️ Compliance Overview</h3>
+      <!-- ALL ISSUES VIEW (hidden by default) -->
+      <div id="reportViewAll" class="report-view" style="display:none">
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">All 11 issues found across Security, Compliance, Performance, Accessibility, and SEO.</div>
 
-          <div class="metrics-grid">
-            <div class="metric-card">
-              <div class="metric-value" style="color: #EA580C;">Partial</div>
-              <div class="metric-label">GDPR Status</div>
+        <!-- Category: Security -->
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); margin: 20px 0 10px;">🛡️ Security</div>
+
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('all-f1')">
+            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">🚨</div>
+            <div class="finding-content">
+              <div class="finding-title">Stripe live secret key exposed in JavaScript bundle</div>
+              <div class="finding-location">/assets/index-3f7a2c.js (line 1,847)</div>
             </div>
-            <div class="metric-card">
-              <div class="metric-value" style="color: #CA8A04;">Warning</div>
-              <div class="metric-label">Cookie Consent</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FFF1F2; color: #E11D48; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(225,29,72,0.3);">CRITICAL</span>
+              <div class="expand-icon" id="icon-all-f1">▼</div>
             </div>
-            <div class="metric-card">
-              <div class="metric-value" style="color: #E11D48;">Missing</div>
-              <div class="metric-label">Privacy Policy</div>
+          </div>
+          <div class="finding-details" id="all-f1">
+            <div class="detail-section">
+              <div class="detail-label">Evidence</div>
+              <div class="code-block">const stripeClient = new Stripe("sk_live_51Hx****...****e4Rk");</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Impact</div>
+              <div class="detail-content">An attacker could create charges, issue refunds, access customer payment data, and modify your Stripe account settings.</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Manual Fix</div>
+              <ul class="fix-steps">
+                <li>Remove the secret key from all client-side code immediately.</li>
+                <li>Create a server-side API route that uses the key.</li>
+                <li>Rotate the compromised key in Stripe Dashboard.</li>
+              </ul>
+            </div>
+            <!-- PRO LOCK: AI Fix Prompt -->
+            <div class="pro-lock-overlay" onclick="showPaymentModal('growth')">
+              <div class="pro-lock-content">
+                <div style="font-size: 20px; margin-bottom: 6px;">🔒</div>
+                <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Pro: Get the exact Cursor fix</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">AI will code it for you in 5 minutes</div>
+                <button style="padding: 7px 16px; background: var(--accent); color: white; border: none; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;">Unlock AI Fix Prompt →</button>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Compliance Finding -->
         <div class="finding-card">
-          <div class="finding-header" onclick="toggleFinding('compliance1')">
-            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">
-              ⚖️
+          <div class="finding-header" onclick="toggleFinding('all-f2')">
+            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">🚨</div>
+            <div class="finding-content">
+              <div class="finding-title">Environment file (.env) publicly accessible</div>
+              <div class="finding-location">/.env</div>
             </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FFF1F2; color: #E11D48; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(225,29,72,0.3);">CRITICAL</span>
+              <div class="expand-icon" id="icon-all-f2">▼</div>
+            </div>
+          </div>
+          <div class="finding-details" id="all-f2">
+            <div class="detail-section">
+              <div class="detail-label">Impact</div>
+              <div class="detail-content" style="color: #E11D48; font-weight: 600;">Full access to your database, Stripe account, and OpenAI billing. All secrets are compromised simultaneously.</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Manual Fix</div>
+              <ul class="fix-steps">
+                <li>Block access to /.env immediately via your hosting platform.</li>
+                <li>Rotate ALL keys listed in the file.</li>
+                <li>Move environment variables to Vercel Settings → Environment Variables.</li>
+              </ul>
+            </div>
+            <div class="pro-lock-overlay" onclick="showPaymentModal('growth')">
+              <div class="pro-lock-content">
+                <div style="font-size: 20px; margin-bottom: 6px;">🔒</div>
+                <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Pro: Get the exact Cursor fix</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">AI will code it for you in 5 minutes</div>
+                <button style="padding: 7px 16px; background: var(--accent); color: white; border: none; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;">Unlock AI Fix Prompt →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('all-f3')">
+            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">⚠️</div>
+            <div class="finding-content">
+              <div class="finding-title">Missing Content-Security-Policy header</div>
+              <div class="finding-location">Response headers</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FFF7ED; color: #EA580C; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(234,88,12,0.3);">HIGH</span>
+              <div class="expand-icon" id="icon-all-f3">▼</div>
+            </div>
+          </div>
+          <div class="finding-details" id="all-f3">
+            <div class="detail-section">
+              <div class="detail-label">Impact</div>
+              <div class="detail-content">Attackers can inject malicious scripts to steal session tokens, redirect users, or modify page content.</div>
+            </div>
+            <div class="pro-lock-overlay" onclick="showPaymentModal('growth')">
+              <div class="pro-lock-content">
+                <div style="font-size: 20px; margin-bottom: 6px;">🔒</div>
+                <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Pro: Get the exact Cursor fix</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">AI will code it for you in 5 minutes</div>
+                <button style="padding: 7px 16px; background: var(--accent); color: white; border: none; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;">Unlock AI Fix Prompt →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category: Compliance -->
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); margin: 20px 0 10px;">⚖️ Compliance</div>
+
+        <div class="finding-card">
+          <div class="finding-header" onclick="toggleFinding('all-comp1')">
+            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">⚖️</div>
             <div class="finding-content">
               <div class="finding-title">Missing cookie consent banner (GDPR/CCPA violation)</div>
               <div class="finding-location">Cookie Policy</div>
             </div>
-            <div class="expand-icon" id="iconComp1">▼</div>
-          </div>
-          <div class="finding-details" id="compliance1">
-            <div class="detail-section">
-              <div class="detail-label">Explanation</div>
-              <div class="detail-content">
-                Your site sets third-party cookies without user consent, violating GDPR Article 7 and CCPA requirements.
-              </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FFF7ED; color: #EA580C; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(234,88,12,0.3);">HIGH</span>
+              <div class="expand-icon" id="icon-all-comp1">▼</div>
             </div>
+          </div>
+          <div class="finding-details" id="all-comp1">
             <div class="detail-section">
               <div class="detail-label">Legal Impact</div>
               <div class="detail-content" style="background: #FFF7ED; padding: 12px; border-radius: 8px; border-left: 4px solid #EA580C;">
                 <strong>Potential fines:</strong> Up to €20M or 4% of global annual revenue (GDPR). Class-action lawsuits under CCPA.
               </div>
             </div>
-            <div class="detail-section">
-              <div class="detail-label">Manual Fix</div>
-              <ul class="fix-steps">
-                <li>Implement cookie consent banner before setting any cookies</li>
-                <li>Block third-party scripts until user accepts</li>
-                <li>Provide granular consent options (analytics, marketing, etc.)</li>
-                <li>Document consent choices in your database</li>
-              </ul>
-            </div>
           </div>
         </div>
 
         <div class="finding-card">
-          <div class="finding-header" onclick="toggleFinding('compliance2')">
-            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">
-              📄
-            </div>
+          <div class="finding-header" onclick="toggleFinding('all-comp2')">
+            <div class="severity-icon" style="background: #FFF1F2; color: #E11D48;">📄</div>
             <div class="finding-content">
               <div class="finding-title">No accessible privacy policy</div>
               <div class="finding-location">/privacy (404 Not Found)</div>
             </div>
-            <div class="expand-icon" id="iconComp2">▼</div>
-          </div>
-          <div class="finding-details" id="compliance2">
-            <div class="detail-section">
-              <div class="detail-label">Explanation</div>
-              <div class="detail-content">
-                GDPR Article 13 requires a clear, accessible privacy policy. Your site has no privacy policy page.
-              </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FFF7ED; color: #EA580C; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(234,88,12,0.3);">HIGH</span>
+              <div class="expand-icon" id="icon-all-comp2">▼</div>
             </div>
+          </div>
+          <div class="finding-details" id="all-comp2">
             <div class="detail-section">
               <div class="detail-label">Impact</div>
-              <div class="detail-content">
-                Users cannot understand how their data is collected, processed, or stored. Violates GDPR transparency requirements.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- PERFORMANCE TAB -->
-      <div id="performanceTab" class="tab-content">
-        <div style="background: var(--surface); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <h3 style="font-size: 18px; font-weight: 700;">⚡ Core Web Vitals</h3>
-            <div style="font-size: 24px; font-weight: 800; color: #CA8A04;">B (84/100)</div>
-          </div>
-
-          <div class="metrics-grid">
-            <div class="metric-card">
-              <div class="metric-value" style="color: #CA8A04;">
-                2.8s
-                <span class="metric-status needs-improvement"></span>
-              </div>
-              <div class="metric-label">LCP (Largest Contentful Paint)</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-value" style="color: #059669;">
-                1.2s
-                <span class="metric-status good"></span>
-              </div>
-              <div class="metric-label">FCP (First Contentful Paint)</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-value" style="color: #059669;">
-                0.05
-                <span class="metric-status good"></span>
-              </div>
-              <div class="metric-label">CLS (Cumulative Layout Shift)</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-value" style="color: #E11D48;">
-                420ms
-                <span class="metric-status poor"></span>
-              </div>
-              <div class="metric-label">TBT (Total Blocking Time)</div>
+              <div class="detail-content">GDPR Article 13 requires a clear, accessible privacy policy. Your site has no privacy policy page.</div>
             </div>
           </div>
         </div>
 
-        <!-- Performance Finding -->
+        <!-- Category: Performance -->
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); margin: 20px 0 10px;">⚡ Performance</div>
+
+        <div style="background: var(--surface); border-radius: 10px; padding: 16px; border: 1px solid var(--border); margin-bottom: 12px;">
+          <div class="metrics-grid" style="gap: 12px;">
+            <div class="metric-card"><div class="metric-value" style="color: #CA8A04;">2.8s <span class="metric-status needs-improvement"></span></div><div class="metric-label">LCP</div></div>
+            <div class="metric-card"><div class="metric-value" style="color: #059669;">1.2s <span class="metric-status good"></span></div><div class="metric-label">FCP</div></div>
+            <div class="metric-card"><div class="metric-value" style="color: #E11D48;">420ms <span class="metric-status poor"></span></div><div class="metric-label">TBT</div></div>
+          </div>
+        </div>
+
         <div class="finding-card">
-          <div class="finding-header" onclick="toggleFinding('perf1')">
-            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">
-              ⚡
-            </div>
+          <div class="finding-header" onclick="toggleFinding('all-perf1')">
+            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">⚡</div>
             <div class="finding-content">
               <div class="finding-title">Large JavaScript bundle blocking main thread</div>
               <div class="finding-location">/assets/index-3f7a2c.js (847 KB)</div>
             </div>
-            <div class="expand-icon" id="iconPerf1">▼</div>
-          </div>
-          <div class="finding-details" id="perf1">
-            <div class="detail-section">
-              <div class="detail-label">Explanation</div>
-              <div class="detail-content">
-                Your main JavaScript bundle is 847 KB (uncompressed), causing 420ms of Total Blocking Time. Users experience lag during page load.
-              </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FEFCE8; color: #CA8A04; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(202,138,4,0.3);">MEDIUM</span>
+              <div class="expand-icon" id="icon-all-perf1">▼</div>
             </div>
+          </div>
+          <div class="finding-details" id="all-perf1">
             <div class="detail-section">
               <div class="detail-label">Impact</div>
-              <div class="detail-content">
-                53% of mobile users abandon sites that take >3 seconds to load. Your LCP of 2.8s is borderline.
-              </div>
+              <div class="detail-content">53% of mobile users abandon sites that take >3 seconds to load. Your LCP of 2.8s is borderline.</div>
             </div>
-            <div class="detail-section">
-              <div class="ai-prompt-box">
-                <div class="ai-prompt-header">
-                  🤖 AI Fix Prompt
-                  <button class="copy-btn">Copy</button>
-                </div>
-                <div class="ai-prompt-content">My Next.js app has an 847KB JavaScript bundle. Implement code splitting using dynamic imports for heavy components, analyze bundle size with @next/bundle-analyzer, and lazy-load non-critical features.</div>
-              </div>
+            <div class="ai-prompt-box">
+              <div class="ai-prompt-header">🤖 AI Fix Prompt <button class="copy-btn" onclick="copyPrompt('prompt-perf1')">Copy</button></div>
+              <div class="ai-prompt-content" id="prompt-perf1">My Next.js app has an 847KB JavaScript bundle. Implement code splitting using dynamic imports for heavy components, analyze bundle size with @next/bundle-analyzer, and lazy-load non-critical features.</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- ACCESSIBILITY TAB -->
-      <div id="accessibilityTab" class="tab-content">
-        <div style="background: var(--surface); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <h3 style="font-size: 18px; font-weight: 700;">♿ WCAG 2.2 Level AA</h3>
-            <div style="font-size: 24px; font-weight: 800; color: #E11D48;">F (42/100)</div>
-          </div>
+        <!-- Category: Accessibility -->
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); margin: 20px 0 10px;">♿ Accessibility — WCAG 2.2 AA</div>
 
-          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
-            Your site has <strong style="color: #E11D48;">12 WCAG violations</strong> affecting screen reader users, keyboard navigation, and color contrast. 71% of users with disabilities leave inaccessible sites immediately.
-          </p>
-        </div>
-
-        <!-- Accessibility Finding -->
         <div class="finding-card">
-          <div class="finding-header" onclick="toggleFinding('a11y1')">
-            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">
-              ♿
-            </div>
+          <div class="finding-header" onclick="toggleFinding('all-a11y1')">
+            <div class="severity-icon" style="background: #FFF7ED; color: #EA580C;">♿</div>
             <div class="finding-content">
               <div class="finding-title">Buttons missing accessible labels</div>
               <div class="finding-location">7 instances detected</div>
             </div>
-            <div class="expand-icon" id="iconA11y1">▼</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FEFCE8; color: #CA8A04; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(202,138,4,0.3);">MEDIUM</span>
+              <div class="expand-icon" id="icon-all-a11y1">▼</div>
+            </div>
           </div>
-          <div class="finding-details" id="a11y1">
+          <div class="finding-details" id="all-a11y1">
             <div class="detail-section">
-              <div class="detail-label">Explanation</div>
-              <div class="detail-content">
-                7 buttons use only icons without text labels or aria-label attributes. Screen reader users cannot understand button purpose.
-              </div>
-            </div>
-            <div class="detail-section">
-              <div class="detail-label">WCAG Reference</div>
-              <div class="detail-content">
-                <strong>WCAG 2.2 Level A - 1.1.1 Non-text Content</strong><br>
-                All non-text content must have a text alternative.
-              </div>
-            </div>
-            <div class="detail-section">
-              <div class="detail-label">Manual Fix</div>
-              <ul class="fix-steps">
-                <li>Add aria-label="Close" to icon-only buttons</li>
-                <li>Or use visually-hidden text: &lt;span class="sr-only"&gt;Close&lt;/span&gt;</li>
-                <li>Test with VoiceOver (macOS) or NVDA (Windows)</li>
-              </ul>
+              <div class="detail-label">WCAG 2.2 Level A — 1.1.1 Non-text Content</div>
+              <div class="detail-content">7 buttons use only icons without aria-label. Screen reader users cannot understand button purpose.</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- SEO TAB -->
-      <div id="seoTab" class="tab-content">
-        <div style="background: var(--surface); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <h3 style="font-size: 18px; font-weight: 700;">🔍 SEO Analysis</h3>
-            <div style="font-size: 24px; font-weight: 800; color: #0D9488;">B (88/100)</div>
-          </div>
+        <!-- Category: SEO -->
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); margin: 20px 0 10px;">🔍 SEO — Score: B (88/100)</div>
 
-          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
-            Your SEO is generally good, but missing Open Graph tags hurt social media performance. 53% of traffic comes from organic search.
-          </p>
-        </div>
-
-        <!-- SEO Finding -->
         <div class="finding-card">
-          <div class="finding-header" onclick="toggleFinding('seo1')">
-            <div class="severity-icon" style="background: #FEFCE8; color: #CA8A04;">
-              🔍
-            </div>
+          <div class="finding-header" onclick="toggleFinding('all-seo1')">
+            <div class="severity-icon" style="background: #FEFCE8; color: #CA8A04;">🔍</div>
             <div class="finding-content">
               <div class="finding-title">Missing Open Graph meta tags</div>
               <div class="finding-location">HTML &lt;head&gt; element</div>
             </div>
-            <div class="expand-icon" id="iconSEO1">▼</div>
-          </div>
-          <div class="finding-details" id="seo1">
-            <div class="detail-section">
-              <div class="detail-label">Explanation</div>
-              <div class="detail-content">
-                Your site has no og:title, og:description, or og:image tags. Social media platforms will use generic previews instead of your branding.
-              </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <span style="font-size: 11px; font-weight: 700; background: #FEFCE8; color: #CA8A04; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(202,138,4,0.3);">MEDIUM</span>
+              <div class="expand-icon" id="icon-all-seo1">▼</div>
             </div>
+          </div>
+          <div class="finding-details" id="all-seo1">
             <div class="detail-section">
               <div class="detail-label">Impact</div>
-              <div class="detail-content">
-                40% lower click-through rate on social media shares. No control over how your site appears on Twitter, LinkedIn, Facebook.
-              </div>
+              <div class="detail-content">40% lower click-through rate on social media shares. No control over how your site appears on Twitter, LinkedIn, Facebook.</div>
             </div>
             <div class="detail-section">
               <div class="detail-label">Manual Fix</div>
@@ -3523,6 +3579,58 @@ OPENAI_API_KEY=sk-proj-****...****</div>
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- PASSED CHECKS VIEW (hidden by default) -->
+      <div id="reportViewPassed" class="report-view" style="display:none">
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">8 checks passed — your site is already doing these things right.</div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="passed-check-row">
+            <span class="passed-icon">✓</span>
+            <div><div style="font-size: 14px; font-weight: 600;">HTTPS enforced on all pages</div><div style="font-size: 12px; color: var(--text-secondary);">All HTTP requests redirect to HTTPS. TLS 1.3 detected.</div></div>
+          </div>
+          <div class="passed-check-row">
+            <span class="passed-icon">✓</span>
+            <div><div style="font-size: 14px; font-weight: 600;">X-Frame-Options header present</div><div style="font-size: 12px; color: var(--text-secondary);">Clickjacking protection is configured correctly.</div></div>
+          </div>
+          <div class="passed-check-row">
+            <span class="passed-icon">✓</span>
+            <div><div style="font-size: 14px; font-weight: 600;">No exposed admin panels</div><div style="font-size: 12px; color: var(--text-secondary);">/admin, /wp-admin, /phpMyAdmin all return 404 or 403.</div></div>
+          </div>
+          <div class="passed-check-row">
+            <span class="passed-icon">✓</span>
+            <div><div style="font-size: 14px; font-weight: 600;">Valid SSL certificate (expires in 212 days)</div><div style="font-size: 12px; color: var(--text-secondary);">Certificate chain is valid and trusted. Auto-renew likely enabled.</div></div>
+          </div>
+          <div class="passed-check-row">
+            <span class="passed-icon">✓</span>
+            <div><div style="font-size: 14px; font-weight: 600;">robots.txt configured correctly</div><div style="font-size: 12px; color: var(--text-secondary);">No sensitive paths exposed to search engines.</div></div>
+          </div>
+          <div class="passed-check-row">
+            <span class="passed-icon">✓</span>
+            <div><div style="font-size: 14px; font-weight: 600;">No directory listing exposed</div><div style="font-size: 12px; color: var(--text-secondary);">Directory traversal returns 403 on all tested paths.</div></div>
+          </div>
+          <div class="passed-check-row">
+            <span class="passed-icon">✓</span>
+            <div><div style="font-size: 14px; font-weight: 600;">Meta viewport tag present</div><div style="font-size: 12px; color: var(--text-secondary);">Mobile responsive viewport configured correctly.</div></div>
+          </div>
+          <div class="passed-check-row">
+            <span class="passed-icon">✓</span>
+            <div><div style="font-size: 14px; font-weight: 600;">Page title and description set</div><div style="font-size: 12px; color: var(--text-secondary);">Title tag and meta description present on all scanned pages.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upgrade Prompt (shown in all views) -->
+      <div id="upgradePrompt" style="background: linear-gradient(135deg, rgba(13,148,136,0.1), rgba(124,58,237,0.08)); border: 1px solid rgba(13,148,136,0.3); border-radius: 16px; padding: 28px 32px; margin-top: 32px; text-align: center;">
+        <div style="font-size: 22px; font-weight: 800; margin-bottom: 8px;">Fix all 11 issues with AI in 30 minutes</div>
+        <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 6px;">Get the exact Cursor prompts for every finding — AI codes the fix, you paste and deploy.</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 20px;">Equivalent to a $3,200 security audit. Starting at just $9.</div>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <button onclick="showPaymentModal('starter')" style="padding: 13px 28px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">Get AI Fix Prompts — $9 →</button>
+          <button onclick="showPaymentModal('growth')" style="padding: 13px 28px; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">Growth: 25 scans for $29</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 14px;">Credits never expire • Stripe-secured • 30-day refund guarantee</div>
       </div>
     </div>
   </div>
@@ -3628,6 +3736,16 @@ OPENAI_API_KEY=sk-proj-****...****</div>
     }
 
     // Tab Navigation
+    // Report Filter (Critical / All Issues / Passed)
+    function showReportFilter(view) {
+      ['critical', 'all', 'passed'].forEach(v => {
+        const el = document.getElementById('reportView' + v.charAt(0).toUpperCase() + v.slice(1));
+        const btn = document.getElementById('filterBtn' + v.charAt(0).toUpperCase() + v.slice(1));
+        if (el) el.style.display = v === view ? 'block' : 'none';
+        if (btn) btn.classList.toggle('active', v === view);
+      });
+    }
+
     function showTab(tabId) {
       // Hide all tab contents
       document.querySelectorAll('.tab-content').forEach(content => {
@@ -3635,21 +3753,23 @@ OPENAI_API_KEY=sk-proj-****...****</div>
       });
 
       // Show selected tab content
-      document.getElementById(tabId + 'Tab').classList.add('active');
+      const tabEl = document.getElementById(tabId + 'Tab');
+      if (tabEl) tabEl.classList.add('active');
 
       // Update tab button states
       document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
       });
-      event.target.classList.add('active');
+      if (event && event.target) event.target.classList.add('active');
     }
 
     // Toggle Finding Details
     function toggleFinding(findingId) {
       const details = document.getElementById(findingId);
-      const iconId = 'icon' + findingId.replace('finding', '').replace('compliance', 'Comp').replace('perf', 'Perf').replace('a11y', 'A11y').replace('seo', 'SEO');
-      const icon = document.getElementById(iconId);
+      const icon = document.getElementById('icon-' + findingId) ||
+                   document.getElementById('icon' + findingId.replace('finding', '').replace('compliance', 'Comp').replace('perf', 'Perf').replace('a11y', 'A11y').replace('seo', 'SEO'));
 
+      if (!details) return;
       if (details.classList.contains('visible')) {
         details.classList.remove('visible');
         if (icon) icon.classList.remove('expanded');
