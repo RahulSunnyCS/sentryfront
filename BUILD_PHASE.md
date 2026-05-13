@@ -436,9 +436,9 @@ Distinct from the end-to-end corpus in 3.1 — these are small, fast, determinis
 
 ---
 
-## Phase 7 — Public API, Webhooks & CI/CD
+## Phase 7 — Public API & Webhooks
 
-**Goal:** Make every dashboard action available programmatically. Ship the GitHub Action that the docs already describe.
+**Goal:** Make every dashboard action available programmatically. Ship a stable, documented API that users can build integrations on top of.
 
 **Estimated effort:** 3–4 weeks
 
@@ -449,15 +449,11 @@ Distinct from the end-to-end corpus in 3.1 — these are small, fast, determinis
 - [ ] Webhook signing (HMAC-SHA256, `signature` header)
 - [ ] Webhook delivery retries with exponential backoff, dead-letter queue
 - [ ] Webhook event types: `scan.started`, `scan.completed`, `scan.failed`, `finding.critical`
-- [ ] GitHub Action: `vibesafe/scan-action@v1`
-- [ ] CLI: `npx @vibesafe/cli scan --url … --fail-on critical`
-- [ ] CI policy: configurable fail thresholds per branch / per environment
 
 ### Exit checklist for Phase 7
 
 - [ ] Public API docs match shipped implementation
-- [ ] GitHub Action published in Marketplace
-- [ ] At least 3 dogfood integrations live (our own repos)
+- [ ] At least 3 dogfood integrations live (our own services)
 - [ ] Webhook delivery success rate >99% over 7 days
 
 ---
@@ -517,22 +513,183 @@ Distinct from the end-to-end corpus in 3.1 — these are small, fast, determinis
 
 ---
 
-## Phase 10 — Scan diffing & monitoring
+## Phase 10 — Scheduled rescans + email alerts
 
-**Goal:** Turn one-off scans into continuous monitoring.
+**Goal:** Drive re-engagement by running scans on a schedule and surfacing changes in the user's inbox. "We scanned your site weekly — here's what changed." Costs almost nothing to build, works for free users, no external integrations required.
 
-**Estimated effort:** 2–3 weeks
+**Rationale:** This lands earlier than CI/CD or Slack because it requires no user-side setup, reaches users who don't have a DevOps workflow, and puts VibeSafe back in front of users who scanned once and forgot. A weekly email is a low-friction retention loop.
 
-- [ ] Scheduled scans (daily / weekly / on-deploy)
-- [ ] Diff view: this scan vs last scan (new findings, resolved findings, regressions)
-- [ ] Email digest of changes
-- [ ] PR comment with diff (when paired with GitHub Action)
-- [ ] Grade trend chart on dashboard
-- [ ] Slack alert on regression
+**Estimated effort:** 1–2 weeks
+
+### 10.1 Scan scheduling
+
+- [ ] Data model: `scheduled_scan` table with `{ user_id, domain, frequency: 'daily' | 'weekly' | 'monthly', last_run_at, next_run_at, enabled }`
+- [ ] UI: "Monitor this site" toggle on the report page + dashboard; frequency picker (free users: weekly only; Pro: daily; Studio: daily + multiple domains)
+- [ ] Cron job (or queue-based) that fires pending scans at the scheduled time
+- [ ] Idempotency: if a scan is already in-flight for the same domain + user, skip the scheduled trigger
+- [ ] Backfill guard: on first enable, run an immediate scan so the user sees a result before the first scheduled one
+
+### 10.2 Change detection
+
+- [ ] Compare new scan findings against the previous scan for the same domain
+- [ ] Classify each finding as: `new` / `resolved` / `persisted` / `regressed` (severity increased)
+- [ ] Store diff alongside scan record; expose via `GET /api/v1/scans/:id/diff`
+- [ ] Grade delta: show `↑ B→A` or `↓ A→C` in the email and dashboard
+
+### 10.3 Email digest
+
+- [ ] Trigger on every scheduled scan completion
+- [ ] Template: grade badge (current), grade delta vs last scan, new critical/high findings (top 3), resolved findings count, CTA to view full report
+- [ ] Plain-text fallback for email clients that block HTML
+- [ ] One-click unsubscribe link (CAN-SPAM / GDPR compliant)
+- [ ] Email provider: Resend (preferred) or Postmark; do NOT use a raw SMTP relay
+- [ ] Respect user email preferences (granular: scan alerts separate from marketing)
+- [ ] Rate cap: max 1 email per domain per day regardless of how many scans run
+
+### 10.4 Dashboard signal
+
+- [ ] "Last scanned X days ago" label on monitored sites in dashboard
+- [ ] Grade trend sparkline (7-point or 30-point) per domain on dashboard card
+- [ ] "X new issues since last scan" badge on report entry points
+
+### Exit checklist for Phase 10
+
+- [ ] Scheduled scans fire within 15 minutes of scheduled time under normal load
+- [ ] Email delivered within 5 minutes of scan completion; delivery rate >99%
+- [ ] Unsubscribe honored within 1 request (no 24h delay)
+- [ ] Diff API returns correct `new` / `resolved` / `persisted` / `regressed` classifications on the test corpus
+- [ ] No duplicate emails for the same scan event
+- [ ] GDPR: user data deletion cascade removes scheduled scans + email history
 
 ---
 
-## Phase 11 — Performance & cost optimization
+## Phase 11 — Geographic Payment Localization
+
+**Goal:** Unlock India and European markets with regionally appropriate pricing, payment methods, and tax handling. Three regions to start — US, Europe, and India. Covers the majority of addressable market while keeping Stripe config, currency tables, and tax logic tractable. Expand to SE Asia / LATAM in a follow-up phase.
+
+**Estimated effort:** 2–3 weeks
+
+### Phase G1 — Geo Detection
+
+Detect the user's region on every request so downstream logic can branch on it.
+
+- [ ] Server: read `x-vercel-ip-country` header (Vercel sets this automatically) or Cloudflare's `CF-IPCountry`. Fall back to `Accept-Language` browser locale.
+- [ ] Define a `Region` type: `'us' | 'eu' | 'in' | 'unknown'`
+- [ ] Create `src/lib/geo.ts` — `getRegion(req: NextRequest): Region`
+- [ ] Pass region to checkout API and pricing components via a Next.js cookie or a root layout server component that forwards it as a prop.
+
+**Files to create/modify:**
+- `src/lib/geo.ts` — region detection utility
+- `src/app/layout.tsx` — read region server-side, store in cookie
+- `src/app/api/v1/checkout/route.ts` — accept `region` in request body
+
+---
+
+### Phase G2 — Regional Pricing (PPP Adjustments)
+
+India is priced lower due to purchasing power parity. Europe and US share USD/EUR pricing.
+
+| Tier       | US (USD) | Europe (EUR) | India (INR) |
+|------------|----------|--------------|-------------|
+| One-Shot   | $9       | €8           | ₹299        |
+| Pro        | $29/mo   | €25/mo       | ₹799/mo     |
+| Studio     | $79/mo   | €69/mo       | ₹1,999/mo   |
+
+- [ ] Create separate Stripe Price objects in each currency in the Stripe Dashboard.
+- [ ] Add env vars per region:
+  ```
+  # US
+  STRIPE_PRICE_ID_ONE_SHOT_US=price_...
+  STRIPE_PRICE_ID_PRO_MONTHLY_US=price_...
+  STRIPE_PRICE_ID_STUDIO_MONTHLY_US=price_...
+
+  # EU
+  STRIPE_PRICE_ID_ONE_SHOT_EU=price_...
+  STRIPE_PRICE_ID_PRO_MONTHLY_EU=price_...
+  STRIPE_PRICE_ID_STUDIO_MONTHLY_EU=price_...
+
+  # India
+  STRIPE_PRICE_ID_ONE_SHOT_IN=price_...
+  STRIPE_PRICE_ID_PRO_MONTHLY_IN=price_...
+  STRIPE_PRICE_ID_STUDIO_MONTHLY_IN=price_...
+  ```
+- [ ] Update `src/lib/stripe/client.ts` — `STRIPE_PRICES` becomes a map keyed by region.
+- [ ] Update `src/components/pricing-card.tsx` — accept `region` prop; display localized price and currency symbol.
+
+---
+
+### Phase G3 — Regional Payment Methods
+
+Use Stripe's **PaymentElement** (replaces the current redirect-to-Checkout approach) so Stripe automatically surfaces the right local payment methods per region.
+
+| Region | Payment Methods |
+|--------|----------------|
+| US     | Visa/MC/Amex, Apple Pay, Google Pay, ACH Direct Debit |
+| Europe | Visa/MC, Apple Pay, Google Pay, SEPA Direct Debit, iDEAL (NL), Bancontact (BE), Klarna |
+| India  | UPI (Google Pay, PhonePe, Paytm), Netbanking, Rupay cards |
+
+- [ ] Add `@stripe/stripe-js` and `@stripe/react-stripe-js` to `dependencies`.
+- [ ] Create `src/app/checkout/page.tsx` — embedded Stripe PaymentElement flow.
+- [ ] Update `/api/v1/checkout/route.ts`:
+  - Create a `PaymentIntent` (one-shot) or `SetupIntent` (subscription) instead of a Checkout Session.
+  - Pass `automatic_payment_methods: { enabled: true }` — Stripe handles the rest.
+  - For India UPI: set `currency: 'inr'` and Stripe will show UPI automatically.
+- [ ] For subscriptions (Pro/Studio): use Stripe Billing with `payment_behavior: 'default_incomplete'` and collect payment method via PaymentElement before confirming.
+- [ ] EU-specific: enable SEPA Direct Debit in Stripe Dashboard → Payment Methods. iDEAL and Bancontact are enabled automatically for EUR PaymentIntents.
+- [ ] India-specific: enable UPI in Stripe Dashboard → Payment Methods → India.
+
+---
+
+### Phase G4 — Tax Compliance
+
+| Region | Tax Type | Stripe Feature |
+|--------|----------|----------------|
+| US     | Sales tax (state-level) | Stripe Tax — automatic |
+| Europe | VAT (20–25% depending on country) | Stripe Tax — automatic + EU VAT ID collection |
+| India  | GST (18%) | Stripe Tax — automatic for IN merchants |
+
+- [ ] Enable **Stripe Tax** in the Stripe Dashboard (one-click).
+- [ ] Add `automatic_tax: { enabled: true }` to all Checkout Sessions / PaymentIntents.
+- [ ] For EU B2B: add `tax_id_collection: { enabled: true }` to collect VAT IDs so reverse-charge applies (0% VAT for verified EU businesses).
+- [ ] No code changes needed beyond the two flags above — Stripe Tax handles rate lookup, line-item display, and remittance reporting.
+
+---
+
+### Phase G5 — Pricing UI Localization
+
+- [ ] `src/lib/geo.ts` exports `formatPrice(amount: number, region: Region): string` using `Intl.NumberFormat` with the correct locale and currency code.
+- [ ] `src/components/pricing-card.tsx` — receives `region` from server component, renders the correct localized price string and billing period label.
+- [ ] Add a subtle "Prices shown in [currency]" note below the pricing grid.
+- [ ] No hard-coded price strings — all amounts come from the regional pricing config.
+
+---
+
+### Rollout Order for Phase 11
+
+```
+G1 (Geo Detection) → G2 (Regional Pricing) → G3 (Payment Methods) → G4 (Tax) → G5 (UI)
+```
+
+G1 and G2 are blockers for everything else. G3 can proceed in parallel with G4 once G2 is done. G5 is the last UI polish step.
+
+### Exit checklist for Phase 11
+
+- [ ] Checkout flow tested end-to-end in all three regions using Stripe test cards + test UPI
+- [ ] Stripe Tax enabled and producing correct line items in test mode for US, EU, IN
+- [ ] Pricing page shows correct localized prices for each detected region
+- [ ] No hard-coded price strings remain in the codebase
+- [ ] EU B2B VAT ID collection + reverse-charge verified
+
+### What's intentionally out of scope (Phase 11)
+
+- Currency conversion at runtime (prices are fixed per region, not floating FX)
+- Additional regions: SE Asia (GrabPay, FPX), LATAM (PIX, OXXO), Japan (Konbini)
+- Multi-currency invoicing / proration on plan upgrades across regions
+- Displaying prices in the user's preferred currency if it differs from their region default
+
+---
+
+## Phase 12 — Performance & cost optimization
 
 **Goal:** Sustain growth without proportional infra cost increase.
 
@@ -545,16 +702,28 @@ Distinct from the end-to-end corpus in 3.1 — these are small, fast, determinis
 
 ---
 
-## Phase 12+ — Future / speculative
+## Phase 13+ — Future / speculative
 
 Held until earlier phases prove out. Listed for visibility only — not committed.
 
+**Developer workflow integrations (post-traction)**
+- CI/CD integration — GitHub Action (`vibesafe/scan-action@v1`), CLI (`npx @vibesafe/cli scan --url … --fail-on critical`), configurable fail thresholds per branch / per environment. Deferred because Phase 10 (scheduled rescans + email) achieves the "we're in your workflow" goal for 1/10th the effort. Revisit once API (Phase 7) is stable and there's demonstrated demand from developer users.
+- Public scan badges — embeddable "VibeSafe: A grade" shields for marketing sites; free distribution loop (Snyk model). Requires stable public scan URLs and a badge CDN.
+- Slack / Discord notification bot — push `scan.completed` and `finding.critical` events to a channel. Lower effort than CI/CD; revisit if Slack is a common request after Phase 8's team Slack notifications ship.
+
+**Full scan diffing & monitoring**
+- Diff view: this scan vs last scan (new findings, resolved findings, regressions) with a side-by-side report
+- PR comment integration (requires CI/CD above)
+- Grade trend chart on dashboard (multi-month view, beyond Phase 10 sparklines)
+
+**Platform expansion**
 - Mobile app (iOS / Android) — only after web product-market-fit confirmed
 - Self-hosted enterprise option (Docker + Helm chart)
 - Visual regression testing
 - AI-powered auto-fix that generates PRs
 - SaaS factory product #2 (SpeedCheck)
 - White-label licensing
+- Additional geo-payment regions: SE Asia (GrabPay, FPX), LATAM (PIX, OXXO), Japan (Konbini)
 
 ---
 
@@ -582,11 +751,12 @@ These are not phase-specific; they're baseline expectations applied throughout.
 | 4. AI enrichment review & strengthen | ⏳ Queued | — | — |
 | 5. Active testing engine | ⏳ Queued | — | — |
 | 6. Chrome extension beta | ⏳ Queued | — | — |
-| 7. API, webhooks, CI/CD | ⏳ Queued | — | — |
+| 7. Public API & Webhooks | ⏳ Queued | — | — |
 | 8. Team & enterprise | ⏳ Queued | — | — |
 | 9. i18n (gated) | 🚫 Blocked on traffic data | — | — |
-| 10. Scan diffing & monitoring | ⏳ Queued | — | — |
-| 11. Performance & cost | ⏳ Queued | — | — |
+| 10. Scheduled rescans + email alerts | ⏳ Queued | — | — |
+| 11. Geographic payment localization | ⏳ Queued | — | — |
+| 12. Performance & cost | ⏳ Queued | — | — |
 
 ---
 
