@@ -38,6 +38,23 @@ Scan any website for security vulnerabilities, performance bottlenecks, WCAG 2.2
 
 ---
 
+## 🎓 Learning Next.js?
+
+**New to Next.js but know React?** This project is perfect for learning!
+
+📚 **[Start Here: Next.js Learning Guide](./LEARNING_SUMMARY.md)**
+
+We've created comprehensive learning resources:
+- 📖 React vs Next.js comparison
+- 📚 Complete Next.js 14 guide
+- ⚡ Quick reference cheat sheet
+- 🎯 Hands-on exercises with solutions
+- 🗂️ Project structure walkthrough
+
+**All documentation:** [`docs/`](./docs/)
+
+---
+
 ## 🚀 Quick Start
 
 ### **1. Install Dependencies**
