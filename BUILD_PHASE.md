@@ -559,6 +559,83 @@ Distinct from the end-to-end corpus in 3.1 — these are small, fast, determinis
 
 ---
 
+## Phase 7.5 — Server-side dependency scanning (near-runtime SCA)
+
+**Goal:** Detect vulnerable third-party dependencies on the *server side* of a customer's stack — not just what ships to the browser. Without deploying an agent into their infrastructure. This is the "Snyk free tier"-equivalent surface: we read their manifest / SBOM / container image and tell them what's vulnerable, enriched with OSV.dev + CISA KEV + EPSS.
+
+**Why this phase exists separately from Phase 3:** Phase 3 hardens what we already scan (the live URL — client-side bundles, headers, TLS). This phase adds a *new input modality*: the customer hands us a manifest or image, we tell them what's vulnerable on their server. Different data flow, different UI, same vulnerability data sources.
+
+**Why this phase exists instead of eBPF:** Runtime SCA via eBPF agents (Oligo, Sweet, Tetragon-style) requires the customer to deploy an agent into their infra, kernel-version compat work, and a kernel-experienced engineering hire. This phase delivers ~80% of the customer value with ~5% of the effort and zero customer-side install. eBPF runtime SCA is held in Phase 13+ as a separate product line — see "VibeSafe Runtime" below.
+
+**Estimated effort:** 3–4 weeks
+
+**Prerequisite:** Phase 7 (Public API & Webhooks) shipped — the CLI uploads to that API.
+
+### 7.5.1 Vulnerability data sources
+
+- [ ] **OSV.dev** integration (`https://api.osv.dev/v1/query`) — primary lookup, free, no API key, CC-BY-4.0 data. Given `(ecosystem, name, version)`, returns all known advisories.
+- [ ] **CISA KEV** feed sync (daily) — flag findings whose CVE is on the Known Exploited Vulnerabilities list with a `kev: true` badge. Free, public domain.
+- [ ] **EPSS** score lookup (FIRST.org) — daily snapshot, attach `epss_score` and `epss_percentile` to each finding. Used in severity prioritization rubric (Phase 3.4) so HIGH/CRITICAL isn't pure CVSS.
+- [ ] Cache OSV responses locally (Redis, 24h TTL) — OSV is fast but we'd be one of their bigger clients at scale; be polite.
+- [ ] Mirror CISA KEV + EPSS as JSON files on our CDN, refreshed nightly — zero runtime dep on third-party uptime for hot paths.
+
+### 7.5.2 Input modality A — SBOM upload
+
+- [ ] `POST /api/v1/sbom` accepts CycloneDX 1.4+ or SPDX 2.3+ formats (auto-detect). Returns a `scan_id` like the URL flow.
+- [ ] Parse SBOM into normalized `(ecosystem, name, version)` tuples
+- [ ] Run OSV + KEV + EPSS lookups in parallel; produce `RawFinding[]` in the same shape as URL scans
+- [ ] UI: drag-and-drop SBOM upload on a new `/scan/sbom` page; reuses the existing report view
+- [ ] Validate SBOM size (reject >10MB), validate format (reject malformed early with helpful error), validate dep count (warn >5,000)
+
+### 7.5.3 Input modality B — GitHub App
+
+- [ ] GitHub App registration (`VibeSafe Dependency Scanner`) with read-only `contents` scope for manifest files
+- [ ] Supported manifests: `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `requirements.txt`, `Pipfile.lock`, `poetry.lock`, `go.sum`, `Cargo.lock`, `Gemfile.lock`, `composer.lock`
+- [ ] Auto-scan on every push to default branch + PR open/sync; results posted as a PR check + comment
+- [ ] Per-repo settings: which severities block, which directories to scan, allowlist for accepted-risk CVEs
+- [ ] Installation flow: link from `/dashboard/integrations/github`, OAuth round-trip, repo picker, done in <60s
+
+### 7.5.4 Input modality C — CLI
+
+- [ ] `npx @vibesafe/cli scan` — reads manifest from cwd, uploads to API, prints report + sets exit code
+- [ ] Flags: `--fail-on critical|high|medium`, `--ignore <cve>`, `--ecosystem npm|pip|go|all`, `--format json|text|sarif`
+- [ ] SARIF output for GitHub Code Scanning integration (drops into the security tab natively)
+- [ ] Auth via `VIBESAFE_API_KEY` env var (uses Phase 7 API keys)
+- [ ] Distributed via npm + Homebrew + standalone binaries (goreleaser-style for the Go-based variant if we ever rewrite)
+
+### 7.5.5 Input modality D — container image scan (stretch)
+
+- [ ] `POST /api/v1/image` accepts a public image reference (`ghcr.io/org/repo:tag` or `docker.io/...`)
+- [ ] Server-side: pull image, run Trivy or Grype against it in a sandboxed worker, parse output, normalize to our finding shape
+- [ ] Only public images in v1 (private registries require credential storage — defer)
+- [ ] Bandwidth cap per scan (1GB layer total); reject larger with clear error
+- [ ] If this stretches Phase 7.5 past 4 weeks, move it to its own phase. Image scanning is the highest-effort input modality.
+
+### 7.5.6 Reporting & deduplication
+
+- [ ] Findings from manifest scans use a new category `Server-Side Dependency Vulnerability` (distinct from existing client-side P1-XX findings)
+- [ ] Dedupe across modalities: if the same `name@version` appears in SBOM + GitHub manifest + image scan, surface as one finding with multiple evidence sources
+- [ ] Reachability is explicitly NOT claimed — copy reads "this dependency is in your build; we don't know if it's actually called at runtime." Honest delta vs. Oligo / Endor.
+- [ ] Severity rubric documented: CVSS base × (KEV bonus) × (EPSS percentile) → our severity. Published in `docs/core/SEVERITY_RUBRIC.md` (cross-references Phase 3.4).
+
+### 7.5.7 Pricing & tier gating
+
+- [ ] Free tier: 1 SBOM scan / month, public GitHub repos only, no CLI auth
+- [ ] Pro tier: 10 SBOM scans / month, CLI access, private GitHub repos
+- [ ] Studio tier: unlimited, image scanning, PR check enforcement
+- [ ] All tier limits enforced in the same `rate-limiter.ts` system
+
+### Exit checklist for Phase 7.5
+
+- [ ] SBOM upload + GitHub App + CLI all work end-to-end in production
+- [ ] OSV / KEV / EPSS data refresh jobs run on schedule; staleness alerted at >36h
+- [ ] One real customer scanning their lockfile weekly via GitHub App
+- [ ] Severity rubric published; KEV-flagged CVEs visibly distinguished in UI
+- [ ] Copy explicitly notes "no reachability analysis" — no Oligo-equivalence implied
+- [ ] CLI on npm with >100 weekly downloads (proxy for developer-tool fit)
+
+---
+
 ## Phase 8 — Team & enterprise foundations
 
 **Goal:** Multi-user workspaces, RBAC, SSO. Unlocks Studio tier renewal + enterprise sales.
@@ -826,6 +903,31 @@ Held until earlier phases prove out. Listed for visibility only — not committe
 - White-label licensing
 - Additional geo-payment regions: SE Asia (GrabPay, FPX), LATAM (PIX, OXXO), Japan (Konbini)
 
+**VibeSafe Runtime — eBPF-based runtime SCA (separate product line)**
+
+A second product, not a phase of the current one. Listed here for north-star visibility; explicitly **not** committed and **not** funded by the current roadmap. Phase 7.5 (server-side dependency scanning via SBOM / GitHub App / CLI) covers ~80% of the customer value with ~5% of the engineering cost and zero customer-side install — that path comes first.
+
+What it would be:
+- An agent (DaemonSet on k8s, host daemon on VMs) running in the customer's infrastructure
+- eBPF programs (libbpf + CO-RE) observing library loads, syscalls, and function calls inside running containers
+- Userspace correlator that turns raw BPF events into `(library, version, function)` tuples and ships them to our backend
+- Reachability analysis — flag CVEs only when the vulnerable function is actually called, not just present in the dep tree
+- Server-side dependency visibility that no manifest-based tool (including Phase 7.5) can provide
+
+Why it's out of scope of the current product:
+- **Different deployment model.** Today: paste a URL. Then: deploy an agent with `CAP_BPF` / `CAP_PERFMON` into production. Different sales motion, different security review by the customer, different SLA — if our agent crashes their pod, that's our incident.
+- **Different competitive set.** Oligo, Sweet Security, ARMO, Tetragon Enterprise, Cilium, Datadog ASM. Not Snyk / securityheaders.com.
+- **Different engineering skillset.** Kernel-experienced (libbpf, BTF, ring buffers, kernel-version compat matrix). A dedicated senior hire who's shipped BPF in production is a hard prerequisite — generalist full-stack hires won't get there.
+- **Different infra surface.** Distributing a kernel-touching agent means signing keys, kernel-version test matrix in CI (5.10 / 5.15 / 6.x / Bottlerocket / GKE COS / EKS AL2), crash telemetry, agent auto-update channel.
+
+Gate conditions before this even gets a proper phase write-up:
+- [ ] Phase 7.5 shipped and adopted (≥50 customers actively running GitHub App / CLI scans weekly)
+- [ ] ≥3 enterprise design partners signed (paying or LOI) explicitly requesting reachability analysis
+- [ ] One senior kernel/BPF engineer hired or contracted
+- [ ] Honest write-up of why a partnership with an existing eBPF runtime vendor (OEM their agent, layer our UX) isn't the better path — buy-vs-build is not a foregone conclusion at our size
+
+Until those four are true, this stays as a strategic option, not a roadmap item. Anyone asking "when do you do what Oligo does?" gets pointed at Phase 7.5 + this note.
+
 ---
 
 ## Cross-cutting concerns (every phase)
@@ -854,6 +956,7 @@ These are not phase-specific; they're baseline expectations applied throughout.
 | 5. Active testing engine | ⏳ Queued | — | — |
 | 6. Chrome extension beta | ⏳ Queued | — | — |
 | 7. Public API & Webhooks | ⏳ Queued | — | — |
+| 7.5. Server-side dep scanning (SBOM + GitHub App + CLI) | ⏳ Queued | — | — |
 | 8. Team & enterprise | ⏳ Queued | — | — |
 | 9. i18n (gated) | 🚫 Blocked on traffic data | — | — |
 | 10. Scheduled rescans + email alerts | ⏳ Queued | — | — |
