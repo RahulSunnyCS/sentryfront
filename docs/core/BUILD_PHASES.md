@@ -13,7 +13,7 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 1. **No new top-level features ship until the current phase is closed.** Patches and bug fixes are fine in any phase; net-new product surface is not.
 2. **Every phase has an exit checklist.** A phase isn't "done" until every box is ticked.
 3. **`HARDCODED.md` is the contract for Phase 2.** Every entry there must be replaced or the file must be deleted.
-4. **Review before adding.** Phase 3 (review & harden what exists) runs *before* Phase 4 (new product surface like active testing). We do not bolt new features onto unaudited foundations.
+4. **Review before adding.** Phase 3 (review scan modules) and Phase 4 (review AI enrichment) both run *before* Phase 5 (new product surface like active testing). We do not bolt new features onto unaudited foundations.
 
 ---
 
@@ -234,24 +234,137 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 - [ ] Address every "this module's output is weird" observation captured during Phase 2 backend wiring
 - [ ] Triage backlog of module-quality issues from production telemetry (once we have it)
 
+### 3.10 Per-module fixture unit tests
+
+Distinct from the end-to-end corpus in 3.1 — these are small, fast, deterministic input → expected-output pairs that run on every PR in milliseconds. The corpus catches real-world integration drift; fixtures catch regressions in module logic.
+
+- [ ] Test harness: `tests/fixtures/<module-id>/<case-name>.{input,expected}.{html,json,headers}`
+- [ ] Each fixture pairs raw input (HTML snippet, response headers, JS bundle excerpt, robots.txt content, etc.) with expected output (`{ finding: bool, severity?, type?, evidence? }`)
+- [ ] Snapshot-style comparison — failed snapshots block CI
+- [ ] Per-module minimum coverage:
+  - [ ] At least 3 positive cases (should flag)
+  - [ ] At least 3 negative cases (should NOT flag — classic false-positive traps)
+  - [ ] At least 1 edge case (malformed input, empty input, very large input)
+- [ ] **Every bug report becomes a new fixture** (regression test forever)
+- [ ] Fixture authoring guide in `docs/core/FIXTURE_GUIDE.md` so contributors can add cases consistently
+- [ ] CI job: `pnpm test:fixtures` runs in <30s
+
+**Example fixture pairs to seed:**
+
+- P1-01 (Secrets): real AWS key string (flag) vs base64-encoded image URL (don't flag) vs example `.env.example` placeholder (don't flag)
+- P1-03 (Headers): CSP with `unsafe-inline` (flag medium) vs strict CSP (don't flag) vs missing CSP entirely (flag high)
+- P1-07 (CORS): `Access-Control-Allow-Origin: *` on private API (flag) vs same header on intentional public API (don't flag — needs heuristic for "intentional")
+- P1-12 (Error disclosure): stack trace in 500 response (flag) vs custom 404 page (don't flag) vs Next.js dev overlay (flag, dev-only warning)
+
 ### Exit checklist for Phase 3
 
 - [ ] Every module has documented FP rate in `MODULE_QUALITY.md`
 - [ ] No module exceeds 5% FP rate (or has an acknowledged exception with reason)
 - [ ] Scan corpus runs cleanly in CI
+- [ ] Every module has ≥3 positive + ≥3 negative + ≥1 edge-case fixture; all green in CI
 - [ ] Every finding has reviewed copy + working AI fix prompt
 - [ ] SEO module includes the AI-discoverability sub-checks
 - [ ] At least one external security engineer has spot-reviewed 10 scans and signed off
 
 ---
 
-## Phase 4 — Active testing build-out (the real DAST)
+## Phase 4 — AI enrichment review & strengthen
+
+**Goal:** Audit and harden the LLM layer that produces finding explanations, business-impact narratives, and AI fix prompts. "AI is integrated" is not "AI is accurate, cheap, fast, and non-hallucinating." This phase makes the enrichment layer something we'd stake the product reputation on.
+
+**Estimated effort:** 2–3 weeks
+
+### 4.1 Eval harness
+
+- [ ] Golden test set: 50+ findings across module/severity/AI-tool combinations with hand-graded ideal output
+- [ ] Automated eval scoring per output: explanation clarity, technical accuracy, fix prompt usability, hallucination presence
+- [ ] CI job that runs the eval set on every prompt change and blocks regressions
+- [ ] Regression dashboard: explanation quality / fix prompt quality / hallucination rate over time
+- [ ] Eval results published to `docs/core/AI_QUALITY.md`
+
+### 4.2 Hallucination audit
+
+- [ ] Spot-check 100 production findings: does the AI invent file paths, line numbers, function names, or library versions that don't exist in the source?
+- [ ] Add grounding: prompts must cite the exact evidence snippet the finding is based on
+- [ ] Output validator: regex / structural check that every claimed file path / URL / header name actually appeared in the scan input
+- [ ] If validator fails → fallback to a deterministic template (no AI for that finding)
+
+### 4.3 Prompt quality review
+
+- [ ] Re-read every prompt in the codebase (`/lib/ai/prompts/*` or wherever they live)
+- [ ] Each finding has prompts for: explanation, business-impact, fix-prompt (per AI tool)
+- [ ] System prompts include explicit "do not invent details" + "cite evidence" rules
+- [ ] Few-shot examples updated to current Claude best practices
+- [ ] Standardized output schema (JSON mode) — eliminates parsing fragility
+- [ ] A/B test old vs new prompts on the eval set; only ship the winner
+
+### 4.4 Cost & latency audit
+
+- [ ] Measure actual cost per scan (claim is <$0.002 — verify)
+- [ ] Token usage breakdown: explanation vs business-impact vs fix-prompts
+- [ ] Identify which findings drive cost (long evidence blobs? verbose prompts?)
+- [ ] Implement prompt caching for stable system prompts (Anthropic prompt caching API)
+- [ ] Response caching: same finding type + same evidence hash → return cached enrichment (skip LLM)
+- [ ] Cost dashboard: $/scan, $/user/month, projected $/month at next 10× traffic
+- [ ] Hard cap: alert if any single scan exceeds $0.05 enrichment cost
+
+### 4.5 Model selection review
+
+- [ ] Document which Claude model each enrichment task uses today
+- [ ] Per-task evaluation: does this task need Sonnet, or is Haiku sufficient?
+- [ ] Move cheap tasks (severity normalization, copy formatting) to Haiku
+- [ ] Reserve Sonnet for high-judgment tasks (fix prompt synthesis)
+- [ ] Reserve Opus for nothing (cost-prohibitive at current pricing) unless eval proves uplift
+
+### 4.6 Fix-prompt tailoring per AI tool
+
+- [ ] Audit the prompts shipped for each: Cursor, Lovable, Bolt, v0, Replit Agent
+- [ ] Each tool has tool-specific conventions (Cursor `⌘K` context, Lovable chat panel format, etc.)
+- [ ] Validate fix prompts produce working fixes — paste 20 sampled prompts into each tool, verify the generated change compiles + fixes the finding
+- [ ] Track per-tool success rate
+
+### 4.7 Failure modes & fallbacks
+
+- [ ] Anthropic API down → fallback to templated explanations (no AI)
+- [ ] Rate limit hit → queue + retry with exponential backoff
+- [ ] Timeout > 10s → return what we have, mark as "AI enrichment pending"
+- [ ] Malformed JSON response → retry once, then fallback to template
+- [ ] Sentry breadcrumbs for every fallback path
+
+### 4.8 Surface area review
+
+- [ ] Are there places we *should* be using AI but aren't?
+  - [ ] AI chat with findings ("explain this further", "show me how to test the fix")
+  - [ ] Natural-language scan target ("scan my company site" → resolve URL)
+  - [ ] AI-generated executive summary in PDF export
+  - [ ] AI-suggested scan policies for repeat customers
+- [ ] Are there places we use AI that we shouldn't (deterministic logic dressed up as AI)?
+
+### 4.9 Compliance & data handling
+
+- [ ] Confirm no PII from scanned sites leaks into prompts
+- [ ] Verify Anthropic API not used for training (zero-retention agreement / Anthropic's standard policy)
+- [ ] Document data flow for privacy policy
+
+### Exit checklist for Phase 4
+
+- [ ] Eval harness green on the golden set
+- [ ] Hallucination rate <1% across eval set
+- [ ] Cost per scan documented and within target (<$0.002 or new agreed target)
+- [ ] All prompts use grounded evidence citations
+- [ ] Fix prompt per-tool success rate ≥80% on sampled test
+- [ ] `AI_QUALITY.md` published with measured metrics
+- [ ] Fallback paths tested by killing the Anthropic API in staging
+
+---
+
+## Phase 5 — Active testing build-out (the real DAST)
 
 **Goal:** Replace the simulated active-test flow with a real DAST engine. The UI shell is already built (Phase 1); this phase ships the engine behind it.
 
 **Estimated effort:** 4–6 weeks
 
-### 4.1 Engine foundation
+### 5.1 Engine foundation
 
 - [ ] Headless browser pool (Playwright) on isolated workers
 - [ ] Rate limiter enforcing ≤2 req/s per target domain
@@ -260,7 +373,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 - [ ] Per-scan resource caps (CPU, RAM, bandwidth, runtime)
 - [ ] Kill switch — domain owner can abort an in-flight test
 
-### 4.2 Probe modules (v1)
+### 5.2 Probe modules (v1)
 
 - [ ] SQL injection — error-based, time-based blind, boolean-based
 - [ ] Stored + reflected XSS
@@ -271,26 +384,26 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 - [ ] IDOR / BOLA on numeric IDs
 - [ ] SSRF on URL-input fields
 
-### 4.3 Proof-of-exploit capture
+### 5.3 Proof-of-exploit capture
 
 - [ ] Every CONFIRMED finding captures: request, response, exploit payload, screenshot
 - [ ] Replayable as a curl one-liner
 - [ ] Stored encrypted at rest (AES-256), deleted after 90 days (free) / 365 days (paid)
 
-### 4.4 Safety
+### 5.4 Safety
 
 - [ ] Never test logout endpoints
 - [ ] Never submit forms that mutate billing / payment / DELETE endpoints
 - [ ] Detect "production-looking" data in responses → abort
 - [ ] Honor `noindex`, `noscan` meta tags as opt-out
 
-### 4.5 Pricing & billing
+### 5.5 Pricing & billing
 
 - [ ] 3 credits per scan, billed atomically
 - [ ] Failed scans (engine error, not finding) refund credits
 - [ ] Tier-gated test types (e.g. SSRF + IDOR are Pro+)
 
-### Exit checklist for Phase 4
+### Exit checklist for Phase 5
 
 - [ ] All probe modules have 0% false-positive rate on the corpus (only confirmed exploits)
 - [ ] Pen-tested against staging environment by external red-team (or competent internal)
@@ -299,7 +412,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 
 ---
 
-## Phase 5 — Chrome Extension Beta
+## Phase 6 — Chrome Extension Beta
 
 **Goal:** Ship the extension promised by the landing page promo section.
 
@@ -314,7 +427,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 - [ ] Beta waitlist drip — invite the first 100 waitlist signups
 - [ ] Telemetry: scans per user, badge clicks, deep-scan handoffs
 
-### Exit checklist for Phase 5
+### Exit checklist for Phase 6
 
 - [ ] Published on Chrome Web Store, public installable
 - [ ] Privacy policy explicitly covers extension data handling
@@ -323,7 +436,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 
 ---
 
-## Phase 6 — Public API, Webhooks & CI/CD
+## Phase 7 — Public API, Webhooks & CI/CD
 
 **Goal:** Make every dashboard action available programmatically. Ship the GitHub Action that the docs already describe.
 
@@ -340,7 +453,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 - [ ] CLI: `npx @vibesafe/cli scan --url … --fail-on critical`
 - [ ] CI policy: configurable fail thresholds per branch / per environment
 
-### Exit checklist for Phase 6
+### Exit checklist for Phase 7
 
 - [ ] Public API docs match shipped implementation
 - [ ] GitHub Action published in Marketplace
@@ -349,7 +462,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 
 ---
 
-## Phase 7 — Team & enterprise foundations
+## Phase 8 — Team & enterprise foundations
 
 **Goal:** Multi-user workspaces, RBAC, SSO. Unlocks Studio tier renewal + enterprise sales.
 
@@ -364,7 +477,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 - [ ] Slack notifications on `scan.completed` and `finding.critical`
 - [ ] SCIM provisioning (deferred unless first enterprise deal demands it)
 
-### Exit checklist for Phase 7
+### Exit checklist for Phase 8
 
 - [ ] First paying team customer migrated to team workspace
 - [ ] SSO works with at least 2 IdPs end-to-end
@@ -372,7 +485,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 
 ---
 
-## Phase 8 — Internationalization (gated)
+## Phase 9 — Internationalization (gated)
 
 **Goal:** Support non-English markets *if data justifies it.* Not assumed; not committed to.
 
@@ -396,7 +509,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 2. Then the next one
 3. No speculative translation
 
-### Exit checklist for Phase 8 (when triggered)
+### Exit checklist for Phase 9 (when triggered)
 
 - [ ] Landing + pricing + docs available in at least 1 non-EN locale
 - [ ] All metadata + JSON-LD localized
@@ -404,7 +517,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 
 ---
 
-## Phase 9 — Scan diffing & monitoring
+## Phase 10 — Scan diffing & monitoring
 
 **Goal:** Turn one-off scans into continuous monitoring.
 
@@ -419,7 +532,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 
 ---
 
-## Phase 10 — Performance & cost optimization
+## Phase 11 — Performance & cost optimization
 
 **Goal:** Sustain growth without proportional infra cost increase.
 
@@ -432,7 +545,7 @@ Treat as one combined "SEO & AI discoverability" audit category (no separate GEO
 
 ---
 
-## Phase 11+ — Future / speculative
+## Phase 12+ — Future / speculative
 
 Held until earlier phases prove out. Listed for visibility only — not committed.
 
@@ -465,14 +578,15 @@ These are not phase-specific; they're baseline expectations applied throughout.
 |-------|--------|---------|--------------|
 | 1. Frontend redesign + SEO | ✅ Done | 2026-05-01 | 2026-05-13 |
 | 2. Wire backend / kill mocks | 🚧 Next | — | TBD |
-| 3. Review & harden modules | ⏳ Queued | — | — |
-| 4. Active testing engine | ⏳ Queued | — | — |
-| 5. Chrome extension beta | ⏳ Queued | — | — |
-| 6. API, webhooks, CI/CD | ⏳ Queued | — | — |
-| 7. Team & enterprise | ⏳ Queued | — | — |
-| 8. i18n (gated) | 🚫 Blocked on traffic data | — | — |
-| 9. Scan diffing & monitoring | ⏳ Queued | — | — |
-| 10. Performance & cost | ⏳ Queued | — | — |
+| 3. Review & harden scan modules | ⏳ Queued | — | — |
+| 4. AI enrichment review & strengthen | ⏳ Queued | — | — |
+| 5. Active testing engine | ⏳ Queued | — | — |
+| 6. Chrome extension beta | ⏳ Queued | — | — |
+| 7. API, webhooks, CI/CD | ⏳ Queued | — | — |
+| 8. Team & enterprise | ⏳ Queued | — | — |
+| 9. i18n (gated) | 🚫 Blocked on traffic data | — | — |
+| 10. Scan diffing & monitoring | ⏳ Queued | — | — |
+| 11. Performance & cost | ⏳ Queued | — | — |
 
 ---
 
