@@ -13,15 +13,49 @@ interface Props {
 
 const MOCK_INTERVAL_MS = 340;
 
+const SECURITY_FACTS = [
+  '60% of small businesses fold within 6 months of a cyberattack — Verizon DBIR',
+  'The average data breach costs $4.45M in 2024 — IBM Cost of a Data Breach Report',
+  'AI-built sites often expose API keys in client bundles — a single grep can find them',
+  'A misconfigured CORS header is the #2 source of cross-origin attacks',
+  '43% of cyberattacks target small businesses, yet only 14% are prepared',
+  'Stored XSS lets attackers hijack any logged-in session — including admins',
+  'Open S3 buckets and Firebase rules expose 18B+ records every year',
+  'A single leaked .env file can compromise an entire production stack',
+  'Subdomain takeovers can be weaponized to phish users from "your" domain',
+  '92% of malware is delivered via email — but web vulns are how it spreads inside',
+];
+
+const FACT_ROTATE_MS = 4500;
+const ESTIMATED_TOTAL_S = 75;
+
 export function ScanProgress({ scanId, scanUrl }: Props) {
   const router = useRouter();
   const [completedModules, setCompletedModules] = useState(0);
   const [activeModule, setActiveModule] = useState(0);
   const [moduleResults, setModuleResults] = useState<Record<string, number>>({});
+  const [elapsed, setElapsed] = useState(0);
+  const [factIdx, setFactIdx] = useState(0);
   const streamRef = useRef<EventSource | null>(null);
 
   const total = SCAN_MODULES.length;
   const progress = Math.round((completedModules / total) * 100);
+  const etaSeconds = Math.max(0, ESTIMATED_TOTAL_S - elapsed);
+
+  // Elapsed timer
+  useEffect(() => {
+    if (completedModules >= total) return;
+    const t = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [completedModules, total]);
+
+  // Rotating security facts
+  useEffect(() => {
+    const t = setInterval(() => {
+      setFactIdx((i) => (i + 1) % SECURITY_FACTS.length);
+    }, FACT_ROTATE_MS);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     const stream = openScanStream(scanId);
@@ -96,11 +130,45 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
           </p>
         </div>
 
+        {/* Timer + ETA row */}
+        <div
+          aria-live="polite"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: 12,
+            fontVariantNumeric: 'tabular-nums',
+            color: 'var(--text-tertiary)',
+            marginBottom: 8,
+          }}
+        >
+          <span>
+            <span aria-hidden="true">⏱ </span>
+            Elapsed <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{formatTime(elapsed)}</strong>
+          </span>
+          <span>{progress}%</span>
+          <span>
+            {completedModules >= total
+              ? 'Finalising…'
+              : <>ETA <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{formatTime(etaSeconds)}</strong></>
+            }
+          </span>
+        </div>
+
         {/* Progress bar */}
-        <div style={{ height: 6, borderRadius: 3, backgroundColor: 'var(--border-light)', marginBottom: 28, overflow: 'hidden' }}>
+        <div style={{
+          position: 'relative',
+          height: 8, borderRadius: 4,
+          backgroundColor: 'var(--border-light)',
+          marginBottom: 28, overflow: 'hidden',
+        }}>
           <div style={{
-            height: '100%', borderRadius: 3, backgroundColor: 'var(--accent)',
-            width: `${progress}%`, transition: 'width 0.3s ease-out',
+            height: '100%', borderRadius: 4,
+            background: 'linear-gradient(90deg, var(--accent), #14B8A6)',
+            width: `${progress}%`,
+            transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 0 12px rgba(13,148,136,0.55)',
           }} />
         </div>
 
@@ -153,7 +221,47 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
         <div style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'var(--text-tertiary)' }}>
           {completedModules}/{total} checks completed
         </div>
+
+        {/* Rotating security fact */}
+        <aside
+          aria-label="Did you know?"
+          style={{
+            marginTop: 24,
+            padding: '14px 16px',
+            borderRadius: 12,
+            border: '1px solid var(--border)',
+            background: 'var(--surface-secondary)',
+            display: 'flex',
+            gap: 12,
+            alignItems: 'flex-start',
+          }}
+        >
+          <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>💡</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontSize: 10, fontWeight: 700, color: 'var(--accent)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4,
+            }}>
+              Did you know?
+            </div>
+            <p
+              key={factIdx}
+              className="fact-fade"
+              style={{
+                fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary)', margin: 0,
+              }}
+            >
+              {SECURITY_FACTS[factIdx]}
+            </p>
+          </div>
+        </aside>
       </div>
     </div>
   );
+}
+
+function formatTime(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, '0')}`;
 }

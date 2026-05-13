@@ -167,6 +167,7 @@ export function LandingHero() {
       <FeaturesSection />
       <ComparisonSection />
       <TestimonialsSection />
+      <ChromeExtensionSection />
       <FAQSection />
       <FinalCTASection />
 
@@ -925,6 +926,149 @@ function FinalCTASection() {
 /* ─────────────────────────────────────────────────────────────
    Shared primitives
    ───────────────────────────────────────────────────────────── */
+
+function ChromeExtensionSection() {
+  return (
+    <section className="section" aria-labelledby="extension-title" style={{ background: 'var(--surface)' }}>
+      <div className="container">
+        <article
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: 'var(--radius-xl)',
+            border: '1px solid var(--border)',
+            background: 'linear-gradient(135deg, rgba(66,133,244,0.08), rgba(13,148,136,0.06))',
+            padding: 'clamp(28px, 5vw, 56px)',
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.2fr) minmax(260px, 1fr)',
+            gap: 'var(--space-10)',
+            alignItems: 'center',
+          }}
+          className="extension-banner"
+        >
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>
+              <span aria-hidden="true">🧩</span> Coming soon · Chrome Extension
+            </div>
+            <h2 id="extension-title" className="text-h2" style={{ marginBottom: 'var(--space-4)' }}>
+              Scan any site in one click — without leaving your browser
+            </h2>
+            <p className="text-lead" style={{ marginBottom: 'var(--space-6)' }}>
+              Pin the VibeSafe extension and audit any page you visit. Instant grade overlay,
+              one-click deep scan, copy-paste fix prompts for your AI assistant.
+            </p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 var(--space-6)', display: 'grid', gap: 'var(--space-2)' }}>
+              {[
+                'Live grade badge on every site you visit',
+                'Right-click → "Scan this page with VibeSafe"',
+                'Detects secrets in network requests in real time',
+                'Works offline for client-side checks',
+              ].map((b) => (
+                <li key={b} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>
+                  <span aria-hidden="true" style={{ color: 'var(--accent)', fontWeight: 800, flexShrink: 0 }}>✓</span>
+                  {b}
+                </li>
+              ))}
+            </ul>
+            <form
+              onSubmit={(e) => e.preventDefault()}
+              style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', maxWidth: 480 }}
+              aria-label="Join the Chrome extension waitlist"
+            >
+              <input
+                type="email"
+                required
+                placeholder="you@example.com"
+                aria-label="Email address"
+                style={{
+                  flex: 1, minWidth: 200,
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg)',
+                  color: 'var(--text)',
+                  fontSize: 'var(--fs-base)',
+                }}
+              />
+              <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                Join waitlist
+              </button>
+            </form>
+            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-3)' }}>
+              No spam — one email when it ships. <strong style={{ color: 'var(--text-secondary)' }}>2,140 devs</strong> already on the list.
+            </p>
+          </div>
+
+          {/* Mock browser preview */}
+          <aside
+            aria-hidden="true"
+            style={{
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border)',
+              background: 'var(--bg)',
+              boxShadow: 'var(--shadow-lg)',
+              overflow: 'hidden',
+              fontFamily: 'var(--mono)',
+              fontSize: 12,
+            }}
+          >
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 12px',
+              background: 'var(--surface-secondary)',
+              borderBottom: '1px solid var(--border)',
+            }}>
+              <span style={{ width: 10, height: 10, borderRadius: 999, background: '#FF5F57' }} />
+              <span style={{ width: 10, height: 10, borderRadius: 999, background: '#FEBC2E' }} />
+              <span style={{ width: 10, height: 10, borderRadius: 999, background: '#28C840' }} />
+              <span style={{
+                flex: 1, marginLeft: 8,
+                padding: '4px 10px', borderRadius: 999,
+                background: 'var(--bg)', color: 'var(--text-tertiary)',
+                fontSize: 11,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <span style={{ color: 'var(--success)' }}>🔒</span> example.com
+              </span>
+              <span style={{
+                padding: '3px 8px', borderRadius: 6,
+                background: 'rgba(220,38,38,0.15)', color: '#DC2626',
+                fontWeight: 800, fontSize: 11,
+              }}>
+                🛡 D
+              </span>
+            </div>
+            <div style={{ padding: 16, display: 'grid', gap: 10 }}>
+              <div style={{ height: 8, borderRadius: 4, background: 'var(--surface-secondary)', width: '80%' }} />
+              <div style={{ height: 8, borderRadius: 4, background: 'var(--surface-secondary)', width: '60%' }} />
+              <div style={{
+                marginTop: 8,
+                padding: 12,
+                borderRadius: 8,
+                border: '1px solid rgba(220,38,38,0.30)',
+                background: 'rgba(220,38,38,0.06)',
+                display: 'grid', gap: 6,
+              }}>
+                <div style={{ fontWeight: 700, color: '#DC2626', fontSize: 11 }}>
+                  ⚠ 2 critical findings on this page
+                </div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: 11 }}>• Exposed API key in /static/main.js</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: 11 }}>• Missing CSP header</div>
+                <div style={{
+                  marginTop: 4, padding: '6px 10px',
+                  borderRadius: 6, background: 'var(--accent)', color: '#fff',
+                  fontWeight: 700, fontSize: 11, textAlign: 'center',
+                }}>
+                  Run full scan →
+                </div>
+              </div>
+            </div>
+          </aside>
+        </article>
+      </div>
+    </section>
+  );
+}
 
 function SectionHeader({
   eyebrow,

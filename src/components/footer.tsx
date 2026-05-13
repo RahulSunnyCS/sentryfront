@@ -46,6 +46,7 @@ export function Footer() {
             <FooterLink href="/#features">Features</FooterLink>
             <FooterLink href="/#faq">FAQ</FooterLink>
             <FooterLink href="/report/demo">Demo report</FooterLink>
+            <FooterLink href="/docs">Docs</FooterLink>
           </FooterCol>
 
           <FooterCol title="Legal">

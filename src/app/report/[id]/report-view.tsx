@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { GRADE_CONFIG } from '@/lib/data';
+import { GRADE_CONFIG, SEVERITY_CONFIG } from '@/lib/data';
 import type { ScanData, Severity, Finding } from '@/types';
 import { GradeDisplay } from '@/components/grade-display';
 import { SeveritySummary } from '@/components/severity-summary';
@@ -116,6 +117,63 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           </div>
         </div>
 
+        {/* Active Testing CTA banner */}
+        <aside
+          aria-labelledby="active-test-cta-title"
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: 16,
+            border: '1px solid rgba(220,38,38,0.30)',
+            background: 'linear-gradient(135deg, rgba(220,38,38,0.10), rgba(245,158,11,0.06))',
+            padding: '20px 22px',
+            marginBottom: 24,
+            display: 'flex',
+            gap: 20,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div
+            aria-hidden="true"
+            style={{
+              width: 48, height: 48, flexShrink: 0,
+              borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(220,38,38,0.15)', color: '#DC2626', fontSize: 24,
+            }}
+          >
+            ⚔️
+          </div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span
+                style={{
+                  fontSize: 10, fontWeight: 800, color: '#DC2626',
+                  textTransform: 'uppercase', letterSpacing: '0.08em',
+                  padding: '3px 8px', borderRadius: 999,
+                  background: 'rgba(220,38,38,0.12)',
+                }}
+              >
+                <span className="pulse-soft" aria-hidden="true">●</span> Next step
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>~8 min · 3 credits</span>
+            </div>
+            <h3 id="active-test-cta-title" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>
+              Want CONFIRMED proof these issues are exploitable?
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+              Run an active DAST scan — real attack probes (SQLi, XSS, auth bypass) rate-limited and opt-in. Replaces a $5,000 manual pentest.
+            </p>
+          </div>
+          <Link
+            href={`/active-test?url=${encodeURIComponent(scanData.url)}`}
+            className="btn-primary"
+            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            Run active test →
+          </Link>
+        </aside>
+
         {/* Performance Section - only show if performance data is available */}
         {scanData.performanceData && scanData.id && (
           <PerformanceSection
@@ -158,23 +216,48 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
             Findings ({sorted.length})
           </h2>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {(['ALL', ...activeSeverities] as const).map((sev) => (
-              <button
-                key={sev}
-                onClick={() => setFilterSeverity(sev)}
-                style={{
-                  padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)',
-                  cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                  backgroundColor: filterSeverity === sev ? 'var(--text)' : 'var(--surface)',
-                  color: filterSeverity === sev ? '#fff' : 'var(--text-secondary)',
-                  transition: 'all 0.15s',
-                  textTransform: sev === 'ALL' ? 'none' : 'capitalize',
-                }}
-              >
-                {sev === 'ALL' ? 'All' : sev.charAt(0) + sev.slice(1).toLowerCase()}
-              </button>
-            ))}
+          <div role="tablist" aria-label="Filter findings by severity" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {(['ALL', ...activeSeverities] as const).map((sev) => {
+              const active = filterSeverity === sev;
+              const cfg = sev === 'ALL' ? null : SEVERITY_CONFIG[sev as Severity];
+              const count = sev === 'ALL'
+                ? gatedFindings.length
+                : (scanData.summary[sev as Severity] ?? 0);
+              return (
+                <button
+                  key={sev}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setFilterSeverity(sev)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '5px 11px', borderRadius: 999,
+                    border: '1px solid',
+                    borderColor: active ? (cfg?.color ?? 'var(--text)') : 'var(--border)',
+                    backgroundColor: active ? (cfg?.bg ?? 'var(--text)') : 'var(--surface)',
+                    color: active ? (cfg?.color ?? '#fff') : 'var(--text-secondary)',
+                    fontSize: 11, fontWeight: 700,
+                    letterSpacing: '0.02em',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {cfg && (
+                    <span aria-hidden="true" style={{
+                      width: 6, height: 6, borderRadius: 999,
+                      backgroundColor: cfg.color,
+                    }} />
+                  )}
+                  {sev === 'ALL' ? 'All' : sev.charAt(0) + sev.slice(1).toLowerCase()}
+                  <span style={{
+                    fontSize: 10, fontWeight: 600,
+                    padding: '1px 6px', borderRadius: 999,
+                    backgroundColor: active ? 'rgba(0,0,0,0.06)' : 'var(--surface-secondary)',
+                    color: active ? (cfg?.color ?? 'inherit') : 'var(--text-tertiary)',
+                  }}>{count}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
