@@ -624,63 +624,72 @@ input, textarea, select, button { font: inherit; color: inherit; }
 
 /* ─────────────────────────────────────────────────────────────
    Print (Save as PDF) — hide chrome, expand content, A4 layout
+   These rules apply to every route EXCEPT the dedicated print
+   document at /report/[id]/print, which sets data-print-doc on
+   <html> and ships its own paginated stylesheet (print.css).
    ───────────────────────────────────────────────────────────── */
 @media print {
-  @page {
-    size: A4;
-    margin: 16mm;
-  }
-
-  html, body {
+  html:not([data-print-doc]) {
     background: #fff !important;
     color: #000 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+  html:not([data-print-doc]) body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Page size and margin apply only when the dedicated print doc
+     isn't active; print.css declares its own @page rule. */
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
 
   /* Hide app chrome and any element explicitly opted out */
-  nav,
-  footer,
-  .no-print,
-  [data-no-print] {
+  html:not([data-print-doc]) nav,
+  html:not([data-print-doc]) footer,
+  html:not([data-print-doc]) .no-print,
+  html:not([data-print-doc]) [data-no-print] {
     display: none !important;
   }
 
   /* Remove the top padding the layout reserves for the fixed nav */
-  main {
+  html:not([data-print-doc]) main {
     padding-top: 0 !important;
   }
 
   /* Neutralize sticky / fixed positioning so content flows naturally */
-  *,
-  *::before,
-  *::after {
+  html:not([data-print-doc]) *,
+  html:not([data-print-doc]) *::before,
+  html:not([data-print-doc]) *::after {
     position: static !important;
     box-shadow: none !important;
     text-shadow: none !important;
   }
 
   /* Expand any collapsed disclosures so the whole report prints */
-  details {
+  html:not([data-print-doc]) details {
     display: block !important;
   }
-  details > summary {
+  html:not([data-print-doc]) details > summary {
     display: none !important;
   }
-  details > *:not(summary) {
+  html:not([data-print-doc]) details > *:not(summary) {
     display: revert !important;
   }
 
   /* Avoid awkward page breaks inside cards / list items */
-  .card,
-  article,
-  section,
-  li {
+  html:not([data-print-doc]) .card,
+  html:not([data-print-doc]) article,
+  html:not([data-print-doc]) section,
+  html:not([data-print-doc]) li {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  a {
+  html:not([data-print-doc]) a {
     color: inherit !important;
     text-decoration: none !important;
   }

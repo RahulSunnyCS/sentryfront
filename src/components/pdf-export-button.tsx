@@ -9,58 +9,45 @@ interface Props {
 
 export function PdfExportButton({ scanId }: Props) {
   const pdfEnabled = useFeature('pdfExport');
-  const [printing, setPrinting] = useState(false);
+  const [opening, setOpening] = useState(false);
 
   if (!pdfEnabled) {
     return null;
   }
 
-  const handlePrint = () => {
-    setPrinting(true);
-
-    const originalTitle = document.title;
-    let hostname = scanId;
-    try {
-      const url = document.querySelector<HTMLElement>('[data-scan-url]')?.dataset.scanUrl;
-      if (url) hostname = new URL(url).hostname;
-    } catch {
-      // ignore — fall back to scanId
+  const handleClick = () => {
+    setOpening(true);
+    const url = `/report/${scanId}/print?print=auto`;
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      // Popup blocked — fall back to navigating the current tab.
+      window.location.href = url;
+      return;
     }
-    const date = new Date().toISOString().split('T')[0];
-    document.title = `vibesafe-${hostname}-${date}`;
-
-    const restore = () => {
-      document.title = originalTitle;
-      setPrinting(false);
-      window.removeEventListener('afterprint', restore);
-    };
-    window.addEventListener('afterprint', restore);
-
-    window.print();
-
-    // Safari/Firefox sometimes fail to fire afterprint reliably.
-    setTimeout(restore, 1000);
+    // Reset the button quickly so users can re-open if they accidentally close
+    // the new tab.
+    window.setTimeout(() => setOpening(false), 600);
   };
 
   return (
     <button
       type="button"
-      onClick={handlePrint}
-      disabled={printing}
+      onClick={handleClick}
+      disabled={opening}
       className="no-print"
       style={{
         padding: '8px 16px',
         borderRadius: 8,
         border: '1px solid var(--border)',
-        backgroundColor: printing ? 'var(--surface)' : 'var(--accent)',
-        color: printing ? 'var(--text-secondary)' : '#fff',
+        backgroundColor: opening ? 'var(--surface)' : 'var(--accent)',
+        color: opening ? 'var(--text-secondary)' : '#fff',
         fontSize: 13,
         fontWeight: 600,
-        cursor: printing ? 'not-allowed' : 'pointer',
+        cursor: opening ? 'not-allowed' : 'pointer',
         transition: 'all 0.15s',
       }}
     >
-      {printing ? 'Opening print…' : '📄 Download PDF'}
+      {opening ? 'Opening…' : '📄 Download PDF'}
     </button>
   );
 }

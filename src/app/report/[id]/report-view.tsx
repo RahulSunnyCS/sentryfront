@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
-import { GRADE_CONFIG, SCAN_MODULES } from '@/lib/data';
+import { GRADE_CONFIG, SCAN_MODULES, SEVERITY_RANK } from '@/lib/data';
 import type { ScanData, Finding } from '@/types';
 import { GradeDisplay } from '@/components/grade-display';
 import { SeveritySummary } from '@/components/severity-summary';
@@ -18,10 +18,6 @@ interface FindingsResponse {
 
 type View = 'critical' | 'all' | 'passed';
 type Tab = 'security' | 'performance' | 'accessibility' | 'seo' | 'compliance';
-
-const SEVERITY_RANK: Record<Finding['severity'], number> = {
-  CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, INFO: 4,
-};
 
 const MODULE_BY_ID = Object.fromEntries(SCAN_MODULES.map((m) => [m.id, m]));
 

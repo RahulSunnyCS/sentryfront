@@ -1,4 +1,12 @@
-import type { ScanModule, ScanData } from '@/types';
+import type { ScanModule, ScanData, Severity } from '@/types';
+
+export const SEVERITY_RANK: Record<Severity, number> = {
+  CRITICAL: 0,
+  HIGH: 1,
+  MEDIUM: 2,
+  LOW: 3,
+  INFO: 4,
+};
 
 export const SCAN_MODULES: ScanModule[] = [
   { id: 'P1-01', name: 'Client-Side Secrets',  plainName: 'Exposed API keys & secrets' },
