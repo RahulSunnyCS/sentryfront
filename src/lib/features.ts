@@ -24,6 +24,7 @@ const defaultFeatures = {
   exploitIntelSeverity: true,
   headerCoverageChecks: true,
   pwaSurfaceChecks: true,
+  pathCoverageChecks: true,
 };
 
 // Parse FEATURES env variable (JSON object)
@@ -81,6 +82,12 @@ export const features = {
    *  manifest exposure (P1-18). When off, the crawler skips SW registration capture
    *  and manifest fetch entirely; flag-off CrawlResult is byte-identical to pre-3.8.4. */
   pwaSurfaceChecks: customFeatures.pwaSurfaceChecks ?? defaultFeatures.pwaSurfaceChecks,
+
+  /** Phase 3.8.2: coverage-gap path probes — VCS metadata (.git/index, .svn/wc.db, .hg/store),
+   *  OS/editor metadata (.DS_Store, Thumbs.db), backup variants (.bak/.old/.swp), and dependency
+   *  lockfiles (yarn.lock, package-lock.json, Gemfile.lock). The original 32-path probe always runs
+   *  regardless of this flag. */
+  pathCoverageChecks: customFeatures.pathCoverageChecks ?? defaultFeatures.pathCoverageChecks,
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────

@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "titleIncludes": "/.git/index",
+      "evidenceIncludes": "/.git/index"
+    }
+  ]
+}

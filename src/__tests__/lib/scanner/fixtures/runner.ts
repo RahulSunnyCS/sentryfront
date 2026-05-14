@@ -20,6 +20,7 @@ import type { CrawlResult, RawFinding, Severity } from '@/lib/scanner/types';
 import { runHeadersModule } from '@/lib/scanner/modules/p1-03-headers';
 import { runTLSModule } from '@/lib/scanner/modules/p1-04-tls';
 import { runCookiesModule } from '@/lib/scanner/modules/p1-05-cookies';
+import { runSensitivePathsModule } from '@/lib/scanner/modules/p1-06-sensitive-paths';
 import { runMixedContentModule } from '@/lib/scanner/modules/p1-08-mixed-content';
 import { runThirdPartyScriptsModule } from '@/lib/scanner/modules/p1-09-third-party-scripts';
 import { runCacheModule } from '@/lib/scanner/modules/p1-15-cache';
@@ -39,6 +40,7 @@ export const MODULE_REGISTRY: Record<string, ModuleRunner> = {
   'P1-03': runHeadersModule,
   'P1-04': runTLSModule,
   'P1-05': runCookiesModule,
+  'P1-06': runSensitivePathsModule,
   'P1-08': runMixedContentModule,
   'P1-09': runThirdPartyScriptsModule,
   'P1-12': runErrorDisclosureModule,

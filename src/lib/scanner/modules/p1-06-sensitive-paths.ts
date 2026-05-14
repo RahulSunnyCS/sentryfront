@@ -1,8 +1,9 @@
 import type { CrawlResult, RawFinding } from '../types';
 import { runHttpxProbe } from '../tools/httpx';
 import { runNuclei } from '../tools/nuclei';
+import { features } from '@/lib/features';
 
-const SENSITIVE_PATHS = [
+const BASE_SENSITIVE_PATHS = [
   // Secrets & config
   '/.env', '/.env.local', '/.env.production', '/.env.backup',
   '/config.json', '/config.yaml', '/config.yml', '/config.php',
@@ -30,6 +31,41 @@ const SENSITIVE_PATHS = [
   // Well-known
   '/.well-known/security.txt',
 ];
+
+// Phase 3.8.2: coverage-gap path additions. Seed list cross-checked against
+// SecLists Discovery/Web-Content/sensitive-files.txt (MIT). Each path is
+// classified into a severity tier downstream — see CRITICAL_PATHS / MEDIUM_PATHS.
+const PATHS_3_8_2 = [
+  // VCS source-code disclosure (CRITICAL — full repo dump in the worst case)
+  '/.git/index', '/.svn/wc.db', '/CVS/Root', '/CVS/Entries', '/.hg/store',
+  // OS / editor metadata (HIGH — path disclosure, leaks adjacent file names)
+  '/.DS_Store', '/Thumbs.db',
+  // Backup variants (CRITICAL when present — they leak secrets verbatim)
+  '/index.html.bak', '/index.php.bak', '/wp-config.php.bak',
+  '/.env.bak', '/.env.old', '/.env.swp',
+  // Dependency lockfiles (MEDIUM — version pinning becomes public, feeds P1-16)
+  '/yarn.lock', '/package-lock.json', '/Gemfile.lock',
+];
+
+const SENSITIVE_PATHS = [
+  ...BASE_SENSITIVE_PATHS,
+  ...(features.pathCoverageChecks ? PATHS_3_8_2 : []),
+];
+
+// Substring matchers used for severity tiering. `.git/index` and `.svn/wc.db`
+// are placed in CRITICAL_PATHS so they get the source-code-disclosure copy
+// rather than the generic "admin panel" copy that the HIGH tier uses.
+const CRITICAL_PATHS = [
+  '.env', '.git/config', '.git/HEAD', '.git/index',
+  '.svn/wc.db', '.hg/store',
+  'backup.sql', 'dump.sql', 'database.sql', 'db.sqlite', 'backup.zip',
+  // Backup variants matched via suffix below — kept in this list as substrings
+  // for the existing `.includes()` check.
+  '.env.bak', '.env.old', '.env.swp',
+  'wp-config.php.bak', 'index.php.bak', 'index.html.bak',
+];
+
+const MEDIUM_PATHS = ['/yarn.lock', '/package-lock.json', '/Gemfile.lock'];
 
 // Status codes that indicate the path exists (not cleanly blocked)
 const SUSPICIOUS_CODES = new Set([200, 206, 301, 302, 307, 308, 401, 403, 500]);
@@ -61,6 +97,26 @@ const LOGIN_FORM_PATTERNS: RegExp[] = [
 function looksLikeLoginChallenge(body: string): boolean {
   const head = body.slice(0, 30_000);
   return LOGIN_FORM_PATTERNS.some((re) => re.test(head));
+}
+
+// Phase 3.8.2: magic-byte sniffers to suppress SPA-catchall FPs on binary paths.
+// A real `.DS_Store` starts with `\x00\x00\x00\x01Bud1`. A real `.git/index`
+// starts with the ASCII signature `DIRC`. A 200 response missing the signature
+// is almost always a catch-all HTML response, not the real binary.
+function looksLikeDSStore(body: string): boolean {
+  return body.length >= 8 && body.charCodeAt(0) === 0 && body.charCodeAt(1) === 0
+    && body.charCodeAt(2) === 0 && body.charCodeAt(3) === 1
+    && body.slice(4, 8) === 'Bud1';
+}
+
+function looksLikeGitIndex(body: string): boolean {
+  return body.startsWith('DIRC');
+}
+
+function pathRequiresMagicByteMatch(path: string): ((body: string) => boolean) | null {
+  if (path.endsWith('/.DS_Store')) return looksLikeDSStore;
+  if (path.endsWith('/.git/index')) return looksLikeGitIndex;
+  return null;
 }
 
 async function getBaseline(baseUrl: string): Promise<Baseline> {
@@ -108,6 +164,13 @@ async function probeOne(baseUrl: string, path: string, baseline: Baseline): Prom
     // form. That's not exposure — suppress.
     if (status === 200 && looksLikeLoginChallenge(body)) return null;
 
+    // Phase 3.8.2: binary-file paths must match their magic bytes. A 200
+    // on /.DS_Store with HTML in the body is a catch-all, not exposure.
+    if (status === 200) {
+      const magic = pathRequiresMagicByteMatch(path);
+      if (magic && !magic(body)) return null;
+    }
+
     return { path, status };
   } catch {
     return null;
@@ -145,10 +208,16 @@ export async function runSensitivePathsModule(crawl: CrawlResult): Promise<RawFi
 
   if (hits.length === 0) return findings;
 
-  // Separate critical hits from informational ones
-  const criticalPaths = ['.env', '.git/config', '.git/HEAD', 'backup.sql', 'dump.sql', 'database.sql', 'db.sqlite', 'backup.zip'];
-  const critical = hits.filter((h) => criticalPaths.some((c) => h.path.includes(c)));
-  const others = hits.filter((h) => !criticalPaths.some((c) => h.path.includes(c)));
+  // Severity tiering: CRITICAL hits get per-path detailed findings, MEDIUM
+  // lockfile hits get a single combined finding (don't flood the report when
+  // a project ships all three lockfiles), and everything else falls to HIGH.
+  const critical = hits.filter((h) => CRITICAL_PATHS.some((c) => h.path.includes(c)));
+  const medium = hits.filter((h) => MEDIUM_PATHS.includes(h.path));
+  const others = hits.filter(
+    (h) =>
+      !CRITICAL_PATHS.some((c) => h.path.includes(c)) &&
+      !MEDIUM_PATHS.includes(h.path),
+  );
 
   for (const hit of critical) {
     findings.push({
@@ -167,6 +236,26 @@ export async function runSensitivePathsModule(crawl: CrawlResult): Promise<RawFi
         'Verify the fix: the path should return 404, not 403.',
       ],
       fixAiPrompt: `The file ${hit.path} is publicly accessible on my site. Configure my hosting to return 404 for this path and audit for any secrets that may have been exposed.`,
+    });
+  }
+
+  if (medium.length > 0) {
+    const list = medium.map((h) => `${h.path} (HTTP ${h.status})`).join(', ');
+    findings.push({
+      moduleId: 'P1-06',
+      severity: 'MEDIUM',
+      category: 'Sensitive Path Exposure',
+      title: `${medium.length} dependency-lock file${medium.length > 1 ? 's' : ''} publicly accessible`,
+      location: medium.map((h) => h.path).join(', '),
+      evidence: list,
+      explanation: 'Dependency-lock files (yarn.lock, package-lock.json, Gemfile.lock) do not contain secrets, but they make the exact version of every dependency public. Combined with our client-side dependency CVE matching (P1-16), this gives an attacker a precise list of known-vulnerable libraries to target.',
+      impact: 'Version pinning becomes public, narrowing the attacker’s search space for known CVEs in your stack. No direct credential exposure.',
+      fixManual: [
+        'Block lockfiles at the edge in vercel.json, next.config.js headers(), or your nginx/CDN config.',
+        'Verify by re-fetching the path: it should return 404, not 200.',
+        'Lockfiles still belong in your repo; only the deployed site should not serve them.',
+      ],
+      fixAiPrompt: `Block public access to the dependency lockfiles ${medium.map((h) => h.path).join(', ')} on my site. Show me how to deny these paths at the hosting layer (Vercel, Next.js, or nginx).`,
     });
   }
 

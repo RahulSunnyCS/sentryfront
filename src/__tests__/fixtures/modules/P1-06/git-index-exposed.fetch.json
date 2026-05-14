@@ -1,0 +1,13 @@
+{
+  "responses": [
+    {
+      "url": "https://example.com/.git/index",
+      "status": 200,
+      "body": "DIRC\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+    }
+  ],
+  "default": {
+    "status": 404,
+    "body": "<html><body>Not found</body></html>"
+  }
+}

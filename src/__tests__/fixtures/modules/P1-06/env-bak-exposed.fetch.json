@@ -1,0 +1,13 @@
+{
+  "responses": [
+    {
+      "url": "https://example.com/.env.bak",
+      "status": 200,
+      "body": "DATABASE_URL=postgres://user:pass@db/app\nSTRIPE_SECRET=sk_live_xyz\nJWT_SECRET=hunter2\n"
+    }
+  ],
+  "default": {
+    "status": 404,
+    "body": "<html><body>Not found</body></html>"
+  }
+}
