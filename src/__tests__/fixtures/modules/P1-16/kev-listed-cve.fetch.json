@@ -1,0 +1,28 @@
+{
+  "responses": [
+    {
+      "urlMatches": "^https://api\\.osv\\.dev/v1/querybatch$",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"results\":[{\"vulns\":[{\"id\":\"GHSA-kev-test-0001\"}]}]}"
+    },
+    {
+      "urlMatches": "^https://api\\.osv\\.dev/v1/vulns/GHSA-kev-test-0001$",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"id\":\"GHSA-kev-test-0001\",\"summary\":\"Synthetic KEV-listed XSS — low CVSS but actively exploited\",\"aliases\":[\"CVE-2099-9999\"],\"severity\":[{\"type\":\"CVSS_V3\",\"score\":\"5.0\"}]}"
+    },
+    {
+      "urlMatches": "cisa\\.gov.*known_exploited_vulnerabilities\\.json",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"vulnerabilities\":[{\"cveID\":\"CVE-2099-9999\"}]}"
+    },
+    {
+      "urlMatches": "^https://api\\.first\\.org/data/v1/epss\\?cve=CVE-2099-9999",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"status\":\"OK\",\"data\":[{\"cve\":\"CVE-2099-9999\",\"epss\":\"0.97000\",\"percentile\":\"0.99000\"}]}"
+    }
+  ]
+}

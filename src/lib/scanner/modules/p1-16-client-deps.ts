@@ -12,6 +12,8 @@
 import type { CrawlResult, RawFinding, Severity } from '../types';
 import { detectAcrossChunks, type Chunk, type DetectedComponent } from '../tools/retire';
 import { queryBatch, getVuln, extractCvssBaseScore, type OsvVuln } from '../tools/osv';
+import { resolveSeverity } from '../tools/severity-rubric';
+import { features } from '@/lib/features';
 import { logger } from '@/lib/logger';
 
 const FALLBACK_FETCH_TIMEOUT_MS = 10_000;
@@ -25,12 +27,16 @@ interface VulnerableComponent {
   vulns: OsvVuln[];
   cves: string[];
   cvssScores: number[];
+  severity: Severity;
+  kevMatch?: boolean;
+  epssPercentile?: number | null;
 }
 
 /**
- * Phase 3.3 hook. Today: map max CVSS across a library's vulns to a
- * coarse severity bucket. Phase 3.3 will replace this with the KEV+EPSS
- * rubric without changing the call site.
+ * Kill-switch fallback used when the `exploitIntelSeverity` feature flag
+ * is off. Mirrors the Phase 3.2 stub: max CVSS across a library's vulns
+ * mapped to a coarse severity bucket. Phase 3.3 prefers `resolveSeverity`
+ * which adds KEV+EPSS signal on top.
  */
 export function assignSeverity(scores: number[]): Severity {
   if (scores.length === 0) return 'LOW';
@@ -98,11 +104,10 @@ function buildEvidence(vc: VulnerableComponent): string {
 }
 
 function buildFinding(vc: VulnerableComponent): RawFinding {
-  const { component, cves, cvssScores } = vc;
-  const severity = assignSeverity(cvssScores);
+  const { component, cves, severity, kevMatch, epssPercentile } = vc;
   const count = cves.length;
   const plural = count === 1 ? 'y' : 'ies';
-  return {
+  const finding: RawFinding = {
     moduleId: 'P1-16',
     severity,
     category: 'Vulnerable Client-Side Dependency',
@@ -119,6 +124,9 @@ function buildFinding(vc: VulnerableComponent): RawFinding {
     ],
     fixAiPrompt: `My production bundle ships ${component.npmName} ${component.version}, which has known vulnerabilities (${cves.slice(0, 5).join(', ')}). Upgrade to the latest patched version in package.json, run the build, and confirm the new version no longer matches the vulnerable signatures.`,
   };
+  if (kevMatch !== undefined) finding.kevMatch = kevMatch;
+  if (epssPercentile !== undefined) finding.epssPercentile = epssPercentile;
+  return finding;
 }
 
 export async function runClientDepsModule(crawl: CrawlResult): Promise<RawFinding[]> {
@@ -167,7 +175,30 @@ export async function runClientDepsModule(crawl: CrawlResult): Promise<RawFindin
       }
 
       if (vulns.length === 0) continue;
-      findings.push(buildFinding({ component: components[i], vulns, cves, cvssScores }));
+
+      let severity: Severity;
+      let kevMatch: boolean | undefined;
+      let epssPercentile: number | null | undefined;
+      if (features.exploitIntelSeverity) {
+        const resolved = await resolveSeverity({ cveIds: cves, cvssScores });
+        severity = resolved.severity;
+        kevMatch = resolved.kevMatch;
+        epssPercentile = resolved.epssPercentile;
+      } else {
+        severity = assignSeverity(cvssScores);
+      }
+
+      findings.push(
+        buildFinding({
+          component: components[i],
+          vulns,
+          cves,
+          cvssScores,
+          severity,
+          kevMatch,
+          epssPercentile,
+        }),
+      );
     }
     return findings;
   } catch (err) {

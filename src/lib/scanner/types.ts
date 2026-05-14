@@ -11,6 +11,11 @@ export interface RawFinding {
   impact: string;
   fixManual: string[];
   fixAiPrompt: string;
+
+  // Phase 3.3: exploit-intel telemetry. Populated by modules that consult
+  // KEV/EPSS (currently P1-16). Absent on findings from legacy modules.
+  kevMatch?: boolean;
+  epssPercentile?: number | null;
 }
 
 export interface ParsedCookie {

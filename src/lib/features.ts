@@ -21,6 +21,7 @@ const defaultFeatures = {
   auth: true,
   tierGating: true,
   headlessCrawl: true,
+  exploitIntelSeverity: true,
 };
 
 // Parse FEATURES env variable (JSON object)
@@ -65,6 +66,9 @@ export const features = {
 
   /** Phase 3.1: headless-rendered crawl via Playwright. Falls back to static fetch on failure. */
   headlessCrawl: customFeatures.headlessCrawl ?? defaultFeatures.headlessCrawl,
+
+  /** Phase 3.3: KEV + EPSS exploit-intel severity tiering for client-side CVE findings. */
+  exploitIntelSeverity: customFeatures.exploitIntelSeverity ?? defaultFeatures.exploitIntelSeverity,
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────

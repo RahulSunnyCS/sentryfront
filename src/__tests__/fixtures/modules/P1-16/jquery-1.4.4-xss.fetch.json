@@ -11,6 +11,18 @@
       "status": 200,
       "headers": { "content-type": "application/json" },
       "body": "{\"id\":\"GHSA-579v-mp3v-rrw5\",\"summary\":\"XSS in jQuery via location.hash\",\"aliases\":[\"CVE-2011-4969\"],\"severity\":[{\"type\":\"CVSS_V3\",\"score\":\"6.1\"}]}"
+    },
+    {
+      "urlMatches": "cisa\\.gov.*known_exploited_vulnerabilities\\.json",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"vulnerabilities\":[]}"
+    },
+    {
+      "urlMatches": "^https://api\\.first\\.org/data/v1/epss\\?cve=CVE-2011-4969",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"status\":\"OK\",\"data\":[{\"cve\":\"CVE-2011-4969\",\"epss\":\"0.42000\",\"percentile\":\"0.85000\"}]}"
     }
   ]
 }
