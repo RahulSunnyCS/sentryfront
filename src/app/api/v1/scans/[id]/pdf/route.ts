@@ -9,6 +9,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth/helpers';
+import { canViewScan } from '@/lib/report-access';
 import { generatePdfBuffer, isDirectPdfAvailable } from '@/lib/pdf/export';
 
 export async function GET(
@@ -46,6 +48,11 @@ export async function GET(
   });
 
   if (!scan) {
+    return NextResponse.json({ error: 'Scan not found.' }, { status: 404 });
+  }
+
+  const requester = await getCurrentUser();
+  if (!canViewScan(scan, requester)) {
     return NextResponse.json({ error: 'Scan not found.' }, { status: 404 });
   }
 
