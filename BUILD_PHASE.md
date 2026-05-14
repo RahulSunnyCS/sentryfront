@@ -3,8 +3,8 @@
 **Source of truth for shipped state and what comes next.**
 Companion to `PHASES.md` (which tracks the product/business narrative). This doc is the honest engineering plan: what's actually built, what's mocked, and the order we'll harden it.
 
-**Last updated:** 2026-05-13
-**Current phase:** Phase 2 — Replace mock data with real backend wiring
+**Last updated:** 2026-05-14
+**Current phase:** Phase 2 — Replace mock data with real backend wiring (HARDCODED.md cleared; §2.4 / §2.5 / §2.8 / §2.9 remain)
 
 ---
 
@@ -55,36 +55,38 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 
 **Estimated effort:** 2–3 weeks
 
-### 2.1 Dashboard
+### 2.1 Dashboard ✅
 
-- [ ] `GET /api/v1/dashboard/stats` returning `{ totalScans, criticalIssues, avgGrade, monitoredSites, trends }`
-- [ ] `GET /api/v1/scans?cursor=&limit=` returning paginated user scan history
-- [ ] Replace `STATS` array in `src/app/dashboard/page.tsx`
-- [ ] Replace `SCANS` array in `src/app/dashboard/page.tsx`
-- [ ] Loading skeleton states for both
-- [ ] Empty states ("No scans yet — paste a URL on the homepage")
-- [ ] Error states (toast + retry)
-- [ ] Convert dashboard page from server to mixed (server shell + client data fetch) OR use server-side fetch with cookies
+- [x] `GET /api/v1/dashboard/stats` returning `{ totalScans, criticalIssues, avgGrade, monitoredSites, trends }`
+- [x] `GET /api/v1/scans?cursor=&limit=` returning paginated user scan history
+- [x] Replace `STATS` array in `src/app/dashboard/page.tsx`
+- [x] Replace `SCANS` array in `src/app/dashboard/page.tsx`
+- [ ] Loading skeleton states for both (N/A — server-rendered, no client loading flicker)
+- [x] Empty states ("No scans yet — paste a URL on the homepage")
+- [x] Error states (banner; toast/retry deferred to a future client refresh button)
+- [x] Server-side fetch via shared `src/lib/dashboard-queries.ts` helper used by both the page and the API routes
 
-### 2.2 Verify page
+### 2.2 Verify page ✅
 
-- [ ] `POST /api/v1/verify/init` body `{ domain }` returning `{ token, expires_at }`
-- [ ] `POST /api/v1/verify/check` body `{ domain, method }` returning `{ verified: bool, detected_value?, expected_value }`
-- [ ] Replace hardcoded `domain="taskflow.app"` and `token="vibesafe-verify=…"` with values from URL search params or initiated session
-- [ ] Real DNS lookup (TXT query) + real meta tag fetch from `/` of domain
-- [ ] Persist verification state to user account so it's remembered across sessions
-- [ ] Rate-limit `/check` to prevent abuse (e.g. 1/sec per user, 10/min per domain)
+- [x] `POST /api/v1/verify/init` body `{ domain }` returning `{ token, expires_at }`
+- [x] `POST /api/v1/verify/check` body `{ domain, method }` returning `{ verified: bool, detected_value?, expected_value }`
+- [x] Replace hardcoded `domain="taskflow.app"` and `token="vibesafe-verify=…"` with values from URL search params or initiated session
+- [x] Real DNS lookup (TXT query) + real meta tag fetch from `/` of domain (meta fetch reuses `validateAndNormalize` SSRF guard)
+- [x] Persist verification state to user account so it's remembered across sessions
+- [x] Rate-limit `/check` (1/sec per user, 10/min per (user, domain)) via Upstash sliding window with no-op fallback when env vars unset
 
-### 2.3 Active test flow
+### 2.3 Active test flow ✅ (orchestration only — probes deferred to Phase 5)
 
-- [ ] `POST /api/v1/active-test/start` body `{ domain, tests: string[] }` returning `{ scan_id, estimated_seconds }`
-- [ ] `GET /api/v1/active-test/:id/progress` Server-Sent Events stream emitting `probe_started`, `probe_complete`, `finding`, `scan_complete`
-- [ ] `GET /api/v1/active-test/:id/results` returning `{ findings: [...], passed: [...], summary }`
-- [ ] Replace `CONFIRMED_FINDINGS` and `PASSED` arrays with real data
-- [ ] Replace hardcoded `domain="taskflow.app"` with controlled input value
-- [ ] Replace 1.8s simulated step progression with real SSE listener
-- [ ] Credit deduction integration (3 credits per run, error if insufficient)
-- [ ] Idempotency key on `/start` to prevent double-billing on retries
+- [x] `POST /api/v1/active-test/start` body `{ domain, tests: string[] }` returning `{ scan_id, estimated_seconds }`
+- [x] `GET /api/v1/active-test/:id/progress` SSE stream emitting `probe_started`, `probe_complete`, `scan_complete`
+- [x] `GET /api/v1/active-test/:id/results` returning `{ findings: [...], passed: [...], summary }`
+- [x] Replace `CONFIRMED_FINDINGS` and `PASSED` arrays with real data
+- [x] Replace hardcoded `domain="taskflow.app"` with controlled input value
+- [x] Replace 1.8s simulated step progression with real SSE listener (`EventSource` on `/progress`)
+- [ ] Credit deduction integration (3 credits per run, error if insufficient) — **deferred:** no `Credit` table exists yet; lands when payment ledger is built
+- [x] Idempotency key on `/start` (replay logic in place so the deduction, when added later, can't double-bill)
+
+**Note:** the worker is a stub. It publishes real events on a realistic timeline and persists a real `Scan` row with `summary.mode='active'`, but does NOT send attack payloads to user sites. Real probes (SQLi, XSS, fuzz, auth-bypass, CORS) ship in Phase 5. Step 3 of the UI surfaces this honestly with a "Phase 2 stub" notice.
 
 ### 2.4 Scan progress page (passive)
 
@@ -101,18 +103,20 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 - [ ] Replace any remaining demo fixtures in `/report/demo` (or keep `/report/demo` as a deliberately static showcase route — decide explicitly)
 - [ ] PDF export uses real scan data
 
-### 2.6 Landing page
+### 2.6 Landing page ✅
 
-- [ ] `GET /api/v1/stats/scan-count` returning `{ count, last_updated }`
-- [ ] Replace static "scans run" counter starting number
-- [ ] Cache response server-side for 60s to avoid hammering DB
+- [x] `GET /api/v1/stats/scan-count` returning `{ count, total, last_updated }`
+- [x] Replace static "scans run" counter starting number
+- [x] Cache response server-side for 60s (in-memory TTL + inflight de-dup + `Cache-Control: public, max-age=60`)
+- [x] Dropped unsourced "2,847 developers upgraded" claim (Phase 2.5 truth-in-marketing carry)
 
-### 2.7 Auth wiring
+### 2.7 Auth wiring ✅
 
-- [ ] Verify `NEXT_PUBLIC_AUTH_ENABLED=true` works end-to-end (GitHub OAuth, Google OAuth, credentials)
-- [ ] Session shows user email + sign-out in nav (already coded; needs env flag verified in production)
-- [ ] Protected routes (`/dashboard`, `/verify`, `/active-test`) redirect to `/login?next=…` when unauthenticated
-- [ ] Post-login redirect honors `next` query param
+- [x] Verify `NEXT_PUBLIC_AUTH_ENABLED=true` works end-to-end (GitHub + Google smoke-tested in dev; credentials provider is **not** registered in `nextauth-config.ts` — flagged for Phase 2.5 since README claims it)
+- [x] Session shows user email + sign-out in nav — replaced with circular avatar + dropdown menu (name, email, Dashboard, Sign out)
+- [x] Protected routes (`/dashboard`, `/verify`, `/active-test`) redirect to `/login?next=…` when unauthenticated — Edge middleware cookie-presence check + page-level `getCurrentUser` belt-and-braces
+- [x] Post-login redirect honors `next` query param — with same-origin sanitization to block open-redirects (`//`, `/\`, full URLs all rejected)
+- [x] Pre-existing NextAuth v4/v5 API mismatch in `/api/auth/[...nextauth]/route.ts` fixed
 
 ### 2.8 Payment wiring
 
@@ -131,11 +135,15 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 
 ### Exit checklist for Phase 2
 
-- [ ] `HARDCODED.md` is deleted (every entry replaced)
-- [ ] Manual smoke test of every flow end-to-end signed off
-- [ ] No `console.error` or unhandled rejections in browser DevTools across all flows
+- [x] `HARDCODED.md` is deleted (every entry replaced — 2026-05-14)
+- [ ] §2.4 passive scan-progress SSE sync (drive progress bar from real `module_complete` events; 30s timeout fallback)
+- [ ] §2.5 report page validation (verify `/api/v1/scans/:id`, tier-gated `/findings`, PDF export against real data)
+- [ ] §2.8 payment wiring verification (Stripe checkout sessions per tier, webhook tier updates, customer portal)
+- [ ] §2.9 observability for new routes (per-route latency dashboards, slow-query alerts)
+- [ ] Manual smoke test of every flow end-to-end signed off (user)
+- [ ] No `console.error` or unhandled rejections in browser DevTools across all flows (user)
 - [ ] All API routes have rate limiting + auth checks
-- [ ] Sentry shows zero error spikes for 48h after deploy
+- [ ] Sentry shows zero error spikes for 48h after deploy (user, after deploy)
 - [ ] Updated copy in `/docs` matches actual API shapes
 
 ---
@@ -949,7 +957,7 @@ These are not phase-specific; they're baseline expectations applied throughout.
 | Phase | Status | Started | Target close |
 |-------|--------|---------|--------------|
 | 1. Frontend redesign + SEO | ✅ Done | 2026-05-01 | 2026-05-13 |
-| 2. Wire backend / kill mocks | 🚧 Next | — | TBD |
+| 2. Wire backend / kill mocks | 🚧 In progress (HARDCODED.md cleared; §2.4/2.5/2.8/2.9 remain) | 2026-05-14 | TBD |
 | 2.5. Truth-in-marketing audit | ⏳ Queued | — | — |
 | 3. Review & harden scan modules | ⏳ Queued | — | — |
 | 4. AI enrichment review & strengthen | ⏳ Queued | — | — |
@@ -967,4 +975,4 @@ These are not phase-specific; they're baseline expectations applied throughout.
 
 **Document owner:** Engineering
 **Review cadence:** Update the status board at the end of every phase; review the queue order whenever priorities shift.
-**Cross-reference:** `HARDCODED.md` (the Phase 2 contract), `PHASES.md` (product/business narrative).
+**Cross-reference:** `HARDCODED.md` was the Phase 2 mock-data contract; deleted 2026-05-14 once every entry was replaced. See `PHASES.md` for the product/business narrative.

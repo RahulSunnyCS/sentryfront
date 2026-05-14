@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { IconShield, IconGlobe, IconArrowRight } from '@/components/icons';
 import { createScan } from '@/lib/api';
+
+function formatCount(n: number | null): string {
+  if (n === null) return '—';
+  return n.toLocaleString('en-US');
+}
 
 /* ─────────────────────────────────────────────────────────────
    Data
@@ -51,12 +56,20 @@ const STEPS = [
   },
 ];
 
-const STATS = [
-  { value: '4,247', label: 'sites scanned this week', tone: 'accent' as const },
-  { value: '700+',  label: 'secret patterns detected' },
-  { value: '90s',   label: 'average scan time' },
-  { value: '$3,200', label: 'audit cost replaced per scan' },
-];
+interface Stat {
+  value: string;
+  label: string;
+  tone?: 'accent';
+}
+
+function buildStats(weeklyCount: number | null): Stat[] {
+  return [
+    { value: formatCount(weeklyCount), label: 'sites scanned this week', tone: 'accent' as const },
+    { value: '700+', label: 'secret patterns detected' },
+    { value: '90s', label: 'average scan time' },
+    { value: '$3,200', label: 'audit cost replaced per scan' },
+  ];
+}
 
 const FEATURE_CARDS = [
   {
@@ -158,12 +171,31 @@ const TOOLS = ['Lovable', 'Bolt', 'v0', 'Cursor', 'Replit'];
    ───────────────────────────────────────────────────────────── */
 
 export function LandingHero() {
+  const [weeklyCount, setWeeklyCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/v1/stats/scan-count')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((data: { count?: number }) => {
+        if (!cancelled && typeof data.count === 'number') {
+          setWeeklyCount(data.count);
+        }
+      })
+      .catch(() => {
+        /* Leave as null → renders an em-dash; no marketing claim is made on failure. */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <main id="main" style={{ display: 'flex', flexDirection: 'column' }}>
-      <HeroSection />
+      <HeroSection weeklyCount={weeklyCount} />
       <ToolsStrip />
       <HowItWorksSection />
-      <StatsSection />
+      <StatsSection weeklyCount={weeklyCount} />
       <FeaturesSection />
       <ComparisonSection />
       <TestimonialsSection />
@@ -194,7 +226,7 @@ export function LandingHero() {
    Hero
    ───────────────────────────────────────────────────────────── */
 
-function HeroSection() {
+function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -305,10 +337,8 @@ function HeroSection() {
             style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }}
           />
           <span>
-            <strong style={{ color: 'var(--text-secondary)' }}>4,247</strong>{' '}
-            sites scanned this week ·{' '}
-            <strong style={{ color: 'var(--text-secondary)' }}>2,847</strong>{' '}
-            developers upgraded
+            <strong style={{ color: 'var(--text-secondary)' }}>{formatCount(weeklyCount)}</strong>{' '}
+            site{weeklyCount === 1 ? '' : 's'} scanned this week
           </span>
         </p>
 
@@ -541,7 +571,8 @@ function HowItWorksSection() {
    Stats
    ───────────────────────────────────────────────────────────── */
 
-function StatsSection() {
+function StatsSection({ weeklyCount }: { weeklyCount: number | null }) {
+  const stats = buildStats(weeklyCount);
   return (
     <section aria-labelledby="stats-heading" className="section-sm" style={{ borderTop: '1px solid var(--border-light)' }}>
       <div className="container">
@@ -557,7 +588,7 @@ function StatsSection() {
             margin: 0,
           }}
         >
-          {STATS.map((s) => (
+          {stats.map((s) => (
             <div key={s.label}>
               <dt className="sr-only">{s.label}</dt>
               <dd
