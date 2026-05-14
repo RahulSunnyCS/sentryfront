@@ -4,7 +4,7 @@
 Companion to `PHASES.md` (which tracks the product/business narrative). This doc is the honest engineering plan: what's actually built, what's mocked, and the order we'll harden it.
 
 **Last updated:** 2026-05-14
-**Current phase:** Phase 2 — Replace mock data with real backend wiring (all sub-sections code-complete; awaiting user smoke-test + Sentry UI config + 48h post-deploy watch)
+**Current phase:** Phase 3 — Improve detection quality (3.1 headless crawl, 3.2 client-side dep vulns, 3.3 KEV+EPSS severity all shipped; **3.4 DOM-aware regex preprocessing is next**)
 
 ---
 
@@ -205,51 +205,51 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 
 **Estimated effort:** 3–4 weeks
 
-### 3.1 Headless-rendered crawl + JS-chunk coverage
+### 3.1 Headless-rendered crawl + JS-chunk coverage ✅
 
 The single biggest detection-quality gap: today `crawler.ts` does a static `fetch()` and never executes JS. On a Lovable / Bolt / v0 / Cursor SPA — almost every site we're built to scan — the scanner sees an empty shell and downloads zero JS chunks. `playwright` is already a dependency but unused.
 
-- [ ] Swap `fetch()` in `src/lib/scanner/crawler.ts:119` for Playwright `page.goto()` + wait for network idle
-- [ ] Capture every URL the browser requests via `page.on('request')`; download `application/javascript` responses
-- [ ] Extend `CrawlResult` in `src/lib/scanner/types.ts` with: `renderedHtml`, `consoleErrors`, `networkRequests`, `loadedChunkContents` (Map<url, string>)
-- [ ] Keep all existing fields working — new fields are additive so existing modules keep passing
-- [ ] Preserve the TLS probe (`getTLSInfo`) and cookie/JWT parsing — those stay
-- [ ] Strategy A: render entry route, scan every JS chunk the browser loads
-- [ ] Strategy C (framework manifest scan): probe well-known manifest paths and fetch listed chunks:
-  - [ ] Next.js: `/_next/static/chunks/_buildManifest.js`, `/_next/static/chunks/_app-build-manifest.json`
-  - [ ] Vite: `/manifest.json` (or asset-manifest fingerprint)
-  - [ ] Nuxt: `/_payload.js`
-  - [ ] SvelteKit: `/_app/version.json`
-  - [ ] Remix: build manifest path
-- [ ] Strategy B (multi-route render) is **deferred to Phase 5** — natural fit with authenticated/interactive scanning
-- [ ] Document the coverage envelope in `docs/core/SCAN_COVERAGE.md` — what we see, what we don't (post-login chunks, interaction-triggered chunks, custom bundlers)
-- [ ] Measure per-scan cost change: today ≈1 fetch, target ≤(1 render + 40 chunk fetches) at p95. Baseline + report in commit message.
+- [x] Swap `fetch()` in `src/lib/scanner/crawler.ts:119` for Playwright `page.goto()` + wait for network idle (fetch-only path retained as fallback behind `FEATURES.headlessCrawl`)
+- [x] Capture every URL the browser requests via `page.on('request')`; download `application/javascript` responses
+- [x] Extend `CrawlResult` in `src/lib/scanner/types.ts` with: `renderedHtml`, `consoleErrors`, `networkRequests`, `loadedChunkContents` (Map<url, string>) + `renderMode` discriminator
+- [x] Keep all existing fields working — new fields are additive so existing modules keep passing
+- [x] Preserve the TLS probe (`getTLSInfo`) and cookie/JWT parsing — those stay
+- [x] Strategy A: render entry route, scan every JS chunk the browser loads
+- [x] Strategy C (framework manifest scan): probe well-known manifest paths and fetch listed chunks:
+  - [x] Next.js: `/_next/static/chunks/_buildManifest.js`, `/_next/static/chunks/_app-build-manifest.json`
+  - [x] Vite: `/manifest.json` (or asset-manifest fingerprint)
+  - [ ] Nuxt: `/_payload.js` — **carry to 3.4 follow-up**; not shipped in the 3.1 commit
+  - [ ] SvelteKit: `/_app/version.json` — **carry to 3.4 follow-up**
+  - [ ] Remix: build manifest path — **carry to 3.4 follow-up**
+- [x] Strategy B (multi-route render) is **deferred to Phase 5** — natural fit with authenticated/interactive scanning
+- [x] Document the coverage envelope in `docs/core/SCAN_COVERAGE.md` — what we see, what we don't (post-login chunks, interaction-triggered chunks, custom bundlers)
+- [x] Measure per-scan cost change: today ≈1 fetch, target ≤(1 render + 40 chunk fetches) at p95. Baseline + report in commit message.
 
-### 3.2 Client-side dependency vulnerability detection
+### 3.2 Client-side dependency vulnerability detection ✅
 
 We extract `jsBundleUrls` but never fingerprint them. Phase 7.5 already plans the same data feeds (OSV) for server-side scanning — stand them up here first, reuse in 7.5.
 
-- [ ] Add `retire.js` (FreeBSD, npm package) — fingerprints vulnerable jQuery, Bootstrap, AngularJS, lodash, etc. by URL/hash
-- [ ] Run `retire.js` against every chunk captured in 3.1 (not just entry HTML)
-- [ ] Call `OSV.dev` (CC-BY-4.0, free API) for each fingerprinted `(ecosystem, name, version)` triple; cache responses for 24h
-- [ ] Produce a new scanner module (next P1 ID — `P1-16` if naming continues)
-- [ ] Module output fields: `library`, `version`, `chunkUrl`, `cves[]`, `severity` (set by 3.3 rubric, not raw CVSS)
-- [ ] Fixture coverage per 3.10 standard (≥3 positive, ≥3 negative, ≥1 edge case)
+- [x] Add `retire.js` (FreeBSD, vendored signature DB in `tools/retire.ts`) — fingerprints vulnerable jQuery, Bootstrap, AngularJS, lodash, etc. by URL/filename/content-regex/SHA-1
+- [x] Run `retire.js` against every chunk captured in 3.1 (top-10 `jsBundleUrls` refetch when `renderMode='fetch-only'`)
+- [x] Call `OSV.dev` (CC-BY-4.0, free API) for each fingerprinted `(ecosystem, name, version)` triple; cache responses for 24h (Upstash Redis when configured, in-memory Map fallback)
+- [x] Produce a new scanner module — `P1-16` (`src/lib/scanner/modules/p1-16-client-deps.ts`)
+- [x] Module output fields: `library`, `version`, `chunkUrl`, `cves[]`, `severity` (set by 3.3 rubric, not raw CVSS)
+- [x] Fixture coverage per 3.10 standard (≥3 positive, ≥3 negative, ≥1 edge case)
 
-### 3.3 Exploit-intel severity tiering (KEV + EPSS)
+### 3.3 Exploit-intel severity tiering (KEV + EPSS) ✅
 
 Phase 7.5 line-items these feeds anyway. Stand them up in Phase 3 so client-side CVE findings from 3.2 ship with real severity, not raw CVSS.
 
-- [ ] Daily job: fetch CISA KEV JSON (public-domain) — load into a `kev_entries` table keyed by CVE
-- [ ] Daily job: fetch FIRST.org EPSS snapshot — `epss_score` + `epss_percentile` per CVE
-- [ ] Implement rubric: `severity = adjust(cvssBase, kevBonus, epssPercentile)`
+- [x] CISA KEV JSON fetch (public-domain) — 24h cached client in `src/lib/scanner/tools/kev.ts`, fail-quiet on outage (preserves CVSS bucket rather than surprise-downgrading)
+- [x] FIRST.org EPSS snapshot fetch — `epss_score` + `epss_percentile` per CVE, 24h cached in `src/lib/scanner/tools/epss.ts`
+- [x] Implement rubric: `severity = adjust(cvssBase, kevBonus, epssPercentile)` in `src/lib/scanner/tools/severity-rubric.ts`
   - Critical: in KEV, or (CVSS ≥ 9 AND EPSS percentile ≥ 90)
   - High: CVSS ≥ 7 AND EPSS percentile ≥ 50
   - Medium: CVSS ≥ 4
   - Low: everything else
-- [ ] Publish rubric in `docs/core/SEVERITY_RUBRIC.md` — referenced by Phase 7.5
-- [ ] Wire into 3.2's new client-side dep module; legacy modules adopt incrementally
-- [ ] Telemetry: stamp `kev_match` + `epss_percentile` on every finding for later analysis
+- [x] Publish rubric in `docs/core/SEVERITY_RUBRIC.md` — referenced by Phase 7.5
+- [x] Wire into 3.2's new client-side dep module (P1-16 behind `exploitIntelSeverity` feature flag for kill-switch); legacy modules adopt incrementally
+- [x] Telemetry: `kevMatch` + `epssPercentile` stamped on every `RawFinding` for later analysis
 
 ### 3.4 DOM-aware context for regex modules
 
