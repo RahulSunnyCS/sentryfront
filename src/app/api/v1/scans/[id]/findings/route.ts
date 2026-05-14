@@ -6,6 +6,17 @@ import { applyTierGating } from '@/lib/tier-gating';
 import { logger } from '@/lib/logger';
 import type { Severity, FindingDispositionValue } from '@/types';
 
+/**
+ * Type guard to ensure confidence value matches the allowed literal types.
+ * Database stores as String?, but TypeScript expects 'low' | 'medium' | 'high' | null.
+ */
+function parseConfidence(value: string | null | undefined): 'low' | 'medium' | 'high' | null {
+  if (value === 'low' || value === 'medium' || value === 'high') {
+    return value;
+  }
+  return null;
+}
+
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   logger.setScanScope(params.id);
 
@@ -64,7 +75,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     impact: f.impact,
     fixManual: JSON.parse(f.fixManual) as string[],
     fixAiPrompt: f.fixAiPrompt,
-    confidence: (f as { confidence?: string | null }).confidence ?? null,
+    confidence: parseConfidence((f as { confidence?: string | null }).confidence),
     currentDisposition: dispositionByFindingId?.get(f.id) ?? null,
   }));
 

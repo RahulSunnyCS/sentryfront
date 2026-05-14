@@ -71,7 +71,7 @@ export async function aggregateFpRates(
 
   // Group by (moduleId, confidence).
   const buckets = new Map<string, ModuleRate>();
-  for (const { disposition, finding } of latest.values()) {
+  for (const { disposition, finding } of Array.from(latest.values())) {
     if (!finding) continue;
     const confidence = finding.confidence ?? null;
     const key = `${finding.moduleId}::${confidence ?? ''}`;
@@ -112,7 +112,7 @@ export async function aggregateFpRates(
   }
 
   const out: ModuleRate[] = [];
-  for (const b of buckets.values()) {
+  for (const b of Array.from(buckets.values())) {
     b.fpRate = b.total === 0 ? 0 : b.fpCount / b.total;
     b.helpfulRate = b.total === 0 ? 0 : b.helpfulCount / b.total;
     out.push(b);
