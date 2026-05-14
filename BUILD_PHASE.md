@@ -297,6 +297,7 @@ The <5% FP-rate target is unfalsifiable without real user signal. Fixtures and c
 - [ ] UI: dismiss / "this is a false positive" / "fix prompt didn't help" buttons on each finding in the report view
 - [ ] Daily aggregate job → per-module FP rate, auto-write to `MODULE_QUALITY.md`
 - [ ] Internal dashboard: FP rate per module over time, alerting if any module crosses 5%
+- [ ] Findings produced by 3.11's SEO + AI-discoverability checks carry a `confidence` field (`high` | `medium` | `low`); 3.7's disposition table must key on `(findingType, confidence)` so we can measure FP rate per confidence tier, not just per module
 
 ### 3.8 Coverage-gap additions
 
@@ -335,15 +336,44 @@ Already in progress on this branch — 58 cases across 8 P1 modules. Reframed: f
 - [ ] Fixture authoring guide in `docs/core/FIXTURE_GUIDE.md`
 - [ ] CI job `pnpm test:fixtures` runs in <30s
 
-### 3.11 SEO + AI-discoverability bundle (trimmed)
+### 3.11 SEO + AI-discoverability bundle (full depth)
 
-Trim to high-signal checks; cut speculative items pending real customer demand.
+Today's SEO scoring leans almost entirely on Google PageSpeed Insights' SEO category (`src/lib/scanner/lighthouse.ts:259-272`), which produces shallow signals and no corroboration. This expanded pass adds in-house parsing + free supplementary checks so we give more value, reduce FPs via cross-source agreement, and capture the AI-discoverability surface (llms.txt, AI-crawler robots). Bundled into the existing SEO score — no new top-level category. Copy on the report mentions "includes AI search optimisation."
 
-- [ ] Existing SEO checks reviewed for FP rate + relevance
-- [ ] Add `llms.txt` presence check
-- [ ] Add AI-crawler robots-policy detection (`GPTBot`, `ClaudeBot`, `PerplexityBot`, etc. — explicit allow or block)
-- [ ] **Do not add a separate score or category.** Bundle into existing SEO score; mention "includes AI search optimization" in copy.
-- [ ] Defer: TLDR/summary-section detection, citable-stats check, table/list density — revisit when a customer asks for them.
+**Source corroboration:** every check below must agree across ≥2 of {Lighthouse, our cheerio parse of rendered HTML, direct fetch of the supporting file} before being marked HIGH severity. Disagreement → MEDIUM/LOW with a `confidence` field on the finding. Cross-source helper lives in `src/lib/scanner/modules/seo-corroborate.ts` (new).
+
+**AI-discoverability:**
+- [ ] `/llms.txt` presence + basic shape validation (per llmstxt.org spec)
+- [ ] AI-crawler robots policy — parse robots.txt for `GPTBot`, `ClaudeBot`, `PerplexityBot`, `Google-Extended`, `CCBot`, `anthropic-ai`, `cohere-ai`. Report explicit allow / explicit block / unspecified. Use `robots-parser` (MIT, commercial-use OK).
+- [ ] Rendered-HTML-vs-initial-HTML content diff — warn when the AI-readable (non-JS) HTML has <30% of the rendered text. Reuses `CrawlResult.html` vs `CrawlResult.renderedHtml` already captured in `src/lib/scanner/crawler.ts`.
+
+**SEO depth gaps closed:**
+- [ ] `hreflang` — already in Lighthouse audit list (`lighthouse.ts:269`) but never extracted. Surface as P4-04 finding.
+- [ ] `<meta name="viewport">` presence + correct content. Cheerio parse.
+- [ ] `<html lang="…">` presence. Cheerio parse.
+- [ ] Canonical chain resolution — HEAD-follow canonical URL; flag loops or canonicals returning non-2xx.
+- [ ] Schema.org JSON-LD required-field validation — extend P4-03 from presence-only to per-`@type` required-property checks for Organization, Article, Product, FAQPage, BreadcrumbList. Use `schema-dts` (Apache 2.0) types + a small in-house validator. (Avoid `structured-data-testing-tool` — unmaintained / MPL; re-check licence before adding.)
+- [ ] og:image reachability (HEAD request, content-type starts `image/`).
+- [ ] sitemap.xml structural validity — XML parses, `<urlset>`/`<sitemapindex>` root, URLs absolute, ≤50k entries / ≤50MB per spec.
+- [ ] Sitemap referenced from robots.txt (`Sitemap:` directive).
+
+**Validation backends (free, commercial-use-permitted only — no paid SEO platforms, no customer-OAuth APIs):**
+- W3C Nu HTML Checker — `https://validator.w3.org/nu/?out=json`. Free public service; please cache responses. Used opportunistically for an HTML-validity signal on the landing page only.
+- Mozilla Observatory — already on the roadmap for 3.13; reuse its client for the SEO-affecting headers it surfaces (`Content-Type`, `X-Robots-Tag`).
+
+**Defer (revisit when a customer asks):**
+- TLDR / summary-section heuristics
+- Citable-stats / table-list density checks
+- AMP / PWA manifest checks
+- Search Console / Bing Webmaster integrations (customer-auth lift)
+
+**Definition of done:**
+- [ ] All new checks ship with fixture tests under `tests/fixtures/seo/` (per 3.10 conventions)
+- [ ] Every new finding has a `confidence: 'high' | 'medium' | 'low'` field; `'high'` requires ≥2 corroborating sources
+- [ ] Demo page (`src/app/demo/seo/`) shows the new findings end-to-end
+- [ ] SEO grade weighting unchanged — bundle, don't fork into a new score
+- [ ] Lighthouse remains the primary source; if PageSpeed API fails the new checks still run from our own crawl
+- [ ] `seoDepthPass` feature flag in `src/lib/features.ts` so the new checks can be toggled off if a customer hits unexpected FP
 
 ### 3.12 Reporting copy alignment
 
