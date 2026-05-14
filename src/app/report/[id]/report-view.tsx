@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { GRADE_CONFIG, SEVERITY_CONFIG } from '@/lib/data';
-import type { ScanData, Severity, Finding } from '@/types';
+import { GRADE_CONFIG, SEVERITY_CONFIG, SCAN_MODULES } from '@/lib/data';
+import type { ScanData, Severity, Finding, Grade } from '@/types';
 import { GradeDisplay } from '@/components/grade-display';
 import { SeveritySummary } from '@/components/severity-summary';
 import { FindingCard } from '@/components/finding-card';
-import { IconGlobe, IconClock } from '@/components/icons';
+import { IconGlobe, IconClock, IconAlertCircle, IconCheck } from '@/components/icons';
 import { TierGateBanner } from '@/components/tier-gate-banner';
 import { ReportWatermark } from '@/components/report-watermark';
 import { PerformanceSection } from '@/components/performance-section';
@@ -15,6 +15,30 @@ import { AccessibilitySection } from '@/components/accessibility-section';
 import { SEOSection } from '@/components/seo-section';
 
 const SEVERITY_ORDER: Severity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
+
+// Severity score weights — must mirror scan-worker.ts so the improvement
+// pill's recomputed grade matches what the backend would actually issue.
+const SEVERITY_WEIGHT: Record<Severity, number> = {
+  CRITICAL: 25, HIGH: 10, MEDIUM: 3, LOW: 1, INFO: 0,
+};
+
+function gradeFromScore(score: number): Grade {
+  if (score === 0) return 'A';
+  if (score <= 5) return 'B';
+  if (score <= 20) return 'C';
+  if (score <= 50) return 'D';
+  return 'F';
+}
+
+// Soft qualitative band per grade — used in place of a fabricated
+// "Better than X% of sites" stat. No comparative data exists yet.
+const GRADE_BAND: Record<Grade, string> = {
+  A: 'Top-tier security posture',
+  B: 'Above-average security posture',
+  C: 'Average — gaps worth closing',
+  D: 'Below average — multiple risks',
+  F: 'At risk — fix critical items now',
+};
 
 interface FindingsResponse {
   findings: Finding[];
@@ -61,6 +85,43 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
 
   const gradeConfig = GRADE_CONFIG[scanData.grade];
 
+  // Honest "fix these → grade improves to X" pill. Recomputes the score
+  // using the same weights as scan-worker.ts after removing all CRITICAL
+  // and HIGH findings. If the resulting grade isn't actually higher, the
+  // pill doesn't render (silent rather than misleading).
+  const criticalHighCount = scanData.summary.CRITICAL + scanData.summary.HIGH;
+  const currentScore = SEVERITY_ORDER.reduce(
+    (sum, sev) => sum + SEVERITY_WEIGHT[sev] * (scanData.summary[sev] ?? 0),
+    0,
+  );
+  const scoreAfterFix =
+    currentScore -
+    SEVERITY_WEIGHT.CRITICAL * scanData.summary.CRITICAL -
+    SEVERITY_WEIGHT.HIGH * scanData.summary.HIGH;
+  const projectedGrade = gradeFromScore(scoreAfterFix);
+  const showImprovementPill =
+    criticalHighCount > 0 && projectedGrade !== scanData.grade;
+  const improvementPill = showImprovementPill ? (
+    <a
+      href="#findings"
+      style={{
+        fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)',
+        background: 'var(--surface-secondary)', border: '1px solid var(--border)',
+        borderRadius: 999, padding: '4px 10px', textDecoration: 'none',
+      }}
+    >
+      Fix {criticalHighCount} highest-severity {criticalHighCount === 1 ? 'finding' : 'findings'} → grade improves to {projectedGrade}
+    </a>
+  ) : null;
+
+  // Modules with 0 findings on this scan — derived because real scans
+  // pass moduleResults: {} from page.tsx.
+  const findingsPerModule = scanData.findings.reduce<Record<string, number>>((acc, f) => {
+    acc[f.module] = (acc[f.module] ?? 0) + 1;
+    return acc;
+  }, {});
+  const passedModules = SCAN_MODULES.filter((m) => (findingsPerModule[m.id] ?? 0) === 0);
+
   const filtered = filterSeverity === 'ALL'
     ? gatedFindings
     : gatedFindings.filter((f) => f.severity === filterSeverity);
@@ -103,6 +164,19 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
                 <span>{scanData.date}</span>
               </div>
               <SeveritySummary summary={scanData.summary} />
+
+              {/* Soft grade band + honest improvement pill */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+                <span style={{
+                  fontSize: 12, fontWeight: 600, color: gradeConfig.color,
+                  background: gradeConfig.bg,
+                  border: `1px solid ${gradeConfig.color}33`,
+                  borderRadius: 999, padding: '4px 10px',
+                }}>
+                  {GRADE_BAND[scanData.grade]}
+                </span>
+                {improvementPill}
+              </div>
             </div>
           </div>
 
@@ -117,62 +191,43 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           </div>
         </div>
 
-        {/* Active Testing CTA banner */}
-        <aside
-          aria-labelledby="active-test-cta-title"
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: 16,
-            border: '1px solid rgba(220,38,38,0.30)',
-            background: 'linear-gradient(135deg, rgba(220,38,38,0.10), rgba(245,158,11,0.06))',
-            padding: '20px 22px',
-            marginBottom: 24,
-            display: 'flex',
-            gap: 20,
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div
-            aria-hidden="true"
+        {/* CRITICAL urgency callout — shown only when there are CRITICAL findings */}
+        {scanData.summary.CRITICAL > 0 && (
+          <aside
+            role="alert"
             style={{
-              width: 48, height: 48, flexShrink: 0,
-              borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(220,38,38,0.15)', color: '#DC2626', fontSize: 24,
+              borderRadius: 14,
+              border: '2px solid rgba(225,29,72,0.4)',
+              background: 'linear-gradient(135deg, rgba(225,29,72,0.12), rgba(220,38,38,0.06))',
+              padding: '14px 18px',
+              marginBottom: 24,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              flexWrap: 'wrap',
             }}
           >
-            ⚔️
-          </div>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span
-                style={{
-                  fontSize: 10, fontWeight: 800, color: '#DC2626',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                  padding: '3px 8px', borderRadius: 999,
-                  background: 'rgba(220,38,38,0.12)',
-                }}
-              >
-                <span className="pulse-soft" aria-hidden="true">●</span> Next step
-              </span>
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>~8 min · 3 credits</span>
+            <div
+              aria-hidden="true"
+              style={{
+                width: 36, height: 36, flexShrink: 0,
+                borderRadius: 10,
+                background: 'rgba(225,29,72,0.18)', color: '#BE123C',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <IconAlertCircle size={20} color="#BE123C" />
             </div>
-            <h3 id="active-test-cta-title" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>
-              Want CONFIRMED proof these issues are exploitable?
-            </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-              Run an active DAST scan — real attack probes (SQLi, XSS, auth bypass) rate-limited and opt-in. Replaces a $5,000 manual pentest.
-            </p>
-          </div>
-          <Link
-            href={`/active-test?url=${encodeURIComponent(scanData.url)}`}
-            className="btn-primary"
-            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-          >
-            Run active test →
-          </Link>
-        </aside>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#BE123C', lineHeight: 1.3 }}>
+                {scanData.summary.CRITICAL} CRITICAL {scanData.summary.CRITICAL === 1 ? 'issue needs' : 'issues need'} immediate action
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.5 }}>
+                Exposed secrets and broken auth can be exploited within hours of public discovery.
+              </div>
+            </div>
+          </aside>
+        )}
 
         {/* Performance Section - only show if performance data is available */}
         {scanData.performanceData && scanData.id && (
@@ -213,7 +268,7 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
 
         {/* Findings header + filter */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
+          <h2 id="findings" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', scrollMarginTop: 72 }}>
             Findings ({sorted.length})
           </h2>
           <div role="tablist" aria-label="Filter findings by severity" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -279,6 +334,112 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
             No findings match this filter.
           </div>
         )}
+
+        {/* Passed Checks — modules that returned zero findings on this scan */}
+        {passedModules.length > 0 && (
+          <details style={{
+            marginTop: 28, borderRadius: 12,
+            border: '1px solid rgba(5,150,105,0.25)',
+            background: 'rgba(5,150,105,0.04)',
+            padding: '14px 16px',
+          }}>
+            <summary
+              aria-label="Passed security checks"
+              style={{
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                fontSize: 14, fontWeight: 700, color: 'var(--text)',
+                listStyle: 'none',
+              }}
+            >
+              <span aria-hidden="true" style={{
+                width: 22, height: 22, borderRadius: 999, background: '#059669',
+                color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <IconCheck size={14} color="#fff" />
+              </span>
+              {passedModules.length} {passedModules.length === 1 ? 'check' : 'checks'} passed
+            </summary>
+            <ul style={{
+              listStyle: 'none', padding: 0, margin: '12px 0 0',
+              display: 'flex', flexDirection: 'column', gap: 6,
+            }}>
+              {passedModules.map((m) => (
+                <li key={m.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 12px', borderRadius: 8,
+                  background: 'var(--surface)', border: '1px solid rgba(5,150,105,0.18)',
+                }}>
+                  <span aria-hidden="true" style={{ color: '#059669', display: 'inline-flex', flexShrink: 0 }}>
+                    <IconCheck size={16} color="#059669" />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{m.plainName}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{m.name}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
+        {/* Active Testing CTA banner — placed below findings so it lands
+            after the user has seen the issues it promises to verify. */}
+        <aside
+          aria-labelledby="active-test-cta-title"
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: 16,
+            border: '1px solid rgba(220,38,38,0.30)',
+            background: 'linear-gradient(135deg, rgba(220,38,38,0.10), rgba(245,158,11,0.06))',
+            padding: '20px 22px',
+            marginTop: 28,
+            display: 'flex',
+            gap: 20,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div
+            aria-hidden="true"
+            style={{
+              width: 48, height: 48, flexShrink: 0,
+              borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(220,38,38,0.15)', color: '#DC2626', fontSize: 24,
+            }}
+          >
+            ⚔️
+          </div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span
+                style={{
+                  fontSize: 10, fontWeight: 800, color: '#DC2626',
+                  textTransform: 'uppercase', letterSpacing: '0.08em',
+                  padding: '3px 8px', borderRadius: 999,
+                  background: 'rgba(220,38,38,0.12)',
+                }}
+              >
+                <span className="pulse-soft" aria-hidden="true">●</span> Next step
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>~8 min · 3 credits</span>
+            </div>
+            <h3 id="active-test-cta-title" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>
+              Want CONFIRMED proof these issues are exploitable?
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+              Run an active DAST scan — real attack probes (SQLi, XSS, auth bypass) rate-limited and opt-in. Replaces a $5,000 manual pentest.
+            </p>
+          </div>
+          <Link
+            href={`/active-test?url=${encodeURIComponent(scanData.url)}`}
+            className="btn-primary"
+            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            Run active test →
+          </Link>
+        </aside>
       </div>
 
       {/* Watermark for free tier */}

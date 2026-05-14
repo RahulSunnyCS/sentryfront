@@ -2,10 +2,18 @@
 
 import { useState } from 'react';
 import { SEVERITY_CONFIG } from '@/lib/data';
-import type { Finding, CardStyle } from '@/types';
+import type { Finding, CardStyle, Severity } from '@/types';
 import { SeverityBadge } from './severity-badge';
 import { CopyButton } from './copy-button';
-import { IconChevronDown } from './icons';
+import { IconChevronDown, IconAlertCircle, IconShield } from './icons';
+
+const SEVERITY_ICON: Record<Severity, (color: string) => React.ReactNode> = {
+  CRITICAL: (c) => <IconAlertCircle size={20} color={c} />,
+  HIGH: (c) => <IconAlertCircle size={20} color={c} />,
+  MEDIUM: (c) => <IconAlertCircle size={20} color={c} />,
+  LOW: (c) => <IconShield size={20} color={c} />,
+  INFO: (c) => <IconShield size={20} color={c} />,
+};
 
 interface Props {
   finding: Finding;
@@ -42,11 +50,23 @@ export function FindingCard({ finding, isExpanded, onToggle, cardStyle }: Props)
           padding: '14px 16px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left',
         }}
       >
-        <SeverityBadge severity={finding.severity} />
+        <div
+          aria-hidden="true"
+          style={{
+            width: 36, height: 36, flexShrink: 0,
+            borderRadius: 10,
+            backgroundColor: sevConfig.bg,
+            border: `1px solid ${sevConfig.border}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {SEVERITY_ICON[finding.severity](sevConfig.color)}
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3 }}>{finding.title}</div>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: 'var(--mono)' }}>{finding.location}</div>
         </div>
+        <SeverityBadge severity={finding.severity} />
         <IconChevronDown
           size={18}
           color="var(--text-tertiary)"
