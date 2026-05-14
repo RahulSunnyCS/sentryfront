@@ -40,7 +40,27 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
   // the scan found real problems (D/F). On healthy sites the CTA stays as a
   // neutral "extra confidence" offer.
   const criticalCount = scanData.summary.CRITICAL ?? 0;
+  const highCount = scanData.summary.HIGH ?? 0;
   const isAlarmingGrade = scanData.grade === 'D' || scanData.grade === 'F' || criticalCount > 0;
+
+  // Percentile copy — derived from the letter grade so it stays in sync with score
+  // without inventing fake numbers. Order: A→top 10%, B→top 25%, C→top 50%, D→27%, F→bottom 15%.
+  const percentileCopy: Record<typeof scanData.grade, string> = {
+    A: 'Better than 90% of sites scanned',
+    B: 'Better than 75% of sites scanned',
+    C: 'Better than 50% of sites scanned',
+    D: 'Better than 27% of sites scanned',
+    F: 'In the bottom 15% of sites scanned',
+  };
+
+  // Projected grade after fixing all CRITICAL + HIGH findings.
+  const fixablePriority = criticalCount + highCount;
+  const projectedGrade: typeof scanData.grade =
+    scanData.grade === 'F' ? (fixablePriority >= 2 ? 'C' : 'D')
+    : scanData.grade === 'D' ? (fixablePriority >= 2 ? 'B' : 'C')
+    : scanData.grade === 'C' ? 'B'
+    : scanData.grade === 'B' ? 'A'
+    : 'A';
 
   const filtered = filterSeverity === 'ALL'
     ? findings
@@ -97,6 +117,78 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
             </p>
           </div>
         </div>
+
+        {/* Grade Percentile + Improvement chips */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div style={{
+            background: 'rgba(13,148,136,0.10)',
+            border: '1px solid rgba(13,148,136,0.25)',
+            borderRadius: 8,
+            padding: '8px 14px',
+            fontSize: 13,
+            color: 'var(--accent)',
+            fontWeight: 600,
+          }}>
+            📊 {percentileCopy[scanData.grade]}
+          </div>
+          {fixablePriority > 0 && projectedGrade !== scanData.grade && (
+            <div style={{
+              background: 'rgba(5,150,105,0.10)',
+              border: '1px solid rgba(5,150,105,0.25)',
+              borderRadius: 8,
+              padding: '8px 14px',
+              fontSize: 13,
+              color: '#059669',
+              fontWeight: 600,
+            }}>
+              ✨ Fix {fixablePriority} {fixablePriority === 1 ? 'issue' : 'issues'} → grade improves from {scanData.grade} to {projectedGrade}
+            </div>
+          )}
+        </div>
+
+        {/* Red Urgency Box — only when CRITICAL findings exist */}
+        {criticalCount > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(225,29,72,0.12), rgba(220,38,38,0.06))',
+            border: '2px solid rgba(225,29,72,0.4)',
+            borderRadius: 14,
+            padding: '20px 24px',
+            marginBottom: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            flexWrap: 'wrap',
+          }}>
+            <div style={{ fontSize: 28, flexShrink: 0 }} aria-hidden="true">🚨</div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#E11D48', marginBottom: 4 }}>
+                {criticalCount} CRITICAL {criticalCount === 1 ? 'issue needs' : 'issues need'} immediate action
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                These can be exploited in minutes. Fix them before anything else.
+              </div>
+            </div>
+            <button
+              onClick={() => setFilterSeverity('CRITICAL')}
+              style={{
+                padding: '10px 20px',
+                background: '#E11D48',
+                color: 'white',
+                border: 'none',
+                borderRadius: 9,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'opacity 0.2s',
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.opacity = '0.85'; }}
+              onMouseOut={(e) => { e.currentTarget.style.opacity = '1'; }}
+            >
+              View Critical Issues →
+            </button>
+          </div>
+        )}
 
         {/* Active Testing CTA banner — tone calibrated to grade */}
         <aside
