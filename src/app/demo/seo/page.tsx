@@ -156,8 +156,7 @@ export default function SEODemoPage() {
       <SEOSection
         seoGrade="C"
         seoScore={72}
-        seoMetrics={{ issues: [] }}
-        findings={mockSEOFindings}
+        seoMetrics={{ issues: mockSEOFindings }}
       />
 
       <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">

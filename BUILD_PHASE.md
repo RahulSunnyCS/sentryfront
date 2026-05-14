@@ -400,6 +400,7 @@ Distinct from the end-to-end corpus in 3.1 — these are small, fast, determinis
 - [ ] Confirm no PII from scanned sites leaks into prompts
 - [ ] Verify Anthropic API not used for training (zero-retention agreement / Anthropic's standard policy)
 - [ ] Document data flow for privacy policy
+- [ ] **Report UI: Compliance tab placeholder is live in the unified tabs widget (`src/app/report/[id]/report-view.tsx` → `CompliancePlaceholder`). When the first compliance modules ship (e.g. P5-01), replace the placeholder with real per-framework summaries and emit `finding.category = 'Compliance'` so the Security tab's All view groups them automatically. Until then, the placeholder must continue to make zero compliance claims (Phase 2.5.1).**
 
 ### Exit checklist for Phase 4
 
