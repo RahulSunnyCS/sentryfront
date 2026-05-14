@@ -14,6 +14,7 @@ import { runErrorDisclosureModule } from './modules/p1-12-error-disclosure';
 import { runDevInterfacesModule } from './modules/p1-13-dev-interfaces';
 import { runRobotsSitemapModule } from './modules/p1-14-robots-sitemap';
 import { runCacheModule } from './modules/p1-15-cache';
+import { runClientDepsModule } from './modules/p1-16-client-deps';
 import { runPerformanceModules, type PerformanceResult } from './modules/performance';
 import { runAccessibilityModules, type AccessibilityResult } from './modules/accessibility';
 import { runSEOModules, type SEOResult } from './modules/seo';
@@ -65,6 +66,7 @@ export async function runScanner(targetUrl: string): Promise<ScannerResult> {
     errorDisclosureFindings,
     devInterfaceFindings,
     robotsSitemapFindings,
+    clientDepsFindings,
   ] = await Promise.all([
     runSecretsModule(crawlResult),
     runSourcemapsModule(crawlResult),
@@ -75,6 +77,7 @@ export async function runScanner(targetUrl: string): Promise<ScannerResult> {
     runErrorDisclosureModule(crawlResult),
     runDevInterfacesModule(crawlResult),
     runRobotsSitemapModule(crawlResult),
+    runClientDepsModule(crawlResult),
   ]);
 
   // Group 2: synchronous modules — no extra I/O needed
@@ -101,6 +104,7 @@ export async function runScanner(targetUrl: string): Promise<ScannerResult> {
     { id: 'P1-13', findings: devInterfaceFindings },
     { id: 'P1-14', findings: robotsSitemapFindings },
     { id: 'P1-15', findings: cacheFindings },
+    { id: 'P1-16', findings: clientDepsFindings },
   ];
 
   const findings = allFindings.flatMap((m) => m.findings);

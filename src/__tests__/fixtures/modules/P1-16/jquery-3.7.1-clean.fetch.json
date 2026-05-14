@@ -1,0 +1,10 @@
+{
+  "responses": [
+    {
+      "urlMatches": "^https://api\\.osv\\.dev/v1/querybatch$",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"results\":[{}]}"
+    }
+  ]
+}

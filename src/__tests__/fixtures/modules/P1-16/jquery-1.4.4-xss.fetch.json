@@ -1,0 +1,16 @@
+{
+  "responses": [
+    {
+      "urlMatches": "^https://api\\.osv\\.dev/v1/querybatch$",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"results\":[{\"vulns\":[{\"id\":\"GHSA-579v-mp3v-rrw5\"}]}]}"
+    },
+    {
+      "urlMatches": "^https://api\\.osv\\.dev/v1/vulns/GHSA-579v-mp3v-rrw5$",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"id\":\"GHSA-579v-mp3v-rrw5\",\"summary\":\"XSS in jQuery via location.hash\",\"aliases\":[\"CVE-2011-4969\"],\"severity\":[{\"type\":\"CVSS_V3\",\"score\":\"6.1\"}]}"
+    }
+  ]
+}

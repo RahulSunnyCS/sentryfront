@@ -1,0 +1,5 @@
+{
+  "finalUrl": "https://target.example/",
+  "renderMode": "fetch-only",
+  "jsBundleUrls": []
+}

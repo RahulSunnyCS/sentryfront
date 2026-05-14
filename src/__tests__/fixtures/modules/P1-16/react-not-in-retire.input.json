@@ -1,0 +1,7 @@
+{
+  "finalUrl": "https://target.example/",
+  "renderMode": "headless",
+  "loadedChunkContents": {
+    "https://target.example/static/react.production.min.js": "/** @license React v18.3.0 */ var l=Symbol.for('react.element');"
+  }
+}
