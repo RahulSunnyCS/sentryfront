@@ -5,6 +5,13 @@ export type GradeStyle = 'ring' | 'shield' | 'letter';
 export type CardStyle = 'elevated' | 'bordered' | 'flat';
 export type ScanStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'TIMEOUT';
 
+export type FindingDispositionValue =
+  | 'helpful'
+  | 'dismissed'
+  | 'fp'
+  | 'fix_didnt_help'
+  | 'missed_other';
+
 export interface Finding {
   id: string;
   module: string;
@@ -17,6 +24,8 @@ export interface Finding {
   impact: string;
   fixManual: string[];
   fixAiPrompt: string;
+  confidence?: 'high' | 'medium' | 'low' | null;
+  currentDisposition?: FindingDispositionValue | null;
 }
 
 export interface ScanSummary {

@@ -21,7 +21,7 @@ type Tab = 'security' | 'performance' | 'accessibility' | 'seo' | 'compliance';
 
 const MODULE_BY_ID = Object.fromEntries(SCAN_MODULES.map((m) => [m.id, m]));
 
-export function ReportView({ scanData }: { scanData: ScanData }) {
+export function ReportView({ scanData, authed = false }: { scanData: ScanData; authed?: boolean }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [findings, setFindings] = useState<Finding[]>(scanData.findings);
 
@@ -431,6 +431,8 @@ function SecurityTabBody({
                 isExpanded={expandedId === finding.id}
                 onToggle={() => setExpandedId(expandedId === finding.id ? null : finding.id)}
                 cardStyle="elevated"
+                scanId={scanData.id}
+                authed={authed}
               />
             ))}
           </div>

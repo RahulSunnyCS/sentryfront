@@ -16,6 +16,10 @@ export interface RawFinding {
   // KEV/EPSS (currently P1-16). Absent on findings from legacy modules.
   kevMatch?: boolean;
   epssPercentile?: number | null;
+
+  // Phase 3.7: emission confidence. Populated by 3.11's tunable modules.
+  // Absent / null on legacy modules — those bucket as `null` in FP-rate aggregation.
+  confidence?: 'high' | 'medium' | 'low';
 }
 
 export interface ParsedCookie {
