@@ -968,7 +968,7 @@ These are not phase-specific; they're baseline expectations applied throughout.
 |-------|--------|---------|--------------|
 | 1. Frontend redesign + SEO | ✅ Done | 2026-05-01 | 2026-05-13 |
 | 2. Wire backend / kill mocks | 🟡 Code-complete; awaits user smoke-test + Sentry UI config | 2026-05-14 | TBD (after 48h Sentry watch) |
-| 2.5. Truth-in-marketing audit (mini) | 🚧 Next — legal-language stop-the-bleeding | — | — |
+| 2.5. Truth-in-marketing audit (mini) | ✅ Done | 2026-05-14 | 2026-05-14 |
 | 3. Review & harden scan modules | ⏳ Queued | — | — |
 | 4. AI enrichment review & strengthen | ⏳ Queued | — | — |
 | 4.5. Truth-in-marketing audit (full) | ⏳ Queued — gate before Phase 5 launch | — | — |
