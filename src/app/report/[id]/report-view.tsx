@@ -124,12 +124,29 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
                 <IconGlobe size={16} color="var(--text-tertiary)" />
                 <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>{scanData.url}</span>
               </div>
-              <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                 <span>{scanData.stack}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <IconClock size={12} /> {scanData.duration}
                 </span>
                 <span>{scanData.date}</span>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <span
+                  title="We only tested what an anonymous visitor can reach. Authenticated routes, admin flows, and post-login state weren't probed."
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    fontSize: 11, fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                    background: 'var(--surface-secondary)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 6,
+                    padding: '3px 8px',
+                    cursor: 'help',
+                  }}
+                >
+                  <span aria-hidden="true">🔓</span> Unauthenticated scope
+                </span>
               </div>
               <SeveritySummary summary={scanData.summary} />
             </div>
@@ -511,7 +528,7 @@ function DeeperScansBox({ scanUrl }: { scanUrl: string }) {
         <span style={{ fontSize: 22 }} aria-hidden="true">🔎</span>
         <div>
           <h3 id="deeper-scans-title" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-            This is a passive surface scan — deeper checks find more issues
+            We only tested your public, unauthenticated surface — these scans cover what we missed
           </h3>
           <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0', lineHeight: 1.5 }}>
             Some issue classes only surface with authenticated sessions, source-code access, or live exploit probes.
@@ -524,8 +541,8 @@ function DeeperScansBox({ scanUrl }: { scanUrl: string }) {
           emoji="🔐"
           title="Auth-only flaws"
           desc="Broken access control, IDOR, privileged endpoints."
-          ctaLabel="Sign in →"
-          href="/login"
+          ctaLabel="Run active test →"
+          href={`/active-test?url=${encodeURIComponent(scanUrl)}`}
         />
         <DeeperScanCard
           emoji="🐙"
