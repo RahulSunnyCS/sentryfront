@@ -1,170 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
+import { useRouter, Link } from '@/i18n/navigation';
 import { IconShield, IconGlobe, IconArrowRight } from '@/components/icons';
 import { createScan } from '@/lib/api';
 
-function formatCount(n: number | null): string {
+function formatCount(n: number | null, locale: string): string {
   if (n === null) return '—';
-  return n.toLocaleString('en-US');
+  return n.toLocaleString(locale);
 }
-
-/* ─────────────────────────────────────────────────────────────
-   Data
-   ───────────────────────────────────────────────────────────── */
-
-const TRUST_ITEMS = [
-  'No login required',
-  'Stripe-secured',
-  '30-day refund guarantee',
-  'No security expertise needed',
-];
-
-const HERO_FINDINGS = [
-  { status: 'Protected', title: 'Stripe account secured', sub: 'Secret key removed from JS bundle' },
-  { status: 'Protected', title: 'Security headers hardened', sub: 'CSP, HSTS, and X-Frame-Options in place' },
-  { status: 'Verified', title: 'TLS configuration solid', sub: 'Modern cipher suites, no mixed content' },
-];
-
-const CATEGORIES: Array<{ label: string; color?: string; bg?: string }> = [
-  { label: '🛡️ Security' },
-  { label: '⚡ Performance' },
-  { label: '♿ Accessibility' },
-  { label: '🔍 SEO' },
-  { label: '🔴 Active Testing', color: '#DC2626', bg: 'rgba(220,38,38,0.08)' },
-  { label: '📋 Code Scanning', color: '#7C3AED', bg: 'rgba(124,58,237,0.08)' },
-];
-
-const STEPS = [
-  {
-    n: '01',
-    title: 'Paste your URL',
-    desc: 'Drop in any public URL — staging, production, or that thing you shipped last night. No CLI, no DNS setup, no agent install.',
-  },
-  {
-    n: '02',
-    title: 'We scan 31 checks in parallel',
-    desc: 'Security headers, secrets in JS bundles, TLS configuration, accessibility (WCAG 2.2 AA criteria via Lighthouse), Core Web Vitals, SEO meta — all under 90 seconds.',
-  },
-  {
-    n: '03',
-    title: 'Get fixes you can paste',
-    desc: 'Every finding ships with a copy-ready prompt for Cursor, v0, Bolt, Lovable, or Replit. Apply the fix, re-scan, ship.',
-  },
-];
-
-interface Stat {
-  value: string;
-  label: string;
-  tone?: 'accent';
-}
-
-function buildStats(weeklyCount: number | null): Stat[] {
-  return [
-    { value: formatCount(weeklyCount), label: 'sites scanned this week', tone: 'accent' as const },
-    { value: '700+', label: 'secret patterns detected' },
-    { value: '90s', label: 'average scan time' },
-    { value: '$3,200', label: 'audit cost replaced per scan' },
-  ];
-}
-
-const FEATURE_CARDS = [
-  {
-    emoji: '🛡️',
-    title: 'Security Scanning',
-    desc: '15 security modules detect exposed secrets (700+ patterns), missing headers, XSS, CORS issues, and vulnerable dependencies.',
-    tags: '✓ Gitleaks  ✓ Subdomain takeover  ✓ SSL/TLS',
-  },
-  {
-    emoji: '💻',
-    title: 'Code Scanning (CI/CD)',
-    desc: 'Catch secrets before deployment with GitHub Actions, GitLab CI, or Bitbucket Pipelines integration.',
-    tags: '✓ GitHub  ✓ GitLab  ✓ Bitbucket  ✓ PR comments',
-  },
-  {
-    emoji: '⚡',
-    title: 'Performance Audits',
-    desc: 'Core Web Vitals, Lighthouse scores, image optimization, render-blocking resources, and more.',
-    tags: '✓ LCP, FCP, CLS  ✓ Lighthouse  ✓ Mobile perf',
-  },
-  {
-    emoji: '♿',
-    title: 'Accessibility',
-    desc: 'WCAG 2.2 checks, color contrast, keyboard navigation, screen-reader compatibility.',
-    tags: '✓ Color contrast  ✓ Keyboard nav  ✓ ARIA',
-  },
-  {
-    emoji: '🤖',
-    title: 'AI Fix Prompts',
-    desc: 'Every finding includes a ready-to-paste fix prompt for Cursor, v0, Bolt, Lovable, or Replit.',
-    tags: '✓ Cursor  ✓ v0  ✓ Bolt  ✓ Lovable',
-  },
-];
-
-const COMPARISON: Array<{ feature: string; vibesafe: string; manual: string; competitor: string }> = [
-  { feature: 'Time to first report',    vibesafe: '90 seconds',     manual: '2–4 weeks',       competitor: '4–24 hours' },
-  { feature: 'Starting price',          vibesafe: '$9',             manual: '$3,200+',         competitor: '$99/mo'    },
-  { feature: 'AI fix prompts',          vibesafe: 'Every finding',  manual: 'None',            competitor: 'None'      },
-  { feature: 'Active DAST probes',      vibesafe: '$3.48',          manual: '$5,000',          competitor: '$499'      },
-  { feature: 'Setup required',          vibesafe: 'Paste a URL',    manual: 'Procurement',     competitor: 'Agent install' },
-  { feature: 'Cursor / Lovable native', vibesafe: 'Yes',            manual: 'No',              competitor: 'No'        },
-];
-
-const TESTIMONIALS = [
-  {
-    quote: 'Caught a Stripe live key in my Lovable export before launch. Worth ten years of subscription fees.',
-    name: 'Maya Chen',
-    role: 'Indie founder · taskflow.app',
-  },
-  {
-    quote: 'We replaced a quarterly $4,000 pentest with VibeSafe on every deploy. Findings come with fixes — we just paste them into Cursor.',
-    name: 'Daniel R.',
-    role: 'CTO · 12-person SaaS',
-  },
-  {
-    quote: 'The AI prompts genuinely fix the issues. I went from F to A in one afternoon without reading a single OWASP doc.',
-    name: 'Jasmine O.',
-    role: 'Solo dev · shipped on Bolt',
-  },
-];
-
-const FAQS = [
-  {
-    q: 'Do I need to install anything?',
-    a: 'No. VibeSafe is a passive black-box scanner — paste a URL and we hit it from the outside, just like a real attacker would. No CLI, no agent, no SDK, no code changes.',
-  },
-  {
-    q: 'Will scanning my site break anything?',
-    a: 'Passive scans are read-only — they only fetch public URLs your browser already fetches. Active DAST tests are opt-in, rate-limited to 1 request per second, identify themselves with an X-Scanner header, and require you to verify ownership of the domain first.',
-  },
-  {
-    q: 'Is this useful for AI-built sites specifically?',
-    a: 'Yes — AI coding tools love to inline secrets, ship sourcemaps, and skip security headers. Our scanner is tuned for the patterns we see in Lovable, Bolt, v0, Cursor, and Replit exports. Every finding includes an AI fix prompt you can paste straight back into the same tool.',
-  },
-  {
-    q: 'What does each scan check?',
-    a: '15 security modules (secrets, headers, TLS, cookies, CORS, sourcemaps, mixed content, subdomain takeover, third-party scripts, DNS/email, exposed dev interfaces, error disclosure, robots/sitemap, caching, sensitive paths), 6 performance modules (Core Web Vitals, resources, network, JS, server response, mobile), 5 accessibility modules (contrast, keyboard, screen-reader, semantic HTML, forms), and 5 SEO modules (meta tags, social, structured data, crawlability, mobile SEO).',
-  },
-  {
-    q: 'How is this different from Lighthouse or Snyk?',
-    a: 'Lighthouse only measures performance and surface-level SEO. Snyk needs your source code and focuses on dependencies. VibeSafe runs against your live URL, covers security + performance + accessibility + SEO in one report, and writes the fix for you. Think of it as Lighthouse + OWASP ZAP + Gitleaks + a developer-grade AI assistant, in a 90-second pass.',
-  },
-  {
-    q: 'Do credits expire?',
-    a: 'Never. Credits roll over indefinitely and work across any number of domains. If you decide it isn\'t for you within 30 days, we\'ll refund any unused credits.',
-  },
-];
-
-const TOOLS = ['Lovable', 'Bolt', 'v0', 'Cursor', 'Replit'];
-
-/* ─────────────────────────────────────────────────────────────
-   Component
-   ───────────────────────────────────────────────────────────── */
 
 export function LandingHero() {
   const [weeklyCount, setWeeklyCount] = useState<number | null>(null);
+  const t = useTranslations('landing');
 
   useEffect(() => {
     let cancelled = false;
@@ -175,13 +24,13 @@ export function LandingHero() {
           setWeeklyCount(data.count);
         }
       })
-      .catch(() => {
-        /* Leave as null → renders an em-dash; no marketing claim is made on failure. */
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const faqKeys = [1, 2, 3, 4, 5, 6] as const;
 
   return (
     <main id="main" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -196,17 +45,16 @@ export function LandingHero() {
       <FAQSection />
       <FinalCTASection />
 
-      {/* FAQPage JSON-LD for rich results */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
-            mainEntity: FAQS.map(({ q, a }) => ({
+            mainEntity: faqKeys.map((i) => ({
               '@type': 'Question',
-              name: q,
-              acceptedAnswer: { '@type': 'Answer', text: a },
+              name: t(`faq.q${i}`),
+              acceptedAnswer: { '@type': 'Answer', text: t(`faq.a${i}`) },
             })),
           }),
         }}
@@ -215,11 +63,8 @@ export function LandingHero() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Hero
-   ───────────────────────────────────────────────────────────── */
-
 function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
+  const t = useTranslations('landing');
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -233,10 +78,32 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
       const { id } = await createScan(target);
       router.push(`/scan/${id}?url=${encodeURIComponent(target)}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to start scan. Please try again.');
+      setError(e instanceof Error ? e.message : t('scanFailed'));
       setLoading(false);
     }
   };
+
+  const trustItems: Array<{ key: string; label: string }> = [
+    { key: 'noLogin', label: t('trust.noLogin') },
+    { key: 'stripe', label: t('trust.stripe') },
+    { key: 'refund', label: t('trust.refund') },
+    { key: 'noExpertise', label: t('trust.noExpertise') },
+  ];
+
+  const heroFindings = [
+    { status: t('findings.protected'), title: t('findings.stripeTitle'), sub: t('findings.stripeSub') },
+    { status: t('findings.protected'), title: t('findings.headersTitle'), sub: t('findings.headersSub') },
+    { status: t('findings.verified'), title: t('findings.tlsTitle'), sub: t('findings.tlsSub') },
+  ];
+
+  const categories: Array<{ key: string; label: string; color?: string; bg?: string }> = [
+    { key: 'security', label: t('categories.security') },
+    { key: 'performance', label: t('categories.performance') },
+    { key: 'accessibility', label: t('categories.accessibility') },
+    { key: 'seo', label: t('categories.seo') },
+    { key: 'active', label: t('categories.active'), color: '#DC2626', bg: 'rgba(220,38,38,0.08)' },
+    { key: 'code', label: t('categories.code'), color: '#7C3AED', bg: 'rgba(124,58,237,0.08)' },
+  ];
 
   return (
     <section
@@ -253,21 +120,20 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
       >
         <span className="pill pill-accent" style={{ marginBottom: 'var(--space-8)' }}>
           <IconShield size={16} color="var(--accent)" />
-          Enterprise-grade security · Starting at $9
+          {t('pill')}
         </span>
 
         <h1 id="hero-heading" className="text-hero" style={{ marginBottom: 'var(--space-4)' }}>
-          Your AI-built site is now
+          {t('heroTitleLine1')}
           <br />
-          technically solid
+          {t('heroTitleLine2')}
         </h1>
 
         <p
           className="text-lead"
           style={{ maxWidth: 560, marginInline: 'auto', marginBottom: 'var(--space-10)' }}
         >
-          Paste a URL. Know in 90 seconds if your site is enterprise-ready. Every finding comes with
-          the exact AI prompt to fix it in Cursor, v0, or Lovable.
+          {t('heroLead')}
         </p>
 
         <form
@@ -277,11 +143,11 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
             handleScan();
           }}
           role="search"
-          aria-label="Scan a website"
+          aria-label={t('searchAriaLabel')}
         >
           <IconGlobe size={20} />
           <label htmlFor="hero-url" className="sr-only">
-            Website URL
+            {t('urlLabel')}
           </label>
           <input
             id="hero-url"
@@ -294,11 +160,11 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
             spellCheck={false}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="taskflow.app"
+            placeholder={t('urlPlaceholder')}
             disabled={loading}
           />
-          <button type="submit" disabled={loading} aria-label="Start free scan">
-            {loading ? 'Starting…' : 'Scan Free'}
+          <button type="submit" disabled={loading} aria-label={t('scanAriaLabel')}>
+            {loading ? t('starting') : t('scanFree')}
             {!loading && <IconArrowRight size={16} color="#fff" />}
           </button>
         </form>
@@ -312,7 +178,6 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
           </p>
         )}
 
-        {/* Live counter */}
         <p
           aria-live="polite"
           style={{
@@ -329,15 +194,13 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
             className="pulse-dot"
             style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }}
           />
-          <span>
-            <strong style={{ color: 'var(--text-secondary)' }}>{formatCount(weeklyCount)}</strong>{' '}
-            site{weeklyCount === 1 ? '' : 's'} scanned this week
+          <span style={{ color: 'var(--text-secondary)' }}>
+            {t('weeklyCounter', { count: weeklyCount ?? 0 })}
           </span>
         </p>
 
-        {/* Trust row */}
         <ul
-          aria-label="Trust signals"
+          aria-label={t('trust.label')}
           style={{
             display: 'flex',
             justifyContent: 'center',
@@ -348,9 +211,9 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
             padding: 0,
           }}
         >
-          {TRUST_ITEMS.map((item) => (
+          {trustItems.map((item) => (
             <li
-              key={item}
+              key={item.key}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -363,23 +226,22 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
-              {item}
+              {item.label}
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Hero finding cards */}
       <div
         className="container-narrow"
         style={{ marginTop: 'var(--space-10)' }}
       >
         <ul
-          aria-label="Example findings"
+          aria-label={t('findings.label')}
           className="grid-3"
           style={{ listStyle: 'none', margin: 0, padding: 0 }}
         >
-          {HERO_FINDINGS.map((f) => (
+          {heroFindings.map((f) => (
             <li
               key={f.title}
               style={{
@@ -419,10 +281,9 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
         </ul>
       </div>
 
-      {/* Category pills */}
       <div className="container-narrow" style={{ marginTop: 'var(--space-10)' }}>
         <ul
-          aria-label="What VibeSafe checks"
+          aria-label={t('categories.label')}
           style={{
             display: 'flex',
             justifyContent: 'center',
@@ -433,8 +294,8 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
             padding: 0,
           }}
         >
-          {CATEGORIES.map((cat) => (
-            <li key={cat.label}>
+          {categories.map((cat) => (
+            <li key={cat.key}>
               <span
                 className="pill"
                 style={{
@@ -453,14 +314,12 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Tools strip — social proof
-   ───────────────────────────────────────────────────────────── */
-
 function ToolsStrip() {
+  const t = useTranslations('landing.tools');
+  const tools = ['Lovable', 'Bolt', 'v0', 'Cursor', 'Replit'];
   return (
     <section
-      aria-label="Supported AI coding tools"
+      aria-label={t('label')}
       style={{
         padding: 'var(--space-8) var(--space-6)',
         borderTop: '1px solid var(--border-light)',
@@ -476,7 +335,7 @@ function ToolsStrip() {
           fontWeight: 500,
         }}
       >
-        Built for sites made with
+        {t('label')}
       </p>
       <ul
         style={{
@@ -489,12 +348,12 @@ function ToolsStrip() {
           padding: 0,
         }}
       >
-        {TOOLS.map((t) => (
+        {tools.map((tool) => (
           <li
-            key={t}
+            key={tool}
             style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-secondary)', opacity: 0.65 }}
           >
-            {t}
+            {tool}
           </li>
         ))}
       </ul>
@@ -502,31 +361,27 @@ function ToolsStrip() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   How it works
-   ───────────────────────────────────────────────────────────── */
-
 function HowItWorksSection() {
+  const t = useTranslations('landing.how');
+  const steps = [
+    { n: '01', title: t('step1Title'), desc: t('step1Desc') },
+    { n: '02', title: t('step2Title'), desc: t('step2Desc') },
+    { n: '03', title: t('step3Title'), desc: t('step3Desc') },
+  ];
+
   return (
     <section id="how-it-works" aria-labelledby="how-heading" className="section">
       <div className="container">
         <SectionHeader
-          eyebrow="How it works"
+          eyebrow={t('eyebrow')}
           id="how-heading"
-          title="Three steps. Ninety seconds."
-          lead="Zero setup. Zero security expertise. Real, prioritised findings — with fixes you can copy-paste."
+          title={t('title')}
+          lead={t('lead')}
         />
 
-        <ol
-          className="grid-feature"
-          style={{ listStyle: 'none', padding: 0, margin: 0 }}
-        >
-          {STEPS.map((s) => (
-            <li
-              key={s.n}
-              className="card"
-              style={{ padding: 'var(--space-8)' }}
-            >
+        <ol className="grid-feature" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {steps.map((s) => (
+            <li key={s.n} className="card" style={{ padding: 'var(--space-8)' }}>
               <div
                 aria-hidden="true"
                 style={{
@@ -537,7 +392,7 @@ function HowItWorksSection() {
                   marginBottom: 'var(--space-3)',
                 }}
               >
-                STEP {s.n}
+                {t('stepLabel', { n: s.n })}
               </div>
               <h3
                 style={{
@@ -560,17 +415,21 @@ function HowItWorksSection() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Stats
-   ───────────────────────────────────────────────────────────── */
-
 function StatsSection({ weeklyCount }: { weeklyCount: number | null }) {
-  const stats = buildStats(weeklyCount);
+  const t = useTranslations('landing.stats');
+  const locale = useLocale();
+  const stats: Array<{ value: string; label: string; tone?: 'accent' }> = [
+    { value: formatCount(weeklyCount, locale), label: t('weekly'), tone: 'accent' },
+    { value: '700+', label: t('patterns') },
+    { value: '90s', label: t('scanTime') },
+    { value: '$3,200', label: t('auditCost') },
+  ];
+
   return (
     <section aria-labelledby="stats-heading" className="section-sm" style={{ borderTop: '1px solid var(--border-light)' }}>
       <div className="container">
         <h2 id="stats-heading" className="sr-only">
-          Key statistics
+          {t('heading')}
         </h2>
         <dl
           style={{
@@ -607,19 +466,27 @@ function StatsSection({ weeklyCount }: { weeklyCount: number | null }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Features
-   ───────────────────────────────────────────────────────────── */
-
 function FeaturesSection() {
+  const t = useTranslations('landing.features');
+  const tActive = useTranslations('landing.activeBanner');
+  const tCode = useTranslations('landing.codeBanner');
+
+  const featureCards = [
+    { emoji: '🛡️', title: t('securityTitle'), desc: t('securityDesc'), tags: t('securityTags') },
+    { emoji: '💻', title: t('codeTitle'), desc: t('codeDesc'), tags: t('codeTags') },
+    { emoji: '⚡', title: t('perfTitle'), desc: t('perfDesc'), tags: t('perfTags') },
+    { emoji: '♿', title: t('a11yTitle'), desc: t('a11yDesc'), tags: t('a11yTags') },
+    { emoji: '🤖', title: t('aiTitle'), desc: t('aiDesc'), tags: t('aiTags') },
+  ];
+
   return (
     <section id="features" aria-labelledby="features-heading" className="section">
       <div className="container">
         <SectionHeader
-          eyebrow="Everything in one scan"
+          eyebrow={t('eyebrow')}
           id="features-heading"
-          title="Everything you need to ship with confidence"
-          lead="From security to SEO, we check it all — so you don't have to."
+          title={t('title')}
+          lead={t('lead')}
         />
 
         <FeatureBanner
@@ -627,17 +494,15 @@ function FeaturesSection() {
           gradientFrom="rgba(220,38,38,0.10)"
           gradientTo="rgba(124,58,237,0.08)"
           emoji="🔴"
-          badge="New"
-          eyebrow="Active Security Testing"
-          title="We try to break your site — so attackers can't"
+          badge={tActive('badge')}
+          eyebrow={tActive('eyebrow')}
+          title={tActive('title')}
           body={
-            <>
-              Beyond passive checks: VibeSafe actually sends attack probes — SQL injection, XSS payloads,
-              API fuzzing — against your verified domain. You get{' '}
-              <strong style={{ color: 'var(--text)' }}>CONFIRMED exploitable</strong> findings, not guesses.
-            </>
+            <span
+              dangerouslySetInnerHTML={{ __html: tActive.raw('body') as string }}
+            />
           }
-          bullets={['SQL injection probing', 'XSS payload testing', 'API endpoint fuzzing', 'Auth bypass attempts']}
+          bullets={[tActive('bullet1'), tActive('bullet2'), tActive('bullet3'), tActive('bullet4')]}
           aside={
             <div
               style={{
@@ -648,12 +513,12 @@ function FeaturesSection() {
                 minWidth: 200,
               }}
             >
-              <div className="eyebrow" style={{ color: 'var(--text-tertiary)' }}>Replaces</div>
+              <div className="eyebrow" style={{ color: 'var(--text-tertiary)' }}>{tActive('replaces')}</div>
               <div style={{ fontSize: 24, fontWeight: 800, textDecoration: 'line-through', color: 'var(--text-secondary)' }}>$5,000</div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>manual pentest engagement</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>{tActive('pentest')}</div>
               <div className="eyebrow" style={{ color: 'var(--text-tertiary)' }}>VibeSafe</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#DC2626' }}>3 credits</div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>per active scan (~$3.48)</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#DC2626' }}>{tActive('credits')}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{tActive('perScan')}</div>
             </div>
           }
         />
@@ -663,10 +528,10 @@ function FeaturesSection() {
           gradientFrom="rgba(124,58,237,0.10)"
           gradientTo="rgba(13,148,136,0.08)"
           emoji="📋"
-          eyebrow="GitHub Code Scanning"
-          title="Catch secrets before they ship — in your repo"
-          body="Connect your GitHub repo and VibeSafe scans every PR for hardcoded API keys, secrets, and security anti-patterns — before they ever reach production."
-          bullets={['Gitleaks integration', 'PR comments', 'Block merge on critical', '1 credit per scan']}
+          eyebrow={tCode('eyebrow')}
+          title={tCode('title')}
+          body={tCode('body')}
+          bullets={[tCode('bullet1'), tCode('bullet2'), tCode('bullet3'), tCode('bullet4')]}
           aside={
             <div
               style={{
@@ -681,17 +546,16 @@ function FeaturesSection() {
                 lineHeight: 1.8,
               }}
             >
-              <div style={{ color: '#7C3AED', fontWeight: 700, marginBottom: 6 }}>⚠ PR #47 blocked</div>
-              <div style={{ color: '#DC2626' }}>✗ OPENAI_API_KEY exposed</div>
-              <div style={{ color: '#DC2626' }}>✗ DB password in config.js</div>
-              <div style={{ color: 'var(--success)', marginTop: 4 }}>✓ Fix + merge to proceed</div>
+              <div style={{ color: '#7C3AED', fontWeight: 700, marginBottom: 6 }}>{tCode('prBlocked')}</div>
+              <div style={{ color: '#DC2626' }}>{tCode('exposedKey')}</div>
+              <div style={{ color: '#DC2626' }}>{tCode('dbPassword')}</div>
+              <div style={{ color: 'var(--success)', marginTop: 4 }}>{tCode('fixMerge')}</div>
             </div>
           }
         />
 
-        {/* Feature grid */}
         <div className="grid-feature" style={{ marginTop: 'var(--space-10)' }}>
-          {FEATURE_CARDS.map((card) => (
+          {featureCards.map((card) => (
             <article key={card.title} className="card card-interactive">
               <div aria-hidden="true" style={{ fontSize: 32, marginBottom: 'var(--space-4)' }}>
                 {card.emoji}
@@ -727,11 +591,15 @@ function FeaturesSection() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Comparison
-   ───────────────────────────────────────────────────────────── */
-
 function ComparisonSection() {
+  const t = useTranslations('landing.comparison');
+  const rows = [1, 2, 3, 4, 5, 6].map((i) => ({
+    feature: t(`row${i}Feature`),
+    vibesafe: t(`row${i}Vibesafe`),
+    manual: t(`row${i}Manual`),
+    competitor: t(`row${i}Competitor`),
+  }));
+
   return (
     <section
       id="why-vibesafe"
@@ -741,10 +609,10 @@ function ComparisonSection() {
     >
       <div className="container">
         <SectionHeader
-          eyebrow="The trade-off"
+          eyebrow={t('eyebrow')}
           id="compare-heading"
-          title="VibeSafe vs. the old way"
-          lead="A manual security audit takes weeks and costs thousands. Traditional SaaS scanners need DNS, agents, and security expertise. VibeSafe takes 90 seconds."
+          title={t('title')}
+          lead={t('lead')}
         />
 
         <div
@@ -763,17 +631,17 @@ function ComparisonSection() {
               fontSize: 'var(--fs-base)',
             }}
           >
-            <caption className="sr-only">Comparison of VibeSafe vs manual audits and traditional scanners</caption>
+            <caption className="sr-only">{t('caption')}</caption>
             <thead>
               <tr style={{ textAlign: 'left' }}>
                 <th scope="col" style={cellHeadCss}>&nbsp;</th>
-                <th scope="col" style={{ ...cellHeadCss, color: 'var(--accent)' }}>VibeSafe</th>
-                <th scope="col" style={cellHeadCss}>Manual audit</th>
-                <th scope="col" style={cellHeadCss}>Traditional SaaS</th>
+                <th scope="col" style={{ ...cellHeadCss, color: 'var(--accent)' }}>{t('colVibesafe')}</th>
+                <th scope="col" style={cellHeadCss}>{t('colManual')}</th>
+                <th scope="col" style={cellHeadCss}>{t('colCompetitor')}</th>
               </tr>
             </thead>
             <tbody>
-              {COMPARISON.map((row, i) => (
+              {rows.map((row, i) => (
                 <tr
                   key={row.feature}
                   style={{ borderTop: '1px solid var(--border-light)', background: i % 2 ? 'transparent' : 'var(--surface-secondary)' }}
@@ -808,33 +676,36 @@ const cellCss: React.CSSProperties = {
   textAlign: 'left',
 };
 
-/* ─────────────────────────────────────────────────────────────
-   Testimonials
-   ───────────────────────────────────────────────────────────── */
-
 function TestimonialsSection() {
+  const t = useTranslations('landing.testimonials');
+  const items = [1, 2, 3].map((i) => ({
+    quote: t(`t${i}Quote`),
+    name: t(`t${i}Name`),
+    role: t(`t${i}Role`),
+  }));
+
   return (
     <section id="testimonials" aria-labelledby="testimonials-heading" className="section">
       <div className="container">
         <SectionHeader
-          eyebrow="Builders ship safer"
+          eyebrow={t('eyebrow')}
           id="testimonials-heading"
-          title="Loved by indie founders and small teams"
-          lead="A few words from people who paste URLs and ship fixes."
+          title={t('title')}
+          lead={t('lead')}
         />
 
         <div className="grid-feature">
-          {TESTIMONIALS.map((t) => (
-            <figure key={t.name} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          {items.map((item) => (
+            <figure key={item.name} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
               <div aria-hidden="true" style={{ fontSize: 24, color: 'var(--accent)', lineHeight: 1 }}>
                 &ldquo;
               </div>
               <blockquote style={{ fontSize: 'var(--fs-lg)', color: 'var(--text)', lineHeight: 1.5, margin: 0 }}>
-                {t.quote}
+                {item.quote}
               </blockquote>
               <figcaption style={{ marginTop: 'auto' }}>
-                <div style={{ fontWeight: 700, fontSize: 'var(--fs-base)' }}>{t.name}</div>
-                <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>{t.role}</div>
+                <div style={{ fontWeight: 700, fontSize: 'var(--fs-base)' }}>{item.name}</div>
+                <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>{item.role}</div>
               </figcaption>
             </figure>
           ))}
@@ -844,11 +715,13 @@ function TestimonialsSection() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   FAQ
-   ───────────────────────────────────────────────────────────── */
-
 function FAQSection() {
+  const t = useTranslations('landing.faq');
+  const faqs = [1, 2, 3, 4, 5, 6].map((i) => ({
+    q: t(`q${i}`),
+    a: t(`a${i}`),
+  }));
+
   return (
     <section
       id="faq"
@@ -858,14 +731,14 @@ function FAQSection() {
     >
       <div className="container-prose">
         <SectionHeader
-          eyebrow="FAQ"
+          eyebrow={t('eyebrow')}
           id="faq-heading"
-          title="Common questions"
-          lead="If you don't see your question here, email support@vibesafe.app — a real human answers."
+          title={t('title')}
+          lead={t('lead')}
         />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          {FAQS.map((f, i) => (
+          {faqs.map((f, i) => (
             <details
               key={f.q}
               open={i === 0}
@@ -908,11 +781,8 @@ function FAQSection() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Final CTA
-   ───────────────────────────────────────────────────────────── */
-
 function FinalCTASection() {
+  const t = useTranslations('landing.finalCta');
   return (
     <section
       aria-labelledby="cta-heading"
@@ -921,10 +791,10 @@ function FinalCTASection() {
     >
       <div className="container-prose">
         <h2 id="cta-heading" className="text-h2" style={{ marginBottom: 'var(--space-4)' }}>
-          Ready to ship with confidence?
+          {t('title')}
         </h2>
         <p className="text-lead" style={{ marginBottom: 'var(--space-8)' }}>
-          Free tier includes 3 full scans every month. No credit card required.
+          {t('lead')}
         </p>
         <div
           style={{
@@ -934,12 +804,12 @@ function FinalCTASection() {
             flexWrap: 'wrap',
           }}
         >
-          <Link href="/#hero-heading" className="btn-primary" aria-label="Run a free scan now">
-            Scan your site free
+          <Link href="/#hero-heading" className="btn-primary" aria-label={t('scanButtonAria')}>
+            {t('scanButton')}
             <IconArrowRight size={16} color="#fff" />
           </Link>
           <Link href="/pricing" className="btn-secondary">
-            View pricing
+            {t('pricingButton')}
           </Link>
         </div>
       </div>
@@ -947,11 +817,10 @@ function FinalCTASection() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Shared primitives
-   ───────────────────────────────────────────────────────────── */
-
 function ChromeExtensionSection() {
+  const t = useTranslations('landing.extension');
+  const bullets = [t('bullet1'), t('bullet2'), t('bullet3'), t('bullet4')];
+
   return (
     <section className="section" aria-labelledby="extension-title" style={{ background: 'var(--surface)' }}>
       <div className="container">
@@ -972,22 +841,16 @@ function ChromeExtensionSection() {
         >
           <div>
             <div className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>
-              <span aria-hidden="true">🧩</span> Coming soon · Chrome Extension
+              {t('eyebrow')}
             </div>
             <h2 id="extension-title" className="text-h2" style={{ marginBottom: 'var(--space-4)' }}>
-              Scan any site in one click — without leaving your browser
+              {t('title')}
             </h2>
             <p className="text-lead" style={{ marginBottom: 'var(--space-6)' }}>
-              Pin the VibeSafe extension and audit any page you visit. Instant grade overlay,
-              one-click deep scan, copy-paste fix prompts for your AI assistant.
+              {t('lead')}
             </p>
             <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 var(--space-6)', display: 'grid', gap: 'var(--space-2)' }}>
-              {[
-                'Live grade badge on every site you visit',
-                'Right-click → "Scan this page with VibeSafe"',
-                'Detects secrets in network requests in real time',
-                'Works offline for client-side checks',
-              ].map((b) => (
+              {bullets.map((b) => (
                 <li key={b} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>
                   <span aria-hidden="true" style={{ color: 'var(--accent)', fontWeight: 800, flexShrink: 0 }}>✓</span>
                   {b}
@@ -997,13 +860,13 @@ function ChromeExtensionSection() {
             <form
               onSubmit={(e) => e.preventDefault()}
               style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', maxWidth: 480 }}
-              aria-label="Join the Chrome extension waitlist"
+              aria-label={t('waitlistAria')}
             >
               <input
                 type="email"
                 required
-                placeholder="you@example.com"
-                aria-label="Email address"
+                placeholder={t('emailPlaceholder')}
+                aria-label={t('emailLabel')}
                 style={{
                   flex: 1, minWidth: 200,
                   padding: '12px 14px',
@@ -1015,15 +878,15 @@ function ChromeExtensionSection() {
                 }}
               />
               <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
-                Join waitlist
+                {t('joinWaitlist')}
               </button>
             </form>
-            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-3)' }}>
-              No spam — one email when it ships. <strong style={{ color: 'var(--text-secondary)' }}>2,140 devs</strong> already on the list.
-            </p>
+            <p
+              style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-3)' }}
+              dangerouslySetInnerHTML={{ __html: t.raw('noSpam') as string }}
+            />
           </div>
 
-          {/* Mock browser preview */}
           <aside
             aria-hidden="true"
             style={{
@@ -1074,16 +937,16 @@ function ChromeExtensionSection() {
                 display: 'grid', gap: 6,
               }}>
                 <div style={{ fontWeight: 700, color: '#DC2626', fontSize: 11 }}>
-                  ⚠ 2 critical findings on this page
+                  {t('preview.criticalFindings')}
                 </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: 11 }}>• Exposed API key in /static/main.js</div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: 11 }}>• Missing CSP header</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{t('preview.exposedKey')}</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{t('preview.missingCsp')}</div>
                 <div style={{
                   marginTop: 4, padding: '6px 10px',
                   borderRadius: 6, background: 'var(--accent)', color: '#fff',
                   fontWeight: 700, fontSize: 11, textAlign: 'center',
                 }}>
-                  Run full scan →
+                  {t('preview.runScan')}
                 </div>
               </div>
             </div>

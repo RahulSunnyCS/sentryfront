@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/navigation';
 import { IconShield, IconExternalLink } from './icons';
 import { PdfExportButton } from './pdf-export-button';
 import { AuthButton } from './auth-button';
 import { ThemeToggle } from './theme-toggle';
+import { LocaleSwitcher } from './locale-switcher';
 
 interface Props {
   showReportActions?: boolean;
@@ -14,22 +15,22 @@ interface Props {
   scanId?: string;
 }
 
-const NAV_LINKS = [
-  { href: '/pricing', label: 'Pricing' },
-  { href: '/#features', label: 'Features' },
-  { href: '/#faq', label: 'FAQ' },
-];
-
 export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
+  const t = useTranslations('nav');
+  const tCommon = useTranslations('common');
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  // Close the menu when route changes
+  const navLinks = [
+    { href: '/pricing', label: t('pricing') },
+    { href: '/#features', label: t('features') },
+    { href: '/#faq', label: t('faq') },
+  ];
+
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  // Lock body scroll while menu is open
   useEffect(() => {
     if (open) {
       const orig = document.body.style.overflow;
@@ -38,7 +39,6 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
     }
   }, [open]);
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
@@ -48,7 +48,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={t('primary')}
       style={{
         position: 'fixed',
         top: 0,
@@ -68,13 +68,12 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
       <Link
         href="/"
         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
-        aria-label="VibeSafe — home"
+        aria-label={t('homeAria')}
       >
         <IconShield size={20} color="var(--accent)" />
         <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.01em' }}>VibeSafe</span>
       </Link>
 
-      {/* Desktop links */}
       <ul
         className="nav-desktop"
         style={{
@@ -87,7 +86,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
           padding: 0,
         }}
       >
-        {NAV_LINKS.map((l) => (
+        {navLinks.map((l) => (
           <li key={l.href}>
             <Link
               href={l.href}
@@ -124,7 +123,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
                 color: 'var(--text-secondary)',
               }}
             >
-              New scan
+              {tCommon('newScan')}
             </Link>
             {scanUrl && (
               <button
@@ -144,11 +143,14 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
                 }}
               >
                 <IconExternalLink size={13} color="#fff" />
-                Share
+                {tCommon('share')}
               </button>
             )}
           </>
         )}
+        <span className="nav-action-hide-mobile">
+          <LocaleSwitcher />
+        </span>
         <span className="nav-action-hide-mobile">
           <ThemeToggle />
         </span>
@@ -156,10 +158,9 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
           <AuthButton />
         </span>
 
-        {/* Hamburger — mobile only */}
         <button
           className="nav-hamburger"
-          aria-label={open ? 'Close menu' : 'Open menu'}
+          aria-label={open ? t('closeMenu') : t('openMenu')}
           aria-expanded={open}
           aria-controls="mobile-menu"
           onClick={() => setOpen((v) => !v)}
@@ -170,17 +171,16 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
         </button>
       </div>
 
-      {/* Mobile drawer */}
       <div
         id="mobile-menu"
         role="dialog"
         aria-modal="true"
-        aria-label="Site menu"
+        aria-label={t('siteMenu')}
         className="nav-mobile-menu"
         data-open={open ? 'true' : 'false'}
       >
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          {NAV_LINKS.map((l) => (
+          {navLinks.map((l) => (
             <li key={l.href}>
               <Link
                 href={l.href}
@@ -207,10 +207,14 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 'var(--space-3)',
+            flexWrap: 'wrap',
           }}
         >
           <AuthButton />
-          <ThemeToggle />
+          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+            <LocaleSwitcher />
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </nav>

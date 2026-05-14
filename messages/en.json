@@ -1,0 +1,493 @@
+{
+  "common": {
+    "appName": "VibeSafe",
+    "skipToContent": "Skip to content",
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "newScan": "New scan",
+    "share": "Share",
+    "copy": "Copy",
+    "copied": "Copied",
+    "close": "Close",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "tagline": "Made for the AI coding community."
+  },
+  "nav": {
+    "primary": "Primary",
+    "homeAria": "VibeSafe — home",
+    "pricing": "Pricing",
+    "features": "Features",
+    "faq": "FAQ",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "siteMenu": "Site menu"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signUp": "Sign up",
+    "dashboard": "Dashboard",
+    "accountMenu": "Account menu",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithGithub": "Continue with GitHub",
+    "loadingSession": "Loading session…"
+  },
+  "footer": {
+    "tagline": "Security, performance & compliance scanner for AI-built sites. Full report in under 90 seconds.",
+    "product": "Product",
+    "legal": "Legal",
+    "support": "Support",
+    "home": "Home",
+    "pricing": "Pricing",
+    "features": "Features",
+    "faq": "FAQ",
+    "docs": "Docs",
+    "terms": "Terms of service",
+    "privacy": "Privacy policy",
+    "contact": "Contact",
+    "security": "Security",
+    "abuse": "Report abuse",
+    "supportEmail": "Support",
+    "copyright": "© {year} VibeSafe. All rights reserved.",
+    "community": "Made for the AI coding community."
+  },
+  "localeSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "ml": "മലയാളം",
+    "es": "Español",
+    "de": "Deutsch"
+  },
+  "landing": {
+    "pill": "Enterprise-grade security · Starting at $9",
+    "heroTitleLine1": "Your AI-built site is now",
+    "heroTitleLine2": "technically solid",
+    "heroLead": "Paste a URL. Know in 90 seconds if your site is enterprise-ready. Every finding comes with the exact AI prompt to fix it in Cursor, v0, or Lovable.",
+    "urlPlaceholder": "taskflow.app",
+    "urlLabel": "Website URL",
+    "scanFree": "Scan Free",
+    "starting": "Starting…",
+    "scanAriaLabel": "Start free scan",
+    "searchAriaLabel": "Scan a website",
+    "scanFailed": "Failed to start scan. Please try again.",
+    "weeklyCounter": "{count} {count, plural, one {site} other {sites}} scanned this week",
+    "trust": {
+      "label": "Trust signals",
+      "noLogin": "No login required",
+      "stripe": "Stripe-secured",
+      "refund": "30-day refund guarantee",
+      "noExpertise": "No security expertise needed"
+    },
+    "findings": {
+      "label": "Example findings",
+      "protected": "Protected",
+      "verified": "Verified",
+      "stripeTitle": "Stripe account secured",
+      "stripeSub": "Secret key removed from JS bundle",
+      "headersTitle": "Security headers hardened",
+      "headersSub": "CSP, HSTS, and X-Frame-Options in place",
+      "tlsTitle": "TLS configuration solid",
+      "tlsSub": "Modern cipher suites, no mixed content"
+    },
+    "categories": {
+      "label": "What VibeSafe checks",
+      "security": "🛡️ Security",
+      "performance": "⚡ Performance",
+      "accessibility": "♿ Accessibility",
+      "seo": "🔍 SEO",
+      "active": "🔴 Active Testing",
+      "code": "📋 Code Scanning"
+    },
+    "tools": {
+      "label": "Built for sites made with"
+    },
+    "how": {
+      "eyebrow": "How it works",
+      "title": "Three steps. Ninety seconds.",
+      "lead": "Zero setup. Zero security expertise. Real, prioritised findings — with fixes you can copy-paste.",
+      "stepLabel": "STEP {n}",
+      "step1Title": "Paste your URL",
+      "step1Desc": "Drop in any public URL — staging, production, or that thing you shipped last night. No CLI, no DNS setup, no agent install.",
+      "step2Title": "We scan 31 checks in parallel",
+      "step2Desc": "Security headers, secrets in JS bundles, TLS configuration, accessibility (WCAG 2.2 AA criteria via Lighthouse), Core Web Vitals, SEO meta — all under 90 seconds.",
+      "step3Title": "Get fixes you can paste",
+      "step3Desc": "Every finding ships with a copy-ready prompt for Cursor, v0, Bolt, Lovable, or Replit. Apply the fix, re-scan, ship."
+    },
+    "stats": {
+      "heading": "Key statistics",
+      "weekly": "sites scanned this week",
+      "patterns": "secret patterns detected",
+      "scanTime": "average scan time",
+      "auditCost": "audit cost replaced per scan"
+    },
+    "features": {
+      "eyebrow": "Everything in one scan",
+      "title": "Everything you need to ship with confidence",
+      "lead": "From security to SEO, we check it all — so you don't have to.",
+      "securityTitle": "Security Scanning",
+      "securityDesc": "15 security modules detect exposed secrets (700+ patterns), missing headers, XSS, CORS issues, and vulnerable dependencies.",
+      "securityTags": "✓ Gitleaks  ✓ Subdomain takeover  ✓ SSL/TLS",
+      "codeTitle": "Code Scanning (CI/CD)",
+      "codeDesc": "Catch secrets before deployment with GitHub Actions, GitLab CI, or Bitbucket Pipelines integration.",
+      "codeTags": "✓ GitHub  ✓ GitLab  ✓ Bitbucket  ✓ PR comments",
+      "perfTitle": "Performance Audits",
+      "perfDesc": "Core Web Vitals, Lighthouse scores, image optimization, render-blocking resources, and more.",
+      "perfTags": "✓ LCP, FCP, CLS  ✓ Lighthouse  ✓ Mobile perf",
+      "a11yTitle": "Accessibility",
+      "a11yDesc": "WCAG 2.2 checks, color contrast, keyboard navigation, screen-reader compatibility.",
+      "a11yTags": "✓ Color contrast  ✓ Keyboard nav  ✓ ARIA",
+      "aiTitle": "AI Fix Prompts",
+      "aiDesc": "Every finding includes a ready-to-paste fix prompt for Cursor, v0, Bolt, Lovable, or Replit.",
+      "aiTags": "✓ Cursor  ✓ v0  ✓ Bolt  ✓ Lovable"
+    },
+    "activeBanner": {
+      "badge": "New",
+      "eyebrow": "Active Security Testing",
+      "title": "We try to break your site — so attackers can't",
+      "body": "Beyond passive checks: VibeSafe actually sends attack probes — SQL injection, XSS payloads, API fuzzing — against your verified domain. You get <strong>CONFIRMED exploitable</strong> findings, not guesses.",
+      "bullet1": "SQL injection probing",
+      "bullet2": "XSS payload testing",
+      "bullet3": "API endpoint fuzzing",
+      "bullet4": "Auth bypass attempts",
+      "replaces": "Replaces",
+      "pentest": "manual pentest engagement",
+      "perScan": "per active scan (~$3.48)",
+      "credits": "3 credits"
+    },
+    "codeBanner": {
+      "eyebrow": "GitHub Code Scanning",
+      "title": "Catch secrets before they ship — in your repo",
+      "body": "Connect your GitHub repo and VibeSafe scans every PR for hardcoded API keys, secrets, and security anti-patterns — before they ever reach production.",
+      "bullet1": "Gitleaks integration",
+      "bullet2": "PR comments",
+      "bullet3": "Block merge on critical",
+      "bullet4": "1 credit per scan",
+      "prBlocked": "⚠ PR #47 blocked",
+      "exposedKey": "✗ OPENAI_API_KEY exposed",
+      "dbPassword": "✗ DB password in config.js",
+      "fixMerge": "✓ Fix + merge to proceed"
+    },
+    "comparison": {
+      "eyebrow": "The trade-off",
+      "title": "VibeSafe vs. the old way",
+      "lead": "A manual security audit takes weeks and costs thousands. Traditional SaaS scanners need DNS, agents, and security expertise. VibeSafe takes 90 seconds.",
+      "caption": "Comparison of VibeSafe vs manual audits and traditional scanners",
+      "colVibesafe": "VibeSafe",
+      "colManual": "Manual audit",
+      "colCompetitor": "Traditional SaaS",
+      "row1Feature": "Time to first report",
+      "row1Vibesafe": "90 seconds",
+      "row1Manual": "2–4 weeks",
+      "row1Competitor": "4–24 hours",
+      "row2Feature": "Starting price",
+      "row2Vibesafe": "$9",
+      "row2Manual": "$3,200+",
+      "row2Competitor": "$99/mo",
+      "row3Feature": "AI fix prompts",
+      "row3Vibesafe": "Every finding",
+      "row3Manual": "None",
+      "row3Competitor": "None",
+      "row4Feature": "Active DAST probes",
+      "row4Vibesafe": "$3.48",
+      "row4Manual": "$5,000",
+      "row4Competitor": "$499",
+      "row5Feature": "Setup required",
+      "row5Vibesafe": "Paste a URL",
+      "row5Manual": "Procurement",
+      "row5Competitor": "Agent install",
+      "row6Feature": "Cursor / Lovable native",
+      "row6Vibesafe": "Yes",
+      "row6Manual": "No",
+      "row6Competitor": "No"
+    },
+    "testimonials": {
+      "eyebrow": "Builders ship safer",
+      "title": "Loved by indie founders and small teams",
+      "lead": "A few words from people who paste URLs and ship fixes.",
+      "t1Quote": "Caught a Stripe live key in my Lovable export before launch. Worth ten years of subscription fees.",
+      "t1Name": "Maya Chen",
+      "t1Role": "Indie founder · taskflow.app",
+      "t2Quote": "We replaced a quarterly $4,000 pentest with VibeSafe on every deploy. Findings come with fixes — we just paste them into Cursor.",
+      "t2Name": "Daniel R.",
+      "t2Role": "CTO · 12-person SaaS",
+      "t3Quote": "The AI prompts genuinely fix the issues. I went from F to A in one afternoon without reading a single OWASP doc.",
+      "t3Name": "Jasmine O.",
+      "t3Role": "Solo dev · shipped on Bolt"
+    },
+    "extension": {
+      "eyebrow": "🧩 Coming soon · Chrome Extension",
+      "title": "Scan any site in one click — without leaving your browser",
+      "lead": "Pin the VibeSafe extension and audit any page you visit. Instant grade overlay, one-click deep scan, copy-paste fix prompts for your AI assistant.",
+      "bullet1": "Live grade badge on every site you visit",
+      "bullet2": "Right-click → \"Scan this page with VibeSafe\"",
+      "bullet3": "Detects secrets in network requests in real time",
+      "bullet4": "Works offline for client-side checks",
+      "emailPlaceholder": "you@example.com",
+      "emailLabel": "Email address",
+      "joinWaitlist": "Join waitlist",
+      "waitlistAria": "Join the Chrome extension waitlist",
+      "noSpam": "No spam — one email when it ships. <strong>2,140 devs</strong> already on the list.",
+      "preview": {
+        "criticalFindings": "⚠ 2 critical findings on this page",
+        "exposedKey": "• Exposed API key in /static/main.js",
+        "missingCsp": "• Missing CSP header",
+        "runScan": "Run full scan →"
+      }
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "title": "Common questions",
+      "lead": "If you don't see your question here, email support@vibesafe.app — a real human answers.",
+      "q1": "Do I need to install anything?",
+      "a1": "No. VibeSafe is a passive black-box scanner — paste a URL and we hit it from the outside, just like a real attacker would. No CLI, no agent, no SDK, no code changes.",
+      "q2": "Will scanning my site break anything?",
+      "a2": "Passive scans are read-only — they only fetch public URLs your browser already fetches. Active DAST tests are opt-in, rate-limited to 1 request per second, identify themselves with an X-Scanner header, and require you to verify ownership of the domain first.",
+      "q3": "Is this useful for AI-built sites specifically?",
+      "a3": "Yes — AI coding tools love to inline secrets, ship sourcemaps, and skip security headers. Our scanner is tuned for the patterns we see in Lovable, Bolt, v0, Cursor, and Replit exports. Every finding includes an AI fix prompt you can paste straight back into the same tool.",
+      "q4": "What does each scan check?",
+      "a4": "15 security modules (secrets, headers, TLS, cookies, CORS, sourcemaps, mixed content, subdomain takeover, third-party scripts, DNS/email, exposed dev interfaces, error disclosure, robots/sitemap, caching, sensitive paths), 6 performance modules (Core Web Vitals, resources, network, JS, server response, mobile), 5 accessibility modules (contrast, keyboard, screen-reader, semantic HTML, forms), and 5 SEO modules (meta tags, social, structured data, crawlability, mobile SEO).",
+      "q5": "How is this different from Lighthouse or Snyk?",
+      "a5": "Lighthouse only measures performance and surface-level SEO. Snyk needs your source code and focuses on dependencies. VibeSafe runs against your live URL, covers security + performance + accessibility + SEO in one report, and writes the fix for you. Think of it as Lighthouse + OWASP ZAP + Gitleaks + a developer-grade AI assistant, in a 90-second pass.",
+      "q6": "Do credits expire?",
+      "a6": "Never. Credits roll over indefinitely and work across any number of domains. If you decide it isn't for you within 30 days, we'll refund any unused credits."
+    },
+    "finalCta": {
+      "title": "Ready to ship with confidence?",
+      "lead": "Free tier includes 3 full scans every month. No credit card required.",
+      "scanButton": "Scan your site free",
+      "scanButtonAria": "Run a free scan now",
+      "pricingButton": "View pricing"
+    }
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Welcome back. Sign in to access your dashboard.",
+    "google": "Continue with Google",
+    "github": "Continue with GitHub",
+    "newAccount": "New to VibeSafe?",
+    "createAccount": "Create an account",
+    "errorOauth": "Sign-in failed. Please try again.",
+    "errorGeneric": "Something went wrong. Please try again."
+  },
+  "pricing": {
+    "title": "Simple, credit-based pricing",
+    "lead": "Pay only for what you scan. Credits never expire.",
+    "perMonth": "/mo",
+    "free": "Free",
+    "popular": "Most popular",
+    "viewAll": "View all features",
+    "ctaStart": "Start scanning",
+    "ctaSubscribe": "Subscribe",
+    "tier": {
+      "free": {
+        "name": "Free",
+        "tagline": "3 scans per month",
+        "feature1": "3 passive scans/month",
+        "feature2": "Full report + AI fix prompts",
+        "feature3": "Community support"
+      },
+      "starter": {
+        "name": "Starter",
+        "tagline": "For weekend builders",
+        "feature1": "25 scans per month",
+        "feature2": "Domain verification",
+        "feature3": "Active DAST probes available",
+        "feature4": "Email support"
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "For shipping teams",
+        "feature1": "120 scans per month",
+        "feature2": "Unlimited active scans",
+        "feature3": "GitHub PR integration",
+        "feature4": "Priority support"
+      }
+    },
+    "faqTitle": "Pricing questions",
+    "faqExpire": "Do credits expire?",
+    "faqExpireAns": "No — credits roll over month to month and never expire.",
+    "faqRefund": "Can I get a refund?",
+    "faqRefundAns": "Yes. Within 30 days we refund any unused credits, no questions asked."
+  },
+  "dashboard": {
+    "title": "Your scans",
+    "subtitle": "Recent activity across your verified domains.",
+    "totalScans": "Total scans",
+    "criticalIssues": "Critical issues",
+    "averageGrade": "Avg. grade",
+    "creditsLeft": "Credits left",
+    "recentScans": "Recent scans",
+    "newScan": "New scan",
+    "viewReport": "View report",
+    "empty": "No scans yet — paste a URL to start your first scan.",
+    "tableSite": "Site",
+    "tableGrade": "Grade",
+    "tableIssues": "Issues",
+    "tableScanned": "Scanned",
+    "tableReport": "Report",
+    "errorLoading": "Could not load your scans. Please refresh."
+  },
+  "verify": {
+    "title": "Verify your domain",
+    "lead": "Confirm you own this domain so we can run active security probes against it.",
+    "domainLabel": "Domain",
+    "domainPlaceholder": "example.com",
+    "step1Title": "Add a DNS TXT record",
+    "step1Desc": "Add the following TXT record to your DNS. It can take a few minutes to propagate.",
+    "step2Title": "Click verify",
+    "step2Desc": "We will look up the record and confirm ownership.",
+    "verifyButton": "Verify",
+    "verifying": "Verifying…",
+    "verified": "Domain verified",
+    "failed": "Verification failed. Try again in a few minutes."
+  },
+  "report": {
+    "title": "Scan report",
+    "summaryTitle": "Summary",
+    "findingsTitle": "Findings",
+    "severitySummary": "Severity summary",
+    "exportPdf": "Export PDF",
+    "printReport": "Print report",
+    "betterThan": "Better than {percent}% of sites",
+    "categorySecurity": "Security",
+    "categoryPerformance": "Performance",
+    "categoryAccessibility": "Accessibility",
+    "categorySeo": "SEO",
+    "filterAll": "All",
+    "filterCritical": "Critical only",
+    "filterUnresolved": "Unresolved",
+    "noFindings": "No findings in this category — well done.",
+    "whatThisMeans": "What this means",
+    "evidence": "Evidence",
+    "impact": "Impact",
+    "howToFix": "How to fix",
+    "copyPrompt": "Copy AI fix prompt",
+    "openIn": "Open in"
+  },
+  "scan": {
+    "title": "Scanning…",
+    "scanningSite": "Scanning {url}",
+    "stageFetching": "Fetching site",
+    "stageAnalyzing": "Analyzing security",
+    "stagePerformance": "Measuring performance",
+    "stageAccessibility": "Checking accessibility",
+    "stageSeo": "Auditing SEO",
+    "stageFinalizing": "Finalizing report",
+    "etaSeconds": "About {seconds} seconds left",
+    "errorTitle": "Scan failed",
+    "errorBody": "We couldn't complete this scan. Please try again."
+  },
+  "docs": {
+    "title": "Documentation",
+    "lead": "Guides, integrations, and references."
+  },
+  "legal": {
+    "termsTitle": "Terms of service",
+    "privacyTitle": "Privacy policy",
+    "contactTitle": "Contact"
+  },
+  "checkout": {
+    "successTitle": "Thanks for your purchase!",
+    "successBody": "Your credits are ready. You can start a new scan now.",
+    "successCta": "Go to dashboard"
+  },
+  "severity": {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "info": "Info"
+  },
+  "grade": {
+    "A": "Excellent",
+    "B": "Good",
+    "C": "Fair",
+    "D": "Poor",
+    "F": "Failing"
+  },
+  "modules": {
+    "security": "Security",
+    "performance": "Performance",
+    "accessibility": "Accessibility",
+    "seo": "SEO",
+    "coreWebVitals": "Core Web Vitals",
+    "wcag": "WCAG compliance",
+    "secrets": "Client-side secrets",
+    "headers": "Security headers",
+    "tls": "TLS configuration",
+    "sourcemaps": "Sourcemap exposure"
+  },
+  "errors": {
+    "verifyDomain": {
+      "notReachable": "Could not reach this domain.",
+      "noDns": "DNS record not found.",
+      "tokenMismatch": "Verification token did not match."
+    },
+    "url": {
+      "invalid": "Enter a valid https:// URL.",
+      "blockedHost": "This host is not allowed."
+    },
+    "tier": {
+      "scanLimit": "Free tier limited to {limit} scans/month.",
+      "upgrade": "Upgrade"
+    },
+    "generic": "Something went wrong. Please try again."
+  },
+  "mockBanner": {
+    "title": "Mock mode",
+    "body": "You are viewing demo data. Real scans are disabled in this environment."
+  },
+  "metadata": {
+    "default": {
+      "title": "VibeSafe — Security, performance & quality scanner for AI-built sites",
+      "description": "Paste a URL and get an enterprise-grade security, performance, accessibility, and SEO report in 90 seconds. Every finding ships with a ready-to-paste AI fix prompt for Cursor, Lovable, Bolt, v0, and Replit.",
+      "ogAlt": "VibeSafe — Security scanner for AI-built sites"
+    },
+    "pricing": {
+      "title": "Pricing",
+      "description": "Simple credit-based pricing. Start at $9 — credits never expire."
+    },
+    "login": {
+      "title": "Sign in",
+      "description": "Sign in to your VibeSafe account."
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Your VibeSafe scans and credits."
+    },
+    "docs": {
+      "title": "Docs",
+      "description": "VibeSafe documentation and integration guides."
+    },
+    "verify": {
+      "title": "Verify domain",
+      "description": "Verify ownership of your domain to run active security probes."
+    },
+    "report": {
+      "title": "Scan report",
+      "description": "Detailed security, performance, accessibility and SEO report."
+    },
+    "legalTerms": {
+      "title": "Terms of service",
+      "description": "VibeSafe terms of service."
+    },
+    "legalPrivacy": {
+      "title": "Privacy policy",
+      "description": "How VibeSafe collects and uses data."
+    },
+    "legalContact": {
+      "title": "Contact",
+      "description": "Get in touch with the VibeSafe team."
+    },
+    "checkout": {
+      "title": "Thanks!",
+      "description": "Purchase complete."
+    }
+  },
+  "jsonld": {
+    "orgDescription": "Paste a URL and get an enterprise-grade security, performance, accessibility, and SEO report in 90 seconds. Every finding ships with a ready-to-paste AI fix prompt for Cursor, Lovable, Bolt, v0, and Replit.",
+    "appDescription": "Paste a URL and get an enterprise-grade security, performance, accessibility, and SEO report in 90 seconds."
+  }
+}
