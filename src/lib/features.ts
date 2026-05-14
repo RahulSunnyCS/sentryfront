@@ -20,6 +20,7 @@ const defaultFeatures = {
   stripe: true,
   auth: true,
   tierGating: true,
+  headlessCrawl: true,
 };
 
 // Parse FEATURES env variable (JSON object)
@@ -61,6 +62,9 @@ export const features = {
 
   /** Tier-based feature gating (requires auth) */
   tierGating: customFeatures.tierGating ?? defaultFeatures.tierGating,
+
+  /** Phase 3.1: headless-rendered crawl via Playwright. Falls back to static fetch on failure. */
+  headlessCrawl: customFeatures.headlessCrawl ?? defaultFeatures.headlessCrawl,
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────
