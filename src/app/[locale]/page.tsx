@@ -1,10 +1,12 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
 import { LandingHero } from './landing-hero';
 
 export default function HomePage() {
+  const t = useTranslations('common');
   return (
     <>
       <a
@@ -38,7 +40,7 @@ export default function HomePage() {
           el.style.height = '1px';
         }}
       >
-        Skip to content
+        {t('skipToContent')}
       </a>
       <Nav />
       <div style={{ paddingTop: 'var(--nav-h)' }}>

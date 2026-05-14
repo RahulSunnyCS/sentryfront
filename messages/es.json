@@ -1,0 +1,494 @@
+{
+  "common": {
+    "appName": "VibeSafe",
+    "skipToContent": "Saltar al contenido",
+    "loading": "Cargando…",
+    "saving": "Guardando…",
+    "newScan": "Nuevo escaneo",
+    "share": "Compartir",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "tagline": "Hecho para la comunidad de codificación con IA."
+  },
+  "nav": {
+    "primary": "Principal",
+    "homeAria": "VibeSafe — inicio",
+    "pricing": "Precios",
+    "features": "Funciones",
+    "faq": "Preguntas frecuentes",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "siteMenu": "Menú del sitio"
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "signUp": "Registrarse",
+    "dashboard": "Panel",
+    "accountMenu": "Menú de cuenta",
+    "continueWithGoogle": "Continuar con Google",
+    "continueWithGithub": "Continuar con GitHub",
+    "loadingSession": "Cargando sesión…"
+  },
+  "footer": {
+    "tagline": "Escáner de seguridad, rendimiento y cumplimiento para sitios creados con IA. Informe completo en menos de 90 segundos.",
+    "product": "Producto",
+    "legal": "Legal",
+    "support": "Soporte",
+    "home": "Inicio",
+    "pricing": "Precios",
+    "features": "Funciones",
+    "faq": "Preguntas frecuentes",
+    "docs": "Documentación",
+    "terms": "Términos del servicio",
+    "privacy": "Política de privacidad",
+    "contact": "Contacto",
+    "security": "Seguridad",
+    "abuse": "Reportar abuso",
+    "supportEmail": "Soporte",
+    "copyright": "© {year} VibeSafe. Todos los derechos reservados.",
+    "community": "Hecho para la comunidad de codificación con IA."
+  },
+  "localeSwitcher": {
+    "label": "Idioma",
+    "en": "English",
+    "hi": "हिन्दी",
+    "ml": "മലയാളം",
+    "es": "Español",
+    "de": "Deutsch"
+  },
+  "landing": {
+    "pill": "Seguridad de nivel empresarial · Desde $9",
+    "heroTitleLine1": "Tu sitio creado con IA ahora es",
+    "heroTitleLine2": "técnicamente sólido",
+    "heroLead": "Pega una URL. Sabe en 90 segundos si tu sitio está listo para empresas. Cada hallazgo viene con el prompt de IA exacto para corregirlo en Cursor, v0 o Lovable.",
+    "urlPlaceholder": "example.com",
+    "urlLabel": "URL del sitio web",
+    "scanFree": "Escanear gratis",
+    "starting": "Iniciando…",
+    "scanAriaLabel": "Iniciar escaneo gratuito",
+    "searchAriaLabel": "Escanear un sitio web",
+    "scanFailed": "No se pudo iniciar el escaneo. Inténtalo de nuevo.",
+    "weeklyCounter": "{count} {count, plural, one {sitio escaneado} other {sitios escaneados}} esta semana",
+    "trust": {
+      "label": "Señales de confianza",
+      "noLogin": "No requiere inicio de sesión",
+      "stripe": "Protegido por Stripe",
+      "refund": "Garantía de reembolso de 30 días",
+      "noExpertise": "No se necesita experiencia en seguridad"
+    },
+    "findings": {
+      "label": "Hallazgos de ejemplo",
+      "protected": "Protegido",
+      "verified": "Verificado",
+      "stripeTitle": "Cuenta de Stripe asegurada",
+      "stripeSub": "Clave secreta eliminada del paquete JS",
+      "headersTitle": "Cabeceras de seguridad reforzadas",
+      "headersSub": "CSP, HSTS y X-Frame-Options en su lugar",
+      "tlsTitle": "Configuración TLS sólida",
+      "tlsSub": "Suites de cifrado modernas, sin contenido mixto"
+    },
+    "categories": {
+      "label": "Qué comprueba VibeSafe",
+      "security": "🛡️ Seguridad",
+      "performance": "⚡ Rendimiento",
+      "accessibility": "♿ Accesibilidad",
+      "seo": "🔍 SEO",
+      "active": "🔴 Pruebas activas",
+      "code": "📋 Escaneo de código"
+    },
+    "tools": {
+      "label": "Creado para sitios hechos con"
+    },
+    "how": {
+      "eyebrow": "Cómo funciona",
+      "title": "Tres pasos. Noventa segundos.",
+      "lead": "Sin configuración. Sin experiencia en seguridad. Hallazgos reales y priorizados — con correcciones que puedes copiar y pegar.",
+      "stepLabel": "PASO {n}",
+      "step1Title": "Pega tu URL",
+      "step1Desc": "Introduce cualquier URL pública — staging, producción, o lo que enviaste anoche. Sin CLI, sin DNS, sin agentes.",
+      "step2Title": "Ejecutamos 31 verificaciones en paralelo",
+      "step2Desc": "Cabeceras de seguridad, secretos en bundles JS, configuración TLS, accesibilidad (criterios WCAG 2.2 AA vía Lighthouse), Core Web Vitals, meta SEO — todo en menos de 90 segundos.",
+      "step3Title": "Obtén correcciones que puedes pegar",
+      "step3Desc": "Cada hallazgo incluye un prompt listo para Cursor, v0, Bolt, Lovable o Replit. Aplica la corrección, vuelve a escanear, despliega."
+    },
+    "stats": {
+      "heading": "Estadísticas clave",
+      "weekly": "sitios escaneados esta semana",
+      "patterns": "patrones de secretos detectados",
+      "scanTime": "tiempo medio de escaneo",
+      "auditCost": "coste de auditoría reemplazado por escaneo"
+    },
+    "features": {
+      "eyebrow": "Todo en un escaneo",
+      "title": "Todo lo que necesitas para desplegar con confianza",
+      "lead": "De seguridad a SEO, lo revisamos todo — para que tú no tengas que hacerlo.",
+      "securityTitle": "Escaneo de seguridad",
+      "securityDesc": "15 módulos de seguridad detectan secretos expuestos (700+ patrones), cabeceras faltantes, XSS, problemas de CORS y dependencias vulnerables.",
+      "securityTags": "✓ Gitleaks  ✓ Toma de subdominios  ✓ SSL/TLS",
+      "codeTitle": "Escaneo de código (CI/CD)",
+      "codeDesc": "Detecta secretos antes del despliegue con integración de GitHub Actions, GitLab CI o Bitbucket Pipelines.",
+      "codeTags": "✓ GitHub  ✓ GitLab  ✓ Bitbucket  ✓ Comentarios PR",
+      "perfTitle": "Auditorías de rendimiento",
+      "perfDesc": "Core Web Vitals, puntuaciones Lighthouse, optimización de imágenes, recursos bloqueantes y más.",
+      "perfTags": "✓ LCP, FCP, CLS  ✓ Lighthouse  ✓ Rendimiento móvil",
+      "a11yTitle": "Accesibilidad",
+      "a11yDesc": "Verificaciones WCAG 2.2, contraste de color, navegación por teclado, compatibilidad con lectores de pantalla.",
+      "a11yTags": "✓ Contraste  ✓ Teclado  ✓ ARIA",
+      "aiTitle": "Prompts de corrección IA",
+      "aiDesc": "Cada hallazgo incluye un prompt listo para pegar en Cursor, v0, Bolt, Lovable o Replit.",
+      "aiTags": "✓ Cursor  ✓ v0  ✓ Bolt  ✓ Lovable"
+    },
+    "activeBanner": {
+      "badge": "Nuevo",
+      "eyebrow": "Pruebas de seguridad activas",
+      "title": "Intentamos romper tu sitio — para que los atacantes no puedan",
+      "body": "Más allá de verificaciones pasivas: VibeSafe envía sondas de ataque reales — inyección SQL, payloads XSS, fuzzing de API — contra tu dominio verificado. Obtienes hallazgos <strong>CONFIRMADOS explotables</strong>, no suposiciones.",
+      "bullet1": "Sondeo de inyección SQL",
+      "bullet2": "Pruebas de payloads XSS",
+      "bullet3": "Fuzzing de endpoints de API",
+      "bullet4": "Intentos de bypass de autenticación",
+      "replaces": "Reemplaza",
+      "pentest": "compromiso de pentest manual",
+      "perScan": "por escaneo activo (~$3.48)",
+      "credits": "3 créditos"
+    },
+    "codeBanner": {
+      "eyebrow": "Escaneo de código GitHub",
+      "title": "Detecta secretos antes de que se desplieguen — en tu repositorio",
+      "body": "Conecta tu repositorio de GitHub y VibeSafe escanea cada PR en busca de claves API, secretos y antipatrones de seguridad — antes de que lleguen a producción.",
+      "bullet1": "Integración con Gitleaks",
+      "bullet2": "Comentarios en PR",
+      "bullet3": "Bloquear merge en críticos",
+      "bullet4": "1 crédito por escaneo",
+      "prBlocked": "⚠ PR #47 bloqueado",
+      "exposedKey": "✗ OPENAI_API_KEY expuesta",
+      "dbPassword": "✗ Contraseña BD en config.js",
+      "fixMerge": "✓ Corrige + merge para continuar"
+    },
+    "comparison": {
+      "eyebrow": "El compromiso",
+      "title": "VibeSafe vs. la vieja escuela",
+      "lead": "Una auditoría de seguridad manual lleva semanas y cuesta miles. Los escáneres SaaS tradicionales necesitan DNS, agentes y experiencia en seguridad. VibeSafe tarda 90 segundos.",
+      "caption": "Comparación de VibeSafe con auditorías manuales y escáneres tradicionales",
+      "colVibesafe": "VibeSafe",
+      "colManual": "Auditoría manual",
+      "colCompetitor": "SaaS tradicional",
+      "row1Feature": "Tiempo al primer informe",
+      "row1Vibesafe": "90 segundos",
+      "row1Manual": "2–4 semanas",
+      "row1Competitor": "4–24 horas",
+      "row2Feature": "Precio inicial",
+      "row2Vibesafe": "$9",
+      "row2Manual": "$3,200+",
+      "row2Competitor": "$99/mes",
+      "row3Feature": "Prompts de corrección IA",
+      "row3Vibesafe": "Cada hallazgo",
+      "row3Manual": "Ninguno",
+      "row3Competitor": "Ninguno",
+      "row4Feature": "Sondas DAST activas",
+      "row4Vibesafe": "$3.48",
+      "row4Manual": "$5,000",
+      "row4Competitor": "$499",
+      "row5Feature": "Configuración requerida",
+      "row5Vibesafe": "Pega una URL",
+      "row5Manual": "Adquisición",
+      "row5Competitor": "Instalar agente",
+      "row6Feature": "Nativo Cursor / Lovable",
+      "row6Vibesafe": "Sí",
+      "row6Manual": "No",
+      "row6Competitor": "No"
+    },
+    "testimonials": {
+      "eyebrow": "Los creadores despliegan más seguro",
+      "title": "Amado por fundadores indie y equipos pequeños",
+      "lead": "Unas palabras de personas que pegan URLs y despliegan correcciones.",
+      "t1Quote": "Detectó una clave live de Stripe en mi export de Lovable antes del lanzamiento. Vale diez años de tarifas de suscripción.",
+      "t1Name": "Maya Chen",
+      "t1Role": "Fundadora indie · example.com",
+      "t2Quote": "Reemplazamos un pentest trimestral de $4,000 con VibeSafe en cada despliegue. Los hallazgos vienen con correcciones — solo las pegamos en Cursor.",
+      "t2Name": "Daniel R.",
+      "t2Role": "CTO · SaaS de 12 personas",
+      "t3Quote": "Los prompts de IA realmente arreglan los problemas. Pasé de F a A en una tarde sin leer un solo documento OWASP.",
+      "t3Name": "Jasmine O.",
+      "t3Role": "Dev solo · desplegó en Bolt"
+    },
+    "extension": {
+      "eyebrow": "🧩 Próximamente · Extensión Chrome",
+      "title": "Escanea cualquier sitio con un clic — sin salir del navegador",
+      "lead": "Fija la extensión VibeSafe y audita cualquier página que visites. Insignia instantánea de calificación, escaneo profundo con un clic, prompts de corrección para tu asistente IA.",
+      "bullet1": "Insignia de calificación en vivo en cada sitio que visites",
+      "bullet2": "Clic derecho → \"Escanear esta página con VibeSafe\"",
+      "bullet3": "Detecta secretos en peticiones de red en tiempo real",
+      "bullet4": "Funciona sin conexión para verificaciones del lado del cliente",
+      "emailPlaceholder": "tu@ejemplo.com",
+      "emailLabel": "Dirección de correo",
+      "joinWaitlist": "Unirse a la lista",
+      "waitlistAria": "Unirse a la lista de espera de la extensión Chrome",
+      "noSpam": "Sin spam — un correo cuando se lance. <strong>2,140 devs</strong> ya en la lista.",
+      "preview": {
+        "criticalFindings": "⚠ 2 hallazgos críticos en esta página",
+        "exposedKey": "• Clave API expuesta en /static/main.js",
+        "missingCsp": "• Cabecera CSP faltante",
+        "runScan": "Ejecutar escaneo completo →"
+      }
+    },
+    "faq": {
+      "eyebrow": "Preguntas frecuentes",
+      "title": "Preguntas comunes",
+      "lead": "Si no ves tu pregunta aquí, escribe a support@vibesafe.app — un humano real responde.",
+      "q1": "¿Necesito instalar algo?",
+      "a1": "No. VibeSafe es un escáner pasivo de caja negra — pega una URL y la atacamos desde fuera, como lo haría un atacante real. Sin CLI, sin agente, sin SDK, sin cambios de código.",
+      "q2": "¿Escanear mi sitio puede romper algo?",
+      "a2": "Los escaneos pasivos son de solo lectura — solo obtienen URLs públicas que tu navegador ya obtiene. Las pruebas DAST activas son opt-in, limitadas a 1 petición por segundo, se identifican con una cabecera X-Scanner y requieren que verifiques la propiedad del dominio primero.",
+      "q3": "¿Es útil específicamente para sitios creados con IA?",
+      "a3": "Sí — las herramientas de codificación con IA tienden a incluir secretos en línea, enviar sourcemaps y omitir cabeceras de seguridad. Nuestro escáner está ajustado para los patrones que vemos en exports de Lovable, Bolt, v0, Cursor y Replit. Cada hallazgo incluye un prompt de corrección que puedes pegar de vuelta en la misma herramienta.",
+      "q4": "¿Qué verifica cada escaneo?",
+      "a4": "15 módulos de seguridad (secretos, cabeceras, TLS, cookies, CORS, sourcemaps, contenido mixto, toma de subdominios, scripts de terceros, DNS/correo, interfaces dev expuestas, divulgación de errores, robots/sitemap, caché, rutas sensibles), 6 módulos de rendimiento, 5 de accesibilidad y 5 de SEO.",
+      "q5": "¿En qué se diferencia de Lighthouse o Snyk?",
+      "a5": "Lighthouse solo mide rendimiento y SEO superficial. Snyk necesita tu código fuente y se centra en dependencias. VibeSafe se ejecuta contra tu URL en vivo, cubre seguridad + rendimiento + accesibilidad + SEO en un solo informe, y escribe la corrección por ti. Piénsalo como Lighthouse + OWASP ZAP + Gitleaks + un asistente IA, en 90 segundos.",
+      "q6": "¿Caducan los créditos?",
+      "a6": "Nunca. Los créditos se acumulan indefinidamente y funcionan en cualquier número de dominios. Si decides que no es para ti en 30 días, reembolsamos los créditos no usados."
+    },
+    "finalCta": {
+      "title": "¿Listo para desplegar con confianza?",
+      "lead": "El plan gratuito incluye 3 escaneos completos cada mes. No se requiere tarjeta.",
+      "scanButton": "Escanear tu sitio gratis",
+      "scanButtonAria": "Ejecutar un escaneo gratuito ahora",
+      "pricingButton": "Ver precios"
+    }
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "subtitle": "Bienvenido. Inicia sesión para acceder a tu panel.",
+    "google": "Continuar con Google",
+    "github": "Continuar con GitHub",
+    "newAccount": "¿Nuevo en VibeSafe?",
+    "createAccount": "Crear una cuenta",
+    "errorOauth": "Inicio de sesión fallido. Inténtalo de nuevo.",
+    "errorGeneric": "Algo salió mal. Inténtalo de nuevo."
+  },
+  "pricing": {
+    "title": "Precios simples basados en créditos",
+    "lead": "Paga solo por lo que escaneas. Los créditos nunca caducan.",
+    "perMonth": "/mes",
+    "free": "Gratis",
+    "popular": "Más popular",
+    "viewAll": "Ver todas las funciones",
+    "ctaStart": "Empezar a escanear",
+    "ctaSubscribe": "Suscribirse",
+    "tier": {
+      "free": {
+        "name": "Gratis",
+        "tagline": "3 escaneos al mes",
+        "feature1": "3 escaneos pasivos/mes",
+        "feature2": "Informe completo + prompts IA",
+        "feature3": "Soporte de la comunidad"
+      },
+      "starter": {
+        "name": "Starter",
+        "tagline": "Para constructores de fin de semana",
+        "feature1": "25 escaneos al mes",
+        "feature2": "Verificación de dominio",
+        "feature3": "Sondas DAST activas disponibles",
+        "feature4": "Soporte por correo"
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "Para equipos que despliegan",
+        "feature1": "120 escaneos al mes",
+        "feature2": "Escaneos activos ilimitados",
+        "feature3": "Integración GitHub PR",
+        "feature4": "Soporte prioritario"
+      }
+    },
+    "faqTitle": "Preguntas sobre precios",
+    "faqExpire": "¿Caducan los créditos?",
+    "faqExpireAns": "No — los créditos se acumulan mes a mes y nunca caducan.",
+    "faqRefund": "¿Puedo obtener un reembolso?",
+    "faqRefundAns": "Sí. En 30 días reembolsamos los créditos no usados, sin preguntas."
+  },
+  "dashboard": {
+    "title": "Tus escaneos",
+    "subtitle": "Actividad reciente en tus dominios verificados.",
+    "totalScans": "Escaneos totales",
+    "criticalIssues": "Problemas críticos",
+    "averageGrade": "Calificación media",
+    "creditsLeft": "Créditos restantes",
+    "recentScans": "Escaneos recientes",
+    "newScan": "Nuevo escaneo",
+    "viewReport": "Ver informe",
+    "empty": "Aún no hay escaneos — pega una URL para iniciar tu primer escaneo.",
+    "tableSite": "Sitio",
+    "tableGrade": "Calificación",
+    "tableIssues": "Problemas",
+    "tableScanned": "Escaneado",
+    "tableReport": "Informe",
+    "errorLoading": "No se pudieron cargar tus escaneos. Por favor recarga."
+  },
+  "verify": {
+    "title": "Verifica tu dominio",
+    "lead": "Confirma que eres el propietario de este dominio para que podamos ejecutar sondas de seguridad activas.",
+    "domainLabel": "Dominio",
+    "domainPlaceholder": "ejemplo.com",
+    "step1Title": "Añade un registro DNS TXT",
+    "step1Desc": "Añade el siguiente registro TXT a tu DNS. Puede tardar unos minutos en propagarse.",
+    "step2Title": "Haz clic en verificar",
+    "step2Desc": "Buscaremos el registro y confirmaremos la propiedad.",
+    "verifyButton": "Verificar",
+    "verifying": "Verificando…",
+    "verified": "Dominio verificado",
+    "failed": "Verificación fallida. Inténtalo de nuevo en unos minutos."
+  },
+  "report": {
+    "title": "Informe de escaneo",
+    "summaryTitle": "Resumen",
+    "findingsTitle": "Hallazgos",
+    "severitySummary": "Resumen de severidad",
+    "exportPdf": "Exportar PDF",
+    "printReport": "Imprimir informe",
+    "betterThan": "Mejor que el {percent}% de los sitios",
+    "categorySecurity": "Seguridad",
+    "categoryPerformance": "Rendimiento",
+    "categoryAccessibility": "Accesibilidad",
+    "categorySeo": "SEO",
+    "filterAll": "Todos",
+    "filterCritical": "Solo críticos",
+    "filterUnresolved": "Sin resolver",
+    "noFindings": "Sin hallazgos en esta categoría — bien hecho.",
+    "whatThisMeans": "Qué significa esto",
+    "evidence": "Evidencia",
+    "impact": "Impacto",
+    "howToFix": "Cómo arreglarlo",
+    "copyPrompt": "Copiar prompt IA",
+    "openIn": "Abrir en"
+  },
+  "scan": {
+    "title": "Escaneando…",
+    "scanningSite": "Escaneando {url}",
+    "stageFetching": "Obteniendo el sitio",
+    "stageAnalyzing": "Analizando seguridad",
+    "stagePerformance": "Midiendo rendimiento",
+    "stageAccessibility": "Comprobando accesibilidad",
+    "stageSeo": "Auditando SEO",
+    "stageFinalizing": "Finalizando informe",
+    "etaSeconds": "Aproximadamente {seconds} segundos restantes",
+    "errorTitle": "Escaneo fallido",
+    "errorBody": "No pudimos completar este escaneo. Inténtalo de nuevo."
+  },
+  "docs": {
+    "title": "Documentación",
+    "lead": "Guías, integraciones y referencias."
+  },
+  "legal": {
+    "termsTitle": "Términos del servicio",
+    "privacyTitle": "Política de privacidad",
+    "contactTitle": "Contacto"
+  },
+  "checkout": {
+    "successTitle": "¡Gracias por tu compra!",
+    "successBody": "Tus créditos están listos. Ya puedes iniciar un nuevo escaneo.",
+    "successCta": "Ir al panel"
+  },
+  "severity": {
+    "critical": "Crítico",
+    "high": "Alto",
+    "medium": "Medio",
+    "low": "Bajo",
+    "info": "Info"
+  },
+  "grade": {
+    "A": "Excelente",
+    "B": "Bueno",
+    "C": "Aceptable",
+    "D": "Pobre",
+    "F": "Fallido"
+  },
+  "modules": {
+    "security": "Seguridad",
+    "performance": "Rendimiento",
+    "accessibility": "Accesibilidad",
+    "seo": "SEO",
+    "coreWebVitals": "Core Web Vitals",
+    "wcag": "Cumplimiento WCAG",
+    "secrets": "Secretos del lado cliente",
+    "headers": "Cabeceras de seguridad",
+    "tls": "Configuración TLS",
+    "sourcemaps": "Exposición de sourcemaps"
+  },
+  "errors": {
+    "verifyDomain": {
+      "notReachable": "No se pudo alcanzar este dominio.",
+      "noDns": "Registro DNS no encontrado.",
+      "tokenMismatch": "El token de verificación no coincide."
+    },
+    "url": {
+      "invalid": "Introduce una URL https:// válida.",
+      "blockedHost": "Este host no está permitido."
+    },
+    "tier": {
+      "scanLimit": "Plan gratuito limitado a {limit} escaneos/mes.",
+      "upgrade": "Mejorar plan"
+    },
+    "generic": "Algo salió mal. Inténtalo de nuevo."
+  },
+  "mockBanner": {
+    "title": "Modo demo",
+    "body": "Estás viendo datos de demostración. Los escaneos reales están desactivados en este entorno."
+  },
+  "metadata": {
+    "default": {
+      "title": "VibeSafe — Escáner de seguridad, rendimiento y calidad para sitios creados con IA",
+      "description": "Pega una URL y obtén un informe de seguridad, rendimiento, accesibilidad y SEO de nivel empresarial en 90 segundos. Cada hallazgo viene con un prompt IA listo para pegar en Cursor, Lovable, Bolt, v0 y Replit.",
+      "ogAlt": "VibeSafe — Escáner de seguridad para sitios creados con IA"
+    },
+    "pricing": {
+      "title": "Precios",
+      "description": "Precios simples basados en créditos. Desde $9 — los créditos nunca caducan."
+    },
+    "login": {
+      "title": "Iniciar sesión",
+      "description": "Inicia sesión en tu cuenta VibeSafe."
+    },
+    "dashboard": {
+      "title": "Panel",
+      "description": "Tus escaneos y créditos de VibeSafe."
+    },
+    "docs": {
+      "title": "Documentación",
+      "description": "Documentación y guías de integración de VibeSafe."
+    },
+    "verify": {
+      "title": "Verificar dominio",
+      "description": "Verifica la propiedad de tu dominio para ejecutar sondas de seguridad activas."
+    },
+    "report": {
+      "title": "Informe de escaneo",
+      "description": "Informe detallado de seguridad, rendimiento, accesibilidad y SEO."
+    },
+    "legalTerms": {
+      "title": "Términos del servicio",
+      "description": "Términos del servicio de VibeSafe."
+    },
+    "legalPrivacy": {
+      "title": "Política de privacidad",
+      "description": "Cómo VibeSafe recopila y utiliza los datos."
+    },
+    "legalContact": {
+      "title": "Contacto",
+      "description": "Ponte en contacto con el equipo de VibeSafe."
+    },
+    "checkout": {
+      "title": "¡Gracias!",
+      "description": "Compra completada."
+    }
+  },
+  "jsonld": {
+    "orgDescription": "Pega una URL y obtén un informe de seguridad, rendimiento, accesibilidad y SEO de nivel empresarial en 90 segundos.",
+    "appDescription": "Pega una URL y obtén un informe de seguridad, rendimiento, accesibilidad y SEO de nivel empresarial en 90 segundos."
+  }
+}

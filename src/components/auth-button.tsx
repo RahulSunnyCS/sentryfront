@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { useFeature } from '@/lib/client-features';
 
@@ -46,6 +47,7 @@ function UserMenu({
   email?: string | null;
   image?: string | null;
 }) {
+  const t = useTranslations('auth');
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -72,7 +74,7 @@ function UserMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Account menu"
+        aria-label={t('accountMenu')}
         aria-haspopup="menu"
         aria-expanded={open}
         style={{
@@ -150,7 +152,7 @@ function UserMenu({
             onClick={() => setOpen(false)}
             style={menuItemStyle}
           >
-            Dashboard
+            {t('dashboard')}
           </Link>
           <button
             type="button"
@@ -161,7 +163,7 @@ function UserMenu({
             }}
             style={{ ...menuItemStyle, width: '100%', textAlign: 'left' }}
           >
-            Sign out
+            {t('signOut')}
           </button>
         </div>
       )}
@@ -182,14 +184,15 @@ const menuItemStyle: React.CSSProperties = {
 };
 
 export function AuthButton() {
+  const t = useTranslations('auth');
   const authEnabled = useFeature('auth');
   const { data: session, status } = useSession();
 
   if (!authEnabled) {
     return (
-      <Link href="/login" style={signInBtnStyle} aria-label="Sign in">
+      <Link href="/login" style={signInBtnStyle} aria-label={t('signIn')}>
         <SignInIcon />
-        Sign in
+        {t('signIn')}
       </Link>
     );
   }
@@ -211,9 +214,9 @@ export function AuthButton() {
   }
 
   return (
-    <Link href="/login" style={signInBtnStyle} aria-label="Sign in">
+    <Link href="/login" style={signInBtnStyle} aria-label={t('signIn')}>
       <SignInIcon />
-      Sign in
+      {t('signIn')}
     </Link>
   );
 }
