@@ -105,14 +105,14 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
   }, [scanId, scanUrl, router, total]);
 
   return (
-    <div style={{ maxWidth: 560, margin: '80px auto', padding: 24 }}>
+    <div style={{ maxWidth: 560, margin: '0 auto', padding: 'clamp(24px, 5vw, 24px)', paddingTop: 'clamp(32px, 8vh, 80px)', paddingBottom: 'clamp(32px, 8vh, 80px)' }}>
       <div
         className="screen-enter"
         style={{
           background: 'var(--surface)',
           borderRadius: 16,
           border: '1px solid var(--border)',
-          padding: 40,
+          padding: 'clamp(24px, 5vw, 40px)',
           textAlign: 'center',
           boxShadow: 'var(--shadow-lg)',
         }}
@@ -130,7 +130,7 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
           }}
         />
 
-        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: 'var(--text)' }}>
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: 'var(--text)', wordBreak: 'break-word' }}>
           Scanning {scanUrl}
         </div>
         <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 32 }}>
@@ -213,7 +213,7 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
                 >
                   {statusSymbol}
                 </div>
-                <span style={{ flex: 1, color: 'var(--text)' }}>{mod.name}</span>
+                <span style={{ flex: 1, minWidth: 0, color: 'var(--text)', wordBreak: 'break-word' }}>{mod.name}</span>
                 {isDone && findCount > 0 && (
                   <span
                     style={{
