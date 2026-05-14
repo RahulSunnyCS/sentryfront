@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import Script from 'next/script';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
+import { authConfig } from '@/lib/features';
 import { LoginCard } from './login-card';
 
 export const metadata: Metadata = {
@@ -14,9 +15,17 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
+  // OAuth client IDs aren't secrets (only the matching client_secrets are),
+  // so we read them from the server-only env here and pass them down to the
+  // client component as props. Avoids having to duplicate them into a
+  // NEXT_PUBLIC_* variable.
+  const googleClientId = authConfig.nextauth.google.clientId;
+
   return (
     <>
-      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
+      {googleClientId && (
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
+      )}
       <Nav />
       <div style={{ paddingTop: 'var(--nav-h)', display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
         <main
@@ -29,7 +38,7 @@ export default function LoginPage() {
           }}
         >
           <Suspense fallback={<LoginFallback />}>
-            <LoginCard />
+            <LoginCard googleClientId={googleClientId} />
           </Suspense>
         </main>
         <Footer />

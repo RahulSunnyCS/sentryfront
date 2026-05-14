@@ -37,7 +37,7 @@ declare global {
   }
 }
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+const GOOGLE_CLIENT_ID_FROM_ENV = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
 function sanitizeCallback(raw: string | null): string {
   if (!raw) return '/dashboard';
@@ -46,12 +46,17 @@ function sanitizeCallback(raw: string | null): string {
   return raw;
 }
 
-export function LoginCard() {
+export function LoginCard({ googleClientId }: { googleClientId?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = sanitizeCallback(
     searchParams?.get('callbackUrl') ?? searchParams?.get('next') ?? null,
   );
+
+  // Prefer the value passed in from the server (read from GOOGLE_CLIENT_ID);
+  // fall back to NEXT_PUBLIC_GOOGLE_CLIENT_ID for older deployments that
+  // already set it.
+  const clientId = googleClientId || GOOGLE_CLIENT_ID_FROM_ENV;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -85,7 +90,7 @@ export function LoginCard() {
   );
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
+    if (!clientId) return;
 
     let cancelled = false;
     const interval = setInterval(() => {
@@ -93,7 +98,7 @@ export function LoginCard() {
       if (!window.google?.accounts?.id) return;
 
       window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
+        client_id: clientId,
         callback: handleGoogleCredential,
         cancel_on_tap_outside: true,
       });
@@ -119,7 +124,7 @@ export function LoginCard() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [handleGoogleCredential]);
+  }, [handleGoogleCredential, clientId]);
 
   // ── GitHub popup ──────────────────────────────────────────────────────────
   const handleGithubPopup = () => {
@@ -235,7 +240,7 @@ export function LoginCard() {
           disabled={loading !== null}
           onClick={handleGithubPopup}
         />
-        {GOOGLE_CLIENT_ID ? (
+        {clientId ? (
           <div
             ref={googleBtnRef}
             style={{
