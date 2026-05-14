@@ -2,10 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { IconShield } from '@/components/icons';
 
+function sanitizeNext(raw: string | null): string {
+  if (!raw) return '/dashboard';
+  if (!raw.startsWith('/')) return '/dashboard';
+  if (raw.startsWith('//') || raw.startsWith('/\\')) return '/dashboard';
+  return raw;
+}
+
 export function LoginCard() {
+  const searchParams = useSearchParams();
+  const callbackUrl = sanitizeNext(searchParams?.get('next') ?? null);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState<null | 'github' | 'google' | 'email'>(null);
@@ -15,7 +26,7 @@ export function LoginCard() {
     setError(null);
     setLoading(provider);
     try {
-      await signIn(provider, { callbackUrl: '/dashboard' });
+      await signIn(provider, { callbackUrl });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sign-in failed');
       setLoading(null);
@@ -31,14 +42,14 @@ export function LoginCard() {
         redirect: false,
         email,
         password,
-        callbackUrl: '/dashboard',
+        callbackUrl,
       });
       if (result?.error) {
         setError('Invalid credentials');
         setLoading(null);
         return;
       }
-      window.location.href = result?.url ?? '/dashboard';
+      window.location.href = result?.url ?? callbackUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign-in failed');
       setLoading(null);
