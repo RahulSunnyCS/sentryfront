@@ -1,4 +1,4 @@
 {
-  "url": "https://demo.testfire.net/",
-  "notes": "IBM AltoroMutual intentionally-vulnerable demo bank app. Expected band: F."
+  "url": "http://neverssl.com/",
+  "notes": "Permanently plain-HTTP site — used to trigger captive portals. Always reachable, no TLS, no security headers. Expected band: F."
 }
