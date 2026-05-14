@@ -430,7 +430,7 @@ Pro Tier ($29/mo):
 
 ## 📚 Example Output
 
-### Sample: TaskFlow.app Analysis
+### Sample: example.com Analysis
 
 **Brand Analysis:**
 ```yaml
@@ -451,7 +451,7 @@ Current Messaging: "Stay organized, ship faster"
 <!-- Open Graph -->
 <meta property="og:title" content="TaskFlow - Ship Projects 3x Faster">
 <meta property="og:description" content="Visual project management built for remote teams. Kanban boards + time tracking + integrations. Free 14-day trial.">
-<meta property="og:image" content="https://taskflow.app/og-image.png">
+<meta property="og:image" content="https://example.com/og-image.png">
 <meta property="og:type" content="website">
 
 <!-- Twitter -->
