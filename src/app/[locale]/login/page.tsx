@@ -1,24 +1,41 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import Script from 'next/script';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
 import { authConfig } from '@/lib/features';
 import { LoginCard } from './login-card';
+import { routing, type Locale } from '@/i18n/routing';
 
-export const metadata: Metadata = {
-  title: 'Sign in',
-  description:
-    'Sign in to VibeSafe to manage your scans, buy credits, enable 24/7 monitoring, and track your security grade over time.',
-  alternates: { canonical: '/login' },
-  robots: { index: false, follow: true },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'login' });
+  return {
+    title: t('metaTitle'),
+    description: t('metaDesc'),
+    alternates: { canonical: `/${locale}/login` },
+    robots: { index: false, follow: true },
+  };
+}
 
-export default function LoginPage() {
-  // OAuth client IDs aren't secrets (only the matching client_secrets are),
-  // so we read them from the server-only env here and pass them down to the
-  // client component as props. Avoids having to duplicate them into a
-  // NEXT_PUBLIC_* variable.
+export function generateStaticParams() {
+  return routing.locales.map((locale: Locale) => ({ locale }));
+}
+
+export default async function LoginPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'login' });
+
   const googleClientId = authConfig.nextauth.google.clientId;
 
   return (
@@ -37,7 +54,7 @@ export default function LoginPage() {
             padding: 'var(--space-10) var(--space-4)',
           }}
         >
-          <Suspense fallback={<LoginFallback />}>
+          <Suspense fallback={<LoginFallback label={t('loadingFallback')} />}>
             <LoginCard googleClientId={googleClientId} />
           </Suspense>
         </main>
@@ -47,7 +64,7 @@ export default function LoginPage() {
   );
 }
 
-function LoginFallback() {
+function LoginFallback({ label }: { label: string }) {
   return (
     <div
       style={{
@@ -64,7 +81,7 @@ function LoginFallback() {
         justifyContent: 'center',
       }}
     >
-      <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Loading...</div>
+      <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{label}</div>
     </div>
   );
 }

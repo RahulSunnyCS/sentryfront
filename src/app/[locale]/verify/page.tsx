@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { redirect } from '@/i18n/navigation';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
 import { getCurrentUser } from '@/lib/auth/helpers';
@@ -8,30 +9,46 @@ import { ValidationError } from '@/lib/url-validator';
 import { logger } from '@/lib/logger';
 import { VerifyFlow } from './verify-flow';
 import { DomainEntry } from './domain-entry';
+import { routing, type Locale } from '@/i18n/routing';
 
-export const metadata: Metadata = {
-  title: 'Verify domain ownership',
-  description:
-    'Verify ownership of a domain before running active security tests. Choose DNS TXT record or HTML meta tag — or use our guided walkthrough.',
-  alternates: { canonical: '/verify' },
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'verify' });
+  return {
+    title: t('metaTitle'),
+    description: t('metaDesc'),
+    alternates: { canonical: `/${locale}/verify` },
+    robots: { index: false, follow: false },
+  };
+}
+
+export function generateStaticParams() {
+  return routing.locales.map((locale: Locale) => ({ locale }));
+}
 
 export const dynamic = 'force-dynamic';
 
 interface VerifyPageProps {
-  searchParams?: { domain?: string | string[] };
+  params: Promise<{ locale: string }>;
+  searchParams?: Promise<{ domain?: string | string[] }>;
 }
 
-export default async function VerifyPage({ searchParams }: VerifyPageProps) {
+export default async function VerifyPage({ params, searchParams }: VerifyPageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'verify' });
+  const sp = (await searchParams) ?? {};
+
   const user = await getCurrentUser();
   if (!user) {
-    redirect('/login?next=/verify');
+    redirect({ href: '/login?next=/verify', locale: locale as Locale });
   }
 
-  const rawDomain = Array.isArray(searchParams?.domain)
-    ? searchParams?.domain[0]
-    : searchParams?.domain;
+  const rawDomain = Array.isArray(sp.domain) ? sp.domain[0] : sp.domain;
 
   let domain: string | null = null;
   let domainError: string | null = null;
@@ -48,12 +65,12 @@ export default async function VerifyPage({ searchParams }: VerifyPageProps) {
   let alreadyVerified = false;
   if (domain) {
     try {
-      const record = await getOrCreateVerification(user.id, domain);
+      const record = await getOrCreateVerification(user!.id, domain);
       token = `${TOKEN_PREFIX}${record.token}`;
       alreadyVerified = record.verifiedAt !== null;
     } catch (err) {
-      logger.error('Verify token init failed', { userId: user.id, domain }, err as Error);
-      domainError = 'We couldn\'t initialize verification. Please try again.';
+      logger.error('Verify token init failed', { userId: user!.id, domain }, err as Error);
+      domainError = t('initError');
       domain = null;
     }
   }
@@ -82,14 +99,13 @@ export default async function VerifyPage({ searchParams }: VerifyPageProps) {
                 }}
               >
                 <span aria-hidden="true" className="pulse-soft">●</span>
-                Required for active testing
+                {t('requiredBadge')}
               </div>
               <h1 className="text-h2" style={{ marginBottom: 'var(--space-3)' }}>
-                Verify you own this domain
+                {t('heroTitle')}
               </h1>
               <p className="text-lead" style={{ maxWidth: 640, margin: '0 auto' }}>
-                Active security tests send real attack probes. We require proof of ownership to keep your scans
-                legal under CFAA and to make sure no one else gets to break your site for you.
+                {t('heroLead')}
               </p>
             </header>
 

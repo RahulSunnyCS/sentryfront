@@ -1,27 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
-interface DocSection {
-  id: string;
-  title: string;
-  icon: string;
-}
-
-const SECTIONS: DocSection[] = [
-  { id: 'quick-start',     title: 'Quick start',         icon: '🚀' },
-  { id: 'active-testing',  title: 'Active testing',      icon: '⚔️' },
-  { id: 'api-reference',   title: 'API reference',       icon: '🔌' },
-  { id: 'webhooks',        title: 'Webhooks',            icon: '📡' },
-  { id: 'ci-cd',           title: 'CI/CD integration',   icon: '🔁' },
-  { id: 'fix-prompts',     title: 'Fix prompts',         icon: '🪄' },
-  { id: 'faq',             title: 'FAQ',                 icon: '❓' },
-];
+const SECTION_KEYS = [
+  { id: 'quick-start',     key: 'quickStart',     icon: '🚀' },
+  { id: 'active-testing',  key: 'activeTesting',  icon: '⚔️' },
+  { id: 'api-reference',   key: 'apiReference',   icon: '🔌' },
+  { id: 'webhooks',        key: 'webhooks',       icon: '📡' },
+  { id: 'ci-cd',           key: 'cicd',           icon: '🔁' },
+  { id: 'fix-prompts',     key: 'fixPrompts',     icon: '🪄' },
+  { id: 'faq',             key: 'faq',            icon: '❓' },
+] as const;
 
 export function DocsLayout() {
-  const [active, setActive] = useState<string>(SECTIONS[0].id);
+  const t = useTranslations('docs');
+  const sections = SECTION_KEYS.map((s) => ({
+    id: s.id,
+    title: t(`sec.${s.key}`),
+    icon: s.icon,
+  }));
+  const [active, setActive] = useState<string>(sections[0].id);
 
-  // Scroll-spy: highlight the section currently in view
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -32,31 +32,30 @@ export function DocsLayout() {
       },
       { rootMargin: '-30% 0px -55% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] }
     );
-    SECTIONS.forEach((s) => {
+    sections.forEach((s) => {
       const el = document.getElementById(s.id);
       if (el) observer.observe(el);
     });
     return () => observer.disconnect();
-  }, []);
+  }, [sections]);
 
   return (
     <div className="container" style={{ paddingTop: 'var(--space-10)', paddingBottom: 'var(--space-16)' }}>
       <header style={{ marginBottom: 'var(--space-10)', textAlign: 'center' }}>
-        <div className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>📚 Documentation</div>
+        <div className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>{t('eyebrow')}</div>
         <h1 className="text-h2" style={{ marginBottom: 'var(--space-3)' }}>
-          Everything you need to ship secure
+          {t('heroTitle')}
         </h1>
         <p className="text-lead" style={{ maxWidth: 640, margin: '0 auto' }}>
-          Get started in 60 seconds, integrate with your CI, or dig into the API.
+          {t('heroLead')}
         </p>
       </header>
 
       <div className="docs-grid">
-        {/* Sidebar */}
-        <aside className="docs-sidebar" aria-label="Documentation navigation">
+        <aside className="docs-sidebar" aria-label={t('sidebarAria')}>
           <nav>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {SECTIONS.map((s) => {
+              {sections.map((s) => {
                 const isActive = active === s.id;
                 return (
                   <li key={s.id}>
@@ -88,38 +87,30 @@ export function DocsLayout() {
           </nav>
         </aside>
 
-        {/* Content */}
         <article className="docs-content">
-          <DocSection id="quick-start" title="Quick start">
-            <p>
-              VibeSafe runs a full passive scan in 90 seconds. No signup is required to test a site
-              — paste a URL and you&apos;re scanning.
-            </p>
+          <DocSection id="quick-start" title={t('sec.quickStart')}>
+            <p>{t('quickStart.p1')}</p>
             <ol>
-              <li>Go to the homepage and paste your URL into the scan bar.</li>
-              <li>Wait ~90 seconds while we run 15 security modules.</li>
-              <li>Review the findings — each ships with a paste-ready AI fix prompt.</li>
-              <li>Paste the prompt into Cursor, Lovable, Bolt, v0, or Replit and ship the fix.</li>
+              <li>{t('quickStart.step1')}</li>
+              <li>{t('quickStart.step2')}</li>
+              <li>{t('quickStart.step3')}</li>
+              <li>{t('quickStart.step4')}</li>
             </ol>
             <Callout>
-              <strong>Tip:</strong> Free scans surface the top 5 critical findings. Upgrade to see
-              every finding and unlock active testing.
+              <span dangerouslySetInnerHTML={{ __html: t.raw('quickStart.tip') as string }} />
             </Callout>
           </DocSection>
 
-          <DocSection id="active-testing" title="Active testing">
-            <p>
-              Active testing sends real attack probes (SQLi, XSS, auth bypass, API fuzzing) against
-              a domain you own. Findings are <strong>CONFIRMED exploitable</strong>, never speculative.
-            </p>
-            <h3>Prerequisites</h3>
+          <DocSection id="active-testing" title={t('sec.activeTesting')}>
+            <p dangerouslySetInnerHTML={{ __html: t.raw('activeTesting.p1') as string }} />
+            <h3>{t('activeTesting.prereqTitle')}</h3>
             <ul>
-              <li>Verify ownership of the target domain (DNS TXT record or HTML meta tag).</li>
-              <li>3 credits per active test (~$3.48). Replaces a $5,000 manual pentest.</li>
-              <li>Probes are rate-limited and run from a fixed IP block so you can allowlist them.</li>
+              <li>{t('activeTesting.prereq1')}</li>
+              <li>{t('activeTesting.prereq2')}</li>
+              <li>{t('activeTesting.prereq3')}</li>
             </ul>
-            <h3>How long does it take?</h3>
-            <p>~8 minutes on average for a 5-page site. Larger surfaces scale linearly.</p>
+            <h3>{t('activeTesting.durationTitle')}</h3>
+            <p>{t('activeTesting.durationBody')}</p>
             <Code>
 {`POST /api/v1/active-test
 {
@@ -130,36 +121,30 @@ export function DocsLayout() {
             </Code>
           </DocSection>
 
-          <DocSection id="api-reference" title="API reference">
-            <p>
-              Every dashboard action is available over the REST API. Authenticate with a bearer token
-              from your dashboard.
-            </p>
-            <h3>Endpoints</h3>
-            <EndpointRow method="POST" path="/api/v1/scans" desc="Start a passive scan" />
-            <EndpointRow method="GET"  path="/api/v1/scans/:id" desc="Get scan status & findings" />
-            <EndpointRow method="GET"  path="/api/v1/scans/:id/findings" desc="Paginated findings list" />
-            <EndpointRow method="POST" path="/api/v1/active-test" desc="Start an active DAST scan" />
-            <EndpointRow method="GET"  path="/api/v1/active-test/:id/progress" desc="SSE stream of progress" />
-            <EndpointRow method="POST" path="/api/v1/verify" desc="Verify a DNS TXT or meta tag" />
+          <DocSection id="api-reference" title={t('sec.apiReference')}>
+            <p>{t('apiReference.p1')}</p>
+            <h3>{t('apiReference.endpointsTitle')}</h3>
+            <EndpointRow method="POST" path="/api/v1/scans" desc={t('apiReference.descStartPassive')} />
+            <EndpointRow method="GET"  path="/api/v1/scans/:id" desc={t('apiReference.descGetScan')} />
+            <EndpointRow method="GET"  path="/api/v1/scans/:id/findings" desc={t('apiReference.descListFindings')} />
+            <EndpointRow method="POST" path="/api/v1/active-test" desc={t('apiReference.descStartActive')} />
+            <EndpointRow method="GET"  path="/api/v1/active-test/:id/progress" desc={t('apiReference.descProgress')} />
+            <EndpointRow method="POST" path="/api/v1/verify" desc={t('apiReference.descVerify')} />
             <Callout>
-              <strong>Auth:</strong> <code>Authorization: Bearer vs_live_…</code>
+              <span dangerouslySetInnerHTML={{ __html: t.raw('apiReference.authNote') as string }} />
             </Callout>
           </DocSection>
 
-          <DocSection id="webhooks" title="Webhooks">
-            <p>
-              Subscribe to scan lifecycle events. We retry failed deliveries with exponential backoff
-              up to 8 times.
-            </p>
-            <h3>Event types</h3>
+          <DocSection id="webhooks" title={t('sec.webhooks')}>
+            <p>{t('webhooks.p1')}</p>
+            <h3>{t('webhooks.eventsTitle')}</h3>
             <ul>
-              <li><code>scan.started</code> — fired when a scan begins</li>
-              <li><code>scan.completed</code> — fired when a scan finishes</li>
-              <li><code>scan.failed</code> — fired if the scan errors</li>
-              <li><code>finding.critical</code> — fired the moment a critical finding is detected</li>
+              <li><code>scan.started</code> — {t('webhooks.evScanStarted')}</li>
+              <li><code>scan.completed</code> — {t('webhooks.evScanCompleted')}</li>
+              <li><code>scan.failed</code> — {t('webhooks.evScanFailed')}</li>
+              <li><code>finding.critical</code> — {t('webhooks.evFindingCritical')}</li>
             </ul>
-            <h3>Payload</h3>
+            <h3>{t('webhooks.payloadTitle')}</h3>
             <Code>
 {`{
   "event": "scan.completed",
@@ -174,12 +159,9 @@ export function DocsLayout() {
             </Code>
           </DocSection>
 
-          <DocSection id="ci-cd" title="CI/CD integration">
-            <p>
-              Block merges on regressions. The VibeSafe CLI exits non-zero if your grade drops or new
-              critical findings appear vs. the last main-branch scan.
-            </p>
-            <h3>GitHub Actions</h3>
+          <DocSection id="ci-cd" title={t('sec.cicd')}>
+            <p>{t('cicd.p1')}</p>
+            <h3>{t('cicd.ghTitle')}</h3>
             <Code>
 {`# .github/workflows/security.yml
 - uses: vibesafe/scan-action@v1
@@ -188,57 +170,40 @@ export function DocsLayout() {
     token: \${{ secrets.VIBESAFE_TOKEN }}
     fail-on: critical`}
             </Code>
-            <h3>GitLab / CircleCI / others</h3>
+            <h3>{t('cicd.glTitle')}</h3>
             <Code>{`npx @vibesafe/cli scan --url $PREVIEW_URL --fail-on critical`}</Code>
           </DocSection>
 
-          <DocSection id="fix-prompts" title="Fix prompts">
-            <p>
-              Every finding ships with a paste-ready prompt tuned for your AI assistant. Prompts are
-              versioned and include the surrounding code context.
-            </p>
-            <h3>Supported assistants</h3>
+          <DocSection id="fix-prompts" title={t('sec.fixPrompts')}>
+            <p>{t('fixPrompts.p1')}</p>
+            <h3>{t('fixPrompts.supportedTitle')}</h3>
             <ul>
-              <li><strong>Cursor</strong> — drops into <kbd>⌘K</kbd> with the file already open</li>
-              <li><strong>Lovable</strong> — pasted into the chat panel</li>
-              <li><strong>Bolt.new</strong> — pasted into the project chat</li>
-              <li><strong>v0</strong> — pasted into a new generation</li>
-              <li><strong>Replit Agent</strong> — pasted into the Agent chat</li>
+              <li dangerouslySetInnerHTML={{ __html: t.raw('fixPrompts.sCursor') as string }} />
+              <li dangerouslySetInnerHTML={{ __html: t.raw('fixPrompts.sLovable') as string }} />
+              <li dangerouslySetInnerHTML={{ __html: t.raw('fixPrompts.sBolt') as string }} />
+              <li dangerouslySetInnerHTML={{ __html: t.raw('fixPrompts.sV0') as string }} />
+              <li dangerouslySetInnerHTML={{ __html: t.raw('fixPrompts.sReplit') as string }} />
             </ul>
             <Callout>
-              <strong>Note:</strong> Prompts include framework hints (Next.js, Vite, Rails, etc.) so
-              the assistant generates idiomatic fixes.
+              <span dangerouslySetInnerHTML={{ __html: t.raw('fixPrompts.note') as string }} />
             </Callout>
           </DocSection>
 
-          <DocSection id="faq" title="FAQ">
-            <h3>Do you store the scanned site&apos;s content?</h3>
-            <p>
-              We store findings, a screenshot, and request/response samples for findings — never the
-              full site. All data is encrypted at rest (AES-256) and deleted after 90 days on free,
-              365 days on paid.
-            </p>
-            <h3>Is this legal for sites I don&apos;t own?</h3>
-            <p>
-              <strong>Passive scans</strong> are legal anywhere — they only access publicly available
-              data. <strong>Active scans</strong> require domain ownership verification (CFAA compliance).
-            </p>
-            <h3>Can I self-host?</h3>
-            <p>Self-host is on the Enterprise tier — contact sales for details.</p>
-            <h3>What about false positives?</h3>
-            <p>
-              Every active-test finding is CONFIRMED exploitable (we capture a proof-of-exploit
-              payload). Passive findings have a confidence score; high-confidence findings have a
-              false-positive rate below 0.5%.
-            </p>
+          <DocSection id="faq" title={t('sec.faq')}>
+            <h3>{t('faq.q1')}</h3>
+            <p>{t('faq.a1')}</p>
+            <h3>{t('faq.q2')}</h3>
+            <p dangerouslySetInnerHTML={{ __html: t.raw('faq.a2') as string }} />
+            <h3>{t('faq.q3')}</h3>
+            <p>{t('faq.a3')}</p>
+            <h3>{t('faq.q4')}</h3>
+            <p>{t('faq.a4')}</p>
           </DocSection>
         </article>
       </div>
     </div>
   );
 }
-
-/* ──── primitives ──── */
 
 function DocSection({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (

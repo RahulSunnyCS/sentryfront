@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
+import { useRouter, Link } from '@/i18n/navigation';
 import { signIn } from 'next-auth/react';
 import { IconShield } from '@/components/icons';
 
@@ -47,15 +48,13 @@ function sanitizeCallback(raw: string | null): string {
 }
 
 export function LoginCard({ googleClientId }: { googleClientId?: string }) {
+  const t = useTranslations('login');
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = sanitizeCallback(
     searchParams?.get('callbackUrl') ?? searchParams?.get('next') ?? null,
   );
 
-  // Prefer the value passed in from the server (read from GOOGLE_CLIENT_ID);
-  // fall back to NEXT_PUBLIC_GOOGLE_CLIENT_ID for older deployments that
-  // already set it.
   const clientId = googleClientId || GOOGLE_CLIENT_ID_FROM_ENV;
 
   const [email, setEmail] = useState('');
@@ -64,7 +63,6 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
   const [error, setError] = useState<string | null>(null);
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
 
-  // ── Google One Tap ────────────────────────────────────────────────────────
   const handleGoogleCredential = useCallback(
     async (response: { credential: string }) => {
       setError(null);
@@ -76,17 +74,17 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
           body: JSON.stringify({ credential: response.credential }),
         });
         if (!res.ok) {
-          const body = await res.json().catch(() => ({ error: 'Sign-in failed' }));
-          throw new Error(body.error || 'Sign-in failed');
+          const body = await res.json().catch(() => ({ error: t('signInFailedGeneric') }));
+          throw new Error(body.error || t('signInFailedGeneric'));
         }
         router.push(callbackUrl);
         router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Sign-in failed');
+        setError(e instanceof Error ? e.message : t('signInFailedGeneric'));
         setLoading(null);
       }
     },
-    [callbackUrl, router],
+    [callbackUrl, router, t],
   );
 
   useEffect(() => {
@@ -126,7 +124,6 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
     };
   }, [handleGoogleCredential, clientId]);
 
-  // ── GitHub popup ──────────────────────────────────────────────────────────
   const handleGithubPopup = () => {
     setError(null);
 
@@ -151,7 +148,6 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
     );
 
     if (!popup) {
-      // Popup blocked — fall back to full-page redirect.
       signIn('github', { callbackUrl });
       return;
     }
@@ -174,7 +170,6 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
     };
     window.addEventListener('message', onMessage);
 
-    // Detect user closing the popup manually
     const closeWatcher = setInterval(() => {
       if (popup.closed) {
         window.removeEventListener('message', onMessage);
@@ -184,7 +179,6 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
     }, 500);
   };
 
-  // ── Email/password (unchanged) ────────────────────────────────────────────
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -197,13 +191,13 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
         callbackUrl,
       });
       if (result?.error) {
-        setError('Invalid credentials');
+        setError(t('invalidCreds'));
         setLoading(null);
         return;
       }
       window.location.href = result?.url ?? callbackUrl;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign-in failed');
+      setError(err instanceof Error ? err.message : t('signInFailedGeneric'));
       setLoading(null);
     }
   };
@@ -226,19 +220,20 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
           <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em' }}>VibeSafe</span>
         </div>
         <h1 className="text-h3" style={{ marginBottom: 'var(--space-2)' }}>
-          Welcome back
+          {t('welcomeBack')}
         </h1>
         <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>
-          Sign in to start scanning your sites
+          {t('welcomeLead')}
         </p>
       </header>
 
-      {/* OAuth */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
         <GithubButton
           loading={loading === 'github'}
           disabled={loading !== null}
           onClick={handleGithubPopup}
+          loadingLabel={t('signingIn')}
+          label={t('continueWithGithub')}
         />
         {clientId ? (
           <div
@@ -248,27 +243,28 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
               justifyContent: 'center',
               minHeight: 44,
             }}
-            aria-label="Continue with Google"
+            aria-label={t('continueWithGoogleAria')}
           />
         ) : (
           <FallbackGoogleButton
             loading={loading === 'google'}
             disabled={loading !== null}
             onClick={() => signIn('google', { callbackUrl })}
+            loadingLabel={t('redirecting')}
+            label={t('continueWithGoogle')}
           />
         )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', margin: 'var(--space-6) 0' }}>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-        <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>or</span>
+        <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('or')}</span>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
 
-      {/* Email form */}
       <form onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         <div>
-          <label htmlFor="email" style={labelCss}>Email</label>
+          <label htmlFor="email" style={labelCss}>{t('emailLabel')}</label>
           <input
             id="email"
             type="email"
@@ -277,19 +273,19 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder={t('emailPlaceholder')}
             className="field"
             disabled={loading !== null}
           />
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-            <label htmlFor="password" style={labelCss}>Password</label>
+            <label htmlFor="password" style={labelCss}>{t('passwordLabel')}</label>
             <a
               href="#"
               style={{ fontSize: 'var(--fs-xs)', color: 'var(--accent)', fontWeight: 600 }}
             >
-              Forgot?
+              {t('forgot')}
             </a>
           </div>
           <input
@@ -300,7 +296,7 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
+            placeholder={t('passwordPlaceholder')}
             className="field"
             disabled={loading !== null}
           />
@@ -318,18 +314,17 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
           disabled={loading !== null}
           style={{ width: '100%', justifyContent: 'center' }}
         >
-          {loading === 'email' ? 'Signing in…' : 'Sign in'}
+          {loading === 'email' ? t('signingIn') : t('signIn')}
         </button>
       </form>
 
       <p style={{ textAlign: 'center', marginTop: 'var(--space-6)', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
-        Don&apos;t have an account?{' '}
+        {t('dontHaveAccount')}{' '}
         <Link href="/login" style={{ color: 'var(--accent)', fontWeight: 600 }}>
-          Sign up for free
+          {t('signUpFree')}
         </Link>
       </p>
 
-      {/* Trust badges */}
       <ul
         style={{
           display: 'flex',
@@ -343,13 +338,13 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
         }}
       >
         {[
-          { label: 'SOC 2 ready', icon: '🛡️' },
-          { label: '256-bit SSL', icon: '🔒' },
-          { label: 'Free tier', icon: '🎁' },
-        ].map((t) => (
-          <li key={t.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-            <span aria-hidden="true">{t.icon}</span>
-            {t.label}
+          { label: t('badgeSoc'), icon: '🛡️' },
+          { label: t('badgeSsl'), icon: '🔒' },
+          { label: t('badgeFree'), icon: '🎁' },
+        ].map((badge) => (
+          <li key={badge.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontWeight: 500 }}>
+            <span aria-hidden="true">{badge.icon}</span>
+            {badge.label}
           </li>
         ))}
       </ul>
@@ -369,10 +364,14 @@ function GithubButton({
   loading,
   disabled,
   onClick,
+  loadingLabel,
+  label,
 }: {
   loading: boolean;
   disabled: boolean;
   onClick: () => void;
+  loadingLabel: string;
+  label: string;
 }) {
   return (
     <button
@@ -390,7 +389,7 @@ function GithubButton({
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.64.71 1.03 1.61 1.03 2.71 0 3.84-2.34 4.69-4.57 4.94.36.31.69.92.69 1.85V21c0 .27.16.59.67.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z" />
       </svg>
-      {loading ? 'Signing in…' : 'Continue with GitHub'}
+      {loading ? loadingLabel : label}
     </button>
   );
 }
@@ -399,10 +398,14 @@ function FallbackGoogleButton({
   loading,
   disabled,
   onClick,
+  loadingLabel,
+  label,
 }: {
   loading: boolean;
   disabled: boolean;
   onClick: () => void;
+  loadingLabel: string;
+  label: string;
 }) {
   return (
     <button
@@ -423,7 +426,7 @@ function FallbackGoogleButton({
         <path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.07H2.18A11 11 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.83z" />
         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83C6.71 7.3 9.14 5.38 12 5.38z" />
       </svg>
-      {loading ? 'Redirecting…' : 'Continue with Google'}
+      {loading ? loadingLabel : label}
     </button>
   );
 }
