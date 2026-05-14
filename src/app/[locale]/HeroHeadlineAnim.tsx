@@ -92,7 +92,6 @@ export function HeroHeadlineAnim({ initial, final, line2, initialVariant }: Prop
       {variant === 'alpha' && <HeroAnimAlpha phase={phase} swapRef={swapRef} />}
       {variant === 'beta' && <HeroAnimBeta phase={phase} swapRef={swapRef} />}
       {variant === 'gamma' && <HeroAnimGamma phase={phase} swapRef={swapRef} />}
-      <HeroVariantSwitcher current={variant} />
     </div>
   );
 }
@@ -359,62 +358,3 @@ function HeroAnimGamma({
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Floating variant switcher (bottom-right pill)
-// ─────────────────────────────────────────────────────────────
-function HeroVariantSwitcher({ current }: { current: Variant }) {
-  const items: Array<{ key: Variant; label: string }> = [
-    { key: 'alpha', label: 'α · Hacker' },
-    { key: 'beta', label: 'β · Terminal' },
-    { key: 'gamma', label: 'γ · Code-rain' },
-  ];
-  const onPick = (next: Variant) => {
-    const u = new URL(window.location.href);
-    u.searchParams.set('heroAnim', next);
-    window.location.href = u.toString();
-  };
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        right: 16,
-        bottom: 16,
-        zIndex: 50,
-        background: 'rgba(15,15,15,0.85)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: 999,
-        padding: 4,
-        display: 'flex',
-        gap: 4,
-        fontFamily: 'var(--mono)',
-        fontSize: 11,
-        boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
-      }}
-    >
-      {items.map((it) => {
-        const active = it.key === current;
-        return (
-          <button
-            key={it.key}
-            type="button"
-            onClick={() => onPick(it.key)}
-            style={{
-              padding: '6px 12px',
-              borderRadius: 999,
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 700,
-              letterSpacing: '0.4px',
-              background: active ? 'var(--accent)' : 'transparent',
-              color: active ? '#fff' : '#A1A1AA',
-              transition: 'background 0.15s ease, color 0.15s ease',
-            }}
-          >
-            {it.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
