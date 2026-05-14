@@ -1,4 +1,4 @@
 {
-  "url": "http://testphp.vulnweb.com/",
-  "notes": "Acunetix intentionally-vulnerable PHP test site. Expected band: F."
+  "url": "https://demo.testfire.net/",
+  "notes": "IBM AltoroMutual intentionally-vulnerable demo bank app. Expected band: F."
 }
