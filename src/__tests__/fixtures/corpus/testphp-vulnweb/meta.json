@@ -1,4 +1,0 @@
-{
-  "url": "http://neverssl.com/",
-  "notes": "Permanently plain-HTTP site — used to trigger captive portals. Always reachable, no TLS, no security headers. Expected band: F."
-}
