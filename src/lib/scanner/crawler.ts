@@ -1,6 +1,6 @@
 import * as tls from 'tls';
 import { chromium, type Browser, type Response as PlaywrightResponse } from 'playwright';
-import type { CrawlResult, NetworkRequest, ParsedCookie, TLSCertInfo } from './types';
+import type { CrawlResult, NetworkRequest, ParsedCookie, SwRegistrationRecord, TLSCertInfo } from './types';
 import { features } from '@/lib/features';
 import { logger } from '@/lib/logger';
 import { cleanHtml } from './tools/html-clean';
@@ -12,6 +12,10 @@ const MAX_JS_BUNDLES = 50;
 const MAX_CHUNK_BYTES = 5_000_000;
 const MAX_TOTAL_CHUNK_BYTES = 50_000_000;
 const MAX_MANIFEST_CHUNKS = 80;
+
+// Phase 3.8.4: caps for service-worker and web-manifest capture.
+const MAX_SW_SCRIPT_BYTES = 200_000;   // skip pathological 1 MB+ SW bundles
+const MAX_MANIFEST_BYTES = 30_000;     // web-app manifests are well under 10 KB in practice
 
 const USER_AGENT = 'VibeSafe-Scanner/1.0 (security audit; contact@vibesafe.io)';
 
@@ -245,6 +249,72 @@ async function fetchManifestChunks(
   return { contents, bytesAdded };
 }
 
+// ─── Phase 3.8.4: PWA surface helpers ────────────────────────────────────────
+
+/**
+ * Extract service-worker registration sites from script content via regex.
+ * Used by the static-fetch fallback (no real browser available).
+ * Matches `navigator.serviceWorker.register('/sw.js'[, { scope: '/' }])`.
+ */
+function extractServiceWorkerRegistrationsFromScripts(
+  scripts: string,
+  finalUrl: string,
+): SwRegistrationRecord[] {
+  const out: SwRegistrationRecord[] = [];
+  const re = /navigator\.serviceWorker\.register\(\s*["']([^"']+)["'](?:\s*,\s*\{[^}]*scope\s*:\s*["']([^"']+)["'][^}]*\})?/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(scripts)) !== null) {
+    try {
+      const url = new URL(m[1], finalUrl).href;
+      const scope = m[2] ? new URL(m[2], finalUrl).pathname : '/';
+      if (!out.find((r) => r.url === url)) out.push({ url, scope });
+    } catch {
+      /* skip malformed */
+    }
+  }
+  return out;
+}
+
+function extractManifestUrl(html: string, baseUrl: string): string | null {
+  const m = /<link[^>]+rel=["']manifest["'][^>]*href=["']([^"']+)["']/i.exec(html)
+    ?? /<link[^>]+href=["']([^"']+)["'][^>]*rel=["']manifest["']/i.exec(html);
+  if (!m) return null;
+  try {
+    return new URL(m[1], baseUrl).href;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchCapped(url: string, capBytes: number): Promise<string | null> {
+  try {
+    const res = await withTimeout(
+      fetch(url, { headers: { 'User-Agent': USER_AGENT } }),
+      5_000,
+    );
+    if (!res.ok) return null;
+    const body = await res.text();
+    if (body.length > capBytes) return body.slice(0, capBytes);
+    return body;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch each SW script body, cap per-script. Caller already resolved URLs.
+ */
+async function fetchSwScripts(
+  registrations: SwRegistrationRecord[],
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (const reg of registrations) {
+    const body = await fetchCapped(reg.url, MAX_SW_SCRIPT_BYTES);
+    if (body !== null) out[reg.url] = body;
+  }
+  return out;
+}
+
 // ─── Static-fetch crawl (fallback) ───────────────────────────────────────────
 
 async function crawlWithFetch(targetUrl: string): Promise<CrawlResult> {
@@ -265,6 +335,26 @@ async function crawlWithFetch(targetUrl: string): Promise<CrawlResult> {
   const stack = detectStack(headers, html);
   const tlsInfo = await probeTLS(finalUrl);
 
+  // Phase 3.8.4: capture SW + manifest via static-fetch fallback. Best-effort
+  // only — no real browser, so we can't observe runtime register() calls.
+  let serviceWorkerRegistrations: SwRegistrationRecord[] | undefined;
+  let serviceWorkerScripts: Record<string, string> | undefined;
+  let manifestUrl: string | undefined;
+  let manifestJson: string | undefined;
+  if (features.pwaSurfaceChecks) {
+    const swRegs = extractServiceWorkerRegistrationsFromScripts(inlineScriptContent, finalUrl);
+    if (swRegs.length > 0) {
+      serviceWorkerRegistrations = swRegs;
+      serviceWorkerScripts = await fetchSwScripts(swRegs);
+    }
+    const mUrl = extractManifestUrl(html, finalUrl);
+    if (mUrl) {
+      manifestUrl = mUrl;
+      const body = await fetchCapped(mUrl, MAX_MANIFEST_BYTES);
+      if (body !== null) manifestJson = body;
+    }
+  }
+
   return {
     finalUrl,
     statusCode: res.status,
@@ -277,6 +367,10 @@ async function crawlWithFetch(targetUrl: string): Promise<CrawlResult> {
     stack,
     cleanedHtml: cleanHtml(html),
     renderMode: 'fetch-only',
+    serviceWorkerRegistrations,
+    serviceWorkerScripts,
+    manifestUrl,
+    manifestJson,
   };
 }
 
@@ -293,6 +387,33 @@ async function crawlWithPlaywright(targetUrl: string): Promise<CrawlResult> {
       userAgent: USER_AGENT,
       ignoreHTTPSErrors: false,
     });
+
+    // Phase 3.8.4: wrap navigator.serviceWorker.register so we can capture the
+    // URL + scope of every registration the page issues. The wrapper writes
+    // entries to window.__vibesafe_sw — read back after render.
+    if (features.pwaSurfaceChecks) {
+      await context.addInitScript(() => {
+        try {
+          const w = window as unknown as { __vibesafe_sw?: Array<{ url: string; scope: string }> };
+          w.__vibesafe_sw = w.__vibesafe_sw ?? [];
+          if (!navigator.serviceWorker || typeof navigator.serviceWorker.register !== 'function') return;
+          const orig = navigator.serviceWorker.register.bind(navigator.serviceWorker);
+          (navigator.serviceWorker as unknown as { register: typeof orig }).register = ((
+            url: string | URL,
+            opts?: { scope?: string },
+          ) => {
+            try {
+              w.__vibesafe_sw!.push({
+                url: String(url),
+                scope: opts?.scope ?? '/',
+              });
+            } catch { /* never let the wrapper break the page */ }
+            return orig(url, opts);
+          }) as typeof orig;
+        } catch { /* if wrapping fails the static-fallback regex still runs */ }
+      });
+    }
+
     const page = await context.newPage();
 
     const networkRequests: NetworkRequest[] = [];
@@ -412,6 +533,55 @@ async function crawlWithPlaywright(targetUrl: string): Promise<CrawlResult> {
 
     const tlsInfo = await probeTLS(finalUrl);
 
+    // Phase 3.8.4: read back SW registrations captured by the init-script
+    // wrapper, then fetch the SW script bodies (capped). Also resolve the
+    // <link rel="manifest"> href and fetch the manifest body.
+    let serviceWorkerRegistrations: SwRegistrationRecord[] | undefined;
+    let serviceWorkerScripts: Record<string, string> | undefined;
+    let manifestUrl: string | undefined;
+    let manifestJson: string | undefined;
+    if (features.pwaSurfaceChecks) {
+      let captured: Array<{ url: string; scope: string }> = [];
+      try {
+        captured = await page.evaluate(() => {
+          const w = window as unknown as { __vibesafe_sw?: Array<{ url: string; scope: string }> };
+          return w.__vibesafe_sw ?? [];
+        });
+      } catch {
+        captured = [];
+      }
+      // Resolve each URL + scope against finalUrl so downstream modules get
+      // absolute URLs and absolute pathname scopes.
+      const resolved: SwRegistrationRecord[] = [];
+      for (const r of captured) {
+        try {
+          resolved.push({
+            url: new URL(r.url, finalUrl).href,
+            scope: new URL(r.scope, finalUrl).pathname,
+          });
+        } catch { /* skip malformed */ }
+      }
+      // Fallback: if the wrapper produced nothing (e.g. SW registered from a
+      // worker context the wrapper didn't reach), scan the captured scripts.
+      if (resolved.length === 0) {
+        const scripted = extractServiceWorkerRegistrationsFromScripts(
+          inlineScriptContent + '\n' + Object.values(loadedChunkContents).join('\n'),
+          finalUrl,
+        );
+        resolved.push(...scripted);
+      }
+      if (resolved.length > 0) {
+        serviceWorkerRegistrations = resolved;
+        serviceWorkerScripts = await fetchSwScripts(resolved);
+      }
+      const mUrl = extractManifestUrl(renderedHtml || initialHtml, finalUrl);
+      if (mUrl) {
+        manifestUrl = mUrl;
+        const body = await fetchCapped(mUrl, MAX_MANIFEST_BYTES);
+        if (body !== null) manifestJson = body;
+      }
+    }
+
     await context.close();
     return {
       finalUrl,
@@ -429,6 +599,10 @@ async function crawlWithPlaywright(targetUrl: string): Promise<CrawlResult> {
       loadedChunkContents,
       cleanedHtml: cleanHtml(renderedHtml || initialHtml),
       renderMode: 'headless',
+      serviceWorkerRegistrations,
+      serviceWorkerScripts,
+      manifestUrl,
+      manifestJson,
     };
   } finally {
     if (browser) {

@@ -1,0 +1,5 @@
+{
+  "finalUrl": "https://example.com/",
+  "manifestUrl": "https://example.com/manifest.json",
+  "manifestJson": "{\"name\":\"App\",\"short_name\":\"A\",\"scope\":\"/\",\"start_url\":\"/\",\"icons\":[]}"
+}

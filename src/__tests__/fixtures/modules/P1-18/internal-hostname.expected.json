@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-18",
+      "severity": "MEDIUM",
+      "titleIncludes": "internal hostnames",
+      "evidenceIncludes": ".internal"
+    }
+  ]
+}

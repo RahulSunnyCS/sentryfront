@@ -26,6 +26,8 @@ import { runCacheModule } from '@/lib/scanner/modules/p1-15-cache';
 import { runErrorDisclosureModule } from '@/lib/scanner/modules/p1-12-error-disclosure';
 import { runRobotsSitemapModule } from '@/lib/scanner/modules/p1-14-robots-sitemap';
 import { runClientDepsModule } from '@/lib/scanner/modules/p1-16-client-deps';
+import { runServiceWorkerModule } from '@/lib/scanner/modules/p1-17-service-worker';
+import { runWebManifestModule } from '@/lib/scanner/modules/p1-18-web-manifest';
 
 type ModuleRunner = (crawl: CrawlResult) => RawFinding[] | Promise<RawFinding[]>;
 
@@ -43,6 +45,8 @@ export const MODULE_REGISTRY: Record<string, ModuleRunner> = {
   'P1-14': runRobotsSitemapModule,
   'P1-15': runCacheModule,
   'P1-16': runClientDepsModule,
+  'P1-17': runServiceWorkerModule,
+  'P1-18': runWebManifestModule,
 };
 
 export interface ExpectedFinding {

@@ -15,6 +15,8 @@ import { runDevInterfacesModule } from './modules/p1-13-dev-interfaces';
 import { runRobotsSitemapModule } from './modules/p1-14-robots-sitemap';
 import { runCacheModule } from './modules/p1-15-cache';
 import { runClientDepsModule } from './modules/p1-16-client-deps';
+import { runServiceWorkerModule } from './modules/p1-17-service-worker';
+import { runWebManifestModule } from './modules/p1-18-web-manifest';
 import { runPerformanceModules, type PerformanceResult } from './modules/performance';
 import { runAccessibilityModules, type AccessibilityResult } from './modules/accessibility';
 import { runSEOModules, type SEOResult } from './modules/seo';
@@ -87,6 +89,11 @@ export async function runScanner(targetUrl: string): Promise<ScannerResult> {
   const mixedContentFindings = runMixedContentModule(crawlResult);
   const thirdPartyFindings = runThirdPartyScriptsModule(crawlResult);
   const cacheFindings = runCacheModule(crawlResult);
+  // Phase 3.8.4: PWA surface (service worker + web manifest). These modules
+  // operate on optional CrawlResult fields the crawler only populates when
+  // `features.pwaSurfaceChecks` is on, so they're no-ops in flag-off scans.
+  const serviceWorkerFindings = runServiceWorkerModule(crawlResult);
+  const webManifestFindings = runWebManifestModule(crawlResult);
 
   const allFindings: Array<{ id: string; findings: RawFinding[] }> = [
     { id: 'P1-01', findings: secretsFindings },
@@ -105,6 +112,8 @@ export async function runScanner(targetUrl: string): Promise<ScannerResult> {
     { id: 'P1-14', findings: robotsSitemapFindings },
     { id: 'P1-15', findings: cacheFindings },
     { id: 'P1-16', findings: clientDepsFindings },
+    { id: 'P1-17', findings: serviceWorkerFindings },
+    { id: 'P1-18', findings: webManifestFindings },
   ];
 
   const findings = allFindings.flatMap((m) => m.findings);

@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-17",
+      "severity": "HIGH",
+      "titleIncludes": "forwards arbitrary fetch"
+    }
+  ]
+}

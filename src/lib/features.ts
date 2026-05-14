@@ -23,6 +23,7 @@ const defaultFeatures = {
   headlessCrawl: true,
   exploitIntelSeverity: true,
   headerCoverageChecks: true,
+  pwaSurfaceChecks: true,
 };
 
 // Parse FEATURES env variable (JSON object)
@@ -75,6 +76,11 @@ export const features = {
    *  Permissions-Policy + Referrer-Policy value sanity. CSP/HSTS/XFO/XCTO presence checks
    *  always run regardless of this flag. */
   headerCoverageChecks: customFeatures.headerCoverageChecks ?? defaultFeatures.headerCoverageChecks,
+
+  /** Phase 3.8.4: PWA surface checks — service-worker security (P1-17) + web-app
+   *  manifest exposure (P1-18). When off, the crawler skips SW registration capture
+   *  and manifest fetch entirely; flag-off CrawlResult is byte-identical to pre-3.8.4. */
+  pwaSurfaceChecks: customFeatures.pwaSurfaceChecks ?? defaultFeatures.pwaSurfaceChecks,
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────
