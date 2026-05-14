@@ -9,11 +9,12 @@ import { openScanStream } from '@/lib/api';
 interface Props {
   scanId: string;
   scanUrl: string;
-  initialVariant?: 'A' | 'B' | 'C';
+  initialVariant: 'A' | 'C';
 }
 
-type Variant = 'A' | 'B' | 'C';
+type Variant = 'A' | 'C';
 
+const LAST_VARIANT_KEY = 'sentry:lastScanVariant';
 const STUCK_TIMEOUT_MS = 30_000;
 
 // Per-module mock durations, summing to ~60 000 ms so the demo loader
@@ -102,9 +103,9 @@ type ViewProps = {
   retryNavigateHome: () => void;
 };
 
-export function ScanProgress({ scanId, scanUrl, initialVariant = 'A' }: Props) {
+export function ScanProgress({ scanId, scanUrl, initialVariant }: Props) {
   const router = useRouter();
-  const [variant, setVariant] = useState<Variant>(initialVariant);
+  const variant: Variant = initialVariant;
   const [completedModules, setCompletedModules] = useState(0);
   const [activeModule, setActiveModule] = useState(0);
   const [moduleResults, setModuleResults] = useState<Record<string, number>>({});
@@ -128,15 +129,15 @@ export function ScanProgress({ scanId, scanUrl, initialVariant = 'A' }: Props) {
     router.push('/');
   }, [router]);
 
-  const switchVariant = useCallback(
-    (next: Variant) => {
-      setVariant(next);
-      const u = new URL(window.location.href);
-      u.searchParams.set('variant', next);
-      window.history.replaceState(null, '', u.toString());
-    },
-    [],
-  );
+  // Persist the variant the server picked so the *next* scan can pick
+  // the opposite (round-robin across A ↔ C). Cookie powers the server-side
+  // pick; localStorage is kept in sync as a backup signal.
+  useEffect(() => {
+    try { localStorage.setItem(LAST_VARIANT_KEY, variant); } catch {}
+    try {
+      document.cookie = `${LAST_VARIANT_KEY}=${variant}; path=/; max-age=${60 * 60 * 24 * 90}; SameSite=Lax`;
+    } catch {}
+  }, [variant]);
 
   useEffect(() => {
     if (scanCompleted || scanFailed) return;
@@ -251,71 +252,8 @@ export function ScanProgress({ scanId, scanUrl, initialVariant = 'A' }: Props) {
   return (
     <>
       {variant === 'A' && <ScanProgressStash {...view} />}
-      {variant === 'B' && <ScanProgressMatrix {...view} />}
       {variant === 'C' && <ScanProgressHacker {...view} />}
-      <VariantSwitcher current={variant} onSwitch={switchVariant} />
     </>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Variant switcher (floating bottom-right pill)
-// ─────────────────────────────────────────────────────────────
-function VariantSwitcher({
-  current,
-  onSwitch,
-}: {
-  current: Variant;
-  onSwitch: (v: Variant) => void;
-}) {
-  const items: Array<{ key: Variant; label: string }> = [
-    { key: 'A', label: 'A · Stash' },
-    { key: 'B', label: 'B · Matrix' },
-    { key: 'C', label: 'C · Hacker' },
-  ];
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        right: 16,
-        bottom: 16,
-        zIndex: 50,
-        background: 'rgba(15,15,15,0.85)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: 999,
-        padding: 4,
-        display: 'flex',
-        gap: 4,
-        fontFamily: 'var(--mono)',
-        fontSize: 11,
-        boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
-      }}
-    >
-      {items.map((it) => {
-        const active = it.key === current;
-        return (
-          <button
-            key={it.key}
-            type="button"
-            onClick={() => onSwitch(it.key)}
-            style={{
-              padding: '6px 12px',
-              borderRadius: 999,
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 700,
-              letterSpacing: '0.4px',
-              background: active ? 'var(--accent)' : 'transparent',
-              color: active ? '#fff' : '#A1A1AA',
-              transition: 'background 0.15s ease, color 0.15s ease',
-            }}
-          >
-            {it.label}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -677,267 +615,6 @@ function ScanProgressStash(p: ViewProps) {
         )}
       </div>
     </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Variant B — Matrix Code Rain Terminal
-// ─────────────────────────────────────────────────────────────
-function ScanProgressMatrix(p: ViewProps) {
-  const progressPct = Math.round((p.completedModules / p.total) * 100);
-  const filled = Math.round((p.completedModules / p.total) * 24);
-  const bar = '█'.repeat(filled) + '░'.repeat(24 - filled);
-  const logLines = useMemo(() => buildTerminalLog(p), [p]);
-
-  return (
-    <div style={{ position: 'relative', minHeight: 'calc(100vh - 56px)', overflow: 'hidden' }}>
-      <MatrixRain />
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          maxWidth: 760,
-          margin: '0 auto',
-          padding: 'clamp(24px, 5vw, 40px)',
-        }}
-      >
-        {/* Terminal window */}
-        <div
-          style={{
-            background: 'rgba(8, 14, 10, 0.88)',
-            backdropFilter: 'blur(6px)',
-            border: '1px solid rgba(34,197,94,0.35)',
-            borderRadius: 12,
-            boxShadow: '0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(34,197,94,0.08)',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Title bar */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 14px',
-              borderBottom: '1px solid rgba(34,197,94,0.2)',
-              background: 'rgba(0,0,0,0.4)',
-            }}
-          >
-            <span style={dotStyle('#ff5f56')} />
-            <span style={dotStyle('#ffbd2e')} />
-            <span style={dotStyle('#27c93f')} />
-            <div
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                fontFamily: 'var(--mono)',
-                fontSize: 12,
-                color: '#86efac',
-                opacity: 0.85,
-                userSelect: 'none',
-              }}
-            >
-              root@sentry: ~/scan/{p.scanId.slice(0, 8)}
-            </div>
-            <span style={{ width: 36 }} />
-          </div>
-
-          {/* Body */}
-          <div
-            style={{
-              padding: '18px 20px 20px',
-              fontFamily: 'var(--mono)',
-              fontSize: 13,
-              lineHeight: 1.65,
-              color: '#22c55e',
-              minHeight: 380,
-            }}
-          >
-            {p.scanFailed ? (
-              <div style={{ color: '#f87171' }}>
-                <div style={{ marginBottom: 6 }}>
-                  <span style={{ color: '#f87171' }}>[ERROR]</span> scan halted —
-                  unrecoverable fault
-                </div>
-                <ScanFailedCard scanId={p.scanId} onRetry={p.retryNavigateHome} variant="matrix" />
-              </div>
-            ) : (
-              <>
-                <div style={{ color: '#86efac', marginBottom: 8 }}>
-                  $ sentry-scan --target {p.scanUrl} --modules {p.total}
-                </div>
-                {logLines.map((line, i) => (
-                  <div key={i} style={{ color: line.color, opacity: line.dim ? 0.6 : 1 }}>
-                    {line.text}
-                    {line.caret && (
-                      <span className="terminal-caret" style={{ color: '#5EEAD4' }}>▍</span>
-                    )}
-                  </div>
-                ))}
-                <div style={{ marginTop: 18, color: '#86efac' }}>
-                  [{bar}] {progressPct}%
-                </div>
-                <div style={{ marginTop: 4, color: '#4ade80', opacity: 0.75 }}>
-                  elapsed={fmtTime(p.elapsed)}  eta={fmtTime(p.etaSeconds)}  modules={p.completedModules}/{p.total}
-                </div>
-                <div
-                  key={p.factIdx}
-                  style={{
-                    marginTop: 18,
-                    color: '#16a34a',
-                    opacity: 0.85,
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    animation: 'typewriter 1.8s steps(60, end) both',
-                  }}
-                >
-                  {'// intel: '}{SECURITY_FACTS[p.factIdx]}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function dotStyle(bg: string): React.CSSProperties {
-  return {
-    width: 12,
-    height: 12,
-    borderRadius: '50%',
-    background: bg,
-    display: 'inline-block',
-  };
-}
-
-function buildTerminalLog(p: ViewProps): Array<{ text: string; color: string; dim?: boolean; caret?: boolean }> {
-  const out: Array<{ text: string; color: string; dim?: boolean; caret?: boolean }> = [];
-  // Show last 8 events: each completed module + the active one.
-  const start = Math.max(0, p.activeModule - 7);
-  for (let i = start; i <= Math.min(p.activeModule, p.total - 1); i++) {
-    const mod = SCAN_MODULES[i];
-    if (!mod) continue;
-    const isDone = i < p.completedModules;
-    const isActive = i === p.activeModule && !isDone;
-    const findings = p.moduleResults[mod.id] ?? 0;
-    const ts = fmtTime(Math.min(p.elapsed, (i + 1) * 4));
-    if (isDone) {
-      const ok = findings === 0;
-      out.push({
-        text: `[${ts}] ${ok ? '✓' : '⚠'} [${String(i + 1).padStart(2, '0')}/${p.total}] ${mod.name} → ${ok ? 'clean' : `${findings} finding${findings === 1 ? '' : 's'}`}`,
-        color: ok ? '#22c55e' : '#fbbf24',
-      });
-    } else if (isActive) {
-      out.push({
-        text: `[${ts}] > scanning [${String(i + 1).padStart(2, '0')}/${p.total}] ${mod.name} `,
-        color: '#5EEAD4',
-        caret: true,
-      });
-    }
-  }
-  if (p.finalizing) {
-    out.push({ text: '> finalising report…', color: '#5EEAD4', caret: true });
-  }
-  if (p.scanCompleted) {
-    out.push({ text: '✓ analysis complete — opening report…', color: '#22c55e' });
-  }
-  return out;
-}
-
-// Matrix rain canvas
-function MatrixRain() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) return;
-
-    let raf = 0;
-    const chars = '01ABCDEF{};<>$/\\#*~+=*=';
-    let columns = 0;
-    let drops: number[] = [];
-    const fontSize = 14;
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      columns = Math.floor(canvas.width / fontSize);
-      drops = new Array(columns).fill(0).map(() => Math.random() * -50);
-    };
-    resize();
-    window.addEventListener('resize', resize);
-
-    const draw = () => {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.font = `${fontSize}px ui-monospace, Menlo, monospace`;
-      for (let i = 0; i < drops.length; i++) {
-        const ch = chars[Math.floor(Math.random() * chars.length)];
-        const x = i * fontSize;
-        const y = drops[i] * fontSize;
-        ctx.fillStyle = y < fontSize * 2 ? '#bbf7d0' : '#22c55e';
-        ctx.fillText(ch, x, y);
-        if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
-        drops[i] += 0.6 + Math.random() * 0.6;
-      }
-      raf = requestAnimationFrame(draw);
-    };
-    raf = requestAnimationFrame(draw);
-
-    const onVis = () => {
-      if (document.hidden) cancelAnimationFrame(raf);
-      else raf = requestAnimationFrame(draw);
-    };
-    document.addEventListener('visibilitychange', onVis);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
-      document.removeEventListener('visibilitychange', onVis);
-    };
-  }, []);
-
-  return (
-    <>
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: '#040806',
-          zIndex: 0,
-        }}
-      />
-      <canvas
-        ref={canvasRef}
-        className="matrix-canvas"
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 0,
-          opacity: 0.55,
-        }}
-      />
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background:
-            'radial-gradient(circle at 50% 50%, transparent 0%, rgba(0,0,0,0.55) 80%)',
-          zIndex: 0,
-          pointerEvents: 'none',
-        }}
-      />
-    </>
   );
 }
 
