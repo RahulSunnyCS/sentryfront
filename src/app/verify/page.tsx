@@ -1,17 +1,63 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
+import { getCurrentUser } from '@/lib/auth/helpers';
+import { getOrCreateVerification, normalizeDomain, TOKEN_PREFIX } from '@/lib/verify-domain';
+import { ValidationError } from '@/lib/url-validator';
+import { logger } from '@/lib/logger';
 import { VerifyFlow } from './verify-flow';
+import { DomainEntry } from './domain-entry';
 
 export const metadata: Metadata = {
   title: 'Verify domain ownership',
   description:
-    'Verify ownership of a domain before running active security tests. Choose DNS TXT record or HTML meta tag — or use our guided walkthrough for Wix, Squarespace, Webflow, Framer, Shopify, WordPress, Cloudflare, Vercel.',
+    'Verify ownership of a domain before running active security tests. Choose DNS TXT record or HTML meta tag — or use our guided walkthrough.',
   alternates: { canonical: '/verify' },
   robots: { index: false, follow: false },
 };
 
-export default function VerifyPage() {
+export const dynamic = 'force-dynamic';
+
+interface VerifyPageProps {
+  searchParams?: { domain?: string | string[] };
+}
+
+export default async function VerifyPage({ searchParams }: VerifyPageProps) {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect('/login?next=/verify');
+  }
+
+  const rawDomain = Array.isArray(searchParams?.domain)
+    ? searchParams?.domain[0]
+    : searchParams?.domain;
+
+  let domain: string | null = null;
+  let domainError: string | null = null;
+  if (rawDomain) {
+    try {
+      domain = normalizeDomain(rawDomain);
+    } catch (err) {
+      if (err instanceof ValidationError) domainError = err.message;
+      else throw err;
+    }
+  }
+
+  let token: string | null = null;
+  let alreadyVerified = false;
+  if (domain) {
+    try {
+      const record = await getOrCreateVerification(user.id, domain);
+      token = `${TOKEN_PREFIX}${record.token}`;
+      alreadyVerified = record.verifiedAt !== null;
+    } catch (err) {
+      logger.error('Verify token init failed', { userId: user.id, domain }, err as Error);
+      domainError = 'We couldn\'t initialize verification. Please try again.';
+      domain = null;
+    }
+  }
+
   return (
     <>
       <Nav />
@@ -47,7 +93,15 @@ export default function VerifyPage() {
               </p>
             </header>
 
-            <VerifyFlow domain="taskflow.app" token="vibesafe-verify=a7f3c2e1d4b8" />
+            {domain && token ? (
+              <VerifyFlow
+                domain={domain}
+                token={token}
+                alreadyVerified={alreadyVerified}
+              />
+            ) : (
+              <DomainEntry error={domainError} initialDomain={rawDomain ?? ''} />
+            )}
           </div>
         </main>
         <Footer />

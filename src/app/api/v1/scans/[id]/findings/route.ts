@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/helpers';
+import { canViewScan } from '@/lib/report-access';
 import { applyTierGating } from '@/lib/tier-gating';
+import { logger } from '@/lib/logger';
 import type { Severity } from '@/types';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  logger.setScanScope(params.id);
   const scan = await prisma.scan.findUnique({
     where: { id: params.id },
     include: { findings: true },
   });
 
   if (!scan) {
+    return NextResponse.json({ error: 'Scan not found.' }, { status: 404 });
+  }
+
+  const user = await getCurrentUser();
+  if (!canViewScan(scan, user)) {
     return NextResponse.json({ error: 'Scan not found.' }, { status: 404 });
   }
 
@@ -33,8 +41,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     fixAiPrompt: f.fixAiPrompt,
   }));
 
-  // Get current user's tier (if authenticated)
-  const user = await getCurrentUser();
+  // Use already-loaded user from the access check above.
   const tier = user?.tier || scan.tier || 'free';
 
   // Apply tier-based gating

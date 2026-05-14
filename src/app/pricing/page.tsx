@@ -30,9 +30,9 @@ const WHAT_IS_INCLUDED = [
     items: ['700+ secret patterns (Gitleaks)', 'Missing security headers', 'XSS & CORS vulnerabilities', 'Subdomain takeover detection'],
   },
   {
-    emoji: '⚖️',
-    title: 'Compliance',
-    items: ['GDPR compliance checks', 'WCAG 2.2 Level AA', 'Cookie consent verification', 'Privacy policy detection'],
+    emoji: '♿',
+    title: 'Accessibility (WCAG 2.2 AA subset)',
+    items: ['Color contrast via Lighthouse', 'Alt text + ARIA checks', 'Keyboard navigation hints', 'Semantic HTML audit'],
   },
   {
     emoji: '⚡',
@@ -192,7 +192,7 @@ export default function PricingPage() {
                 }}
               >
                 <li>🔒 Security audit <strong style={{ color: 'var(--text)' }}>($2,000)</strong></li>
-                <li>⚖️ Compliance review <strong style={{ color: 'var(--text)' }}>($500)</strong></li>
+                <li>♿ Accessibility audit <strong style={{ color: 'var(--text)' }}>($500)</strong></li>
                 <li>⚡ Performance audit <strong style={{ color: 'var(--text)' }}>($200)</strong></li>
                 <li>🤖 AI fix prompts <strong style={{ color: 'var(--text)' }}>($500)</strong></li>
               </ul>
@@ -352,7 +352,7 @@ export default function PricingPage() {
                     Need 24/7 monitoring?
                   </h2>
                   <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
-                    Get daily automatic scans, instant alerts, and compliance reports for any domain.
+                    Get daily automatic scans, instant alerts, and quality reports for any domain.
                   </p>
                   <ul
                     style={{
@@ -367,7 +367,7 @@ export default function PricingPage() {
                     {[
                       ['Daily auto-scans', 'Does not use credits'],
                       ['Email + Slack alerts', null],
-                      ['Compliance PDF reports', 'Monthly'],
+                      ['PDF reports', 'Monthly'],
                       ['Regression detection', 'New issues flagged instantly'],
                     ].map(([label, sub]) => (
                       <li key={label as string} style={{ display: 'flex', alignItems: 'start', gap: 10, fontSize: 'var(--fs-base)' }}>

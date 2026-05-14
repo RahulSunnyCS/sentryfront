@@ -139,6 +139,15 @@ class Logger {
       timestamp: Date.now() / 1000,
     });
   }
+
+  /**
+   * Tag the current Sentry scope with a scan ID so transactions and
+   * errors emitted by this request are filterable by scan in Sentry.
+   * Safe to call from any route handler — no-op when Sentry is disabled.
+   */
+  setScanScope(scanId: string) {
+    Sentry.setTag('scan_id', scanId);
+  }
 }
 
 // Export singleton instance

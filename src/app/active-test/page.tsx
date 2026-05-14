@@ -17,7 +17,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ActiveTestPage() {
+export const dynamic = 'force-dynamic';
+
+interface ActiveTestPageProps {
+  searchParams?: { domain?: string | string[] };
+}
+
+export default function ActiveTestPage({ searchParams }: ActiveTestPageProps) {
+  const rawDomain = Array.isArray(searchParams?.domain)
+    ? searchParams?.domain[0]
+    : searchParams?.domain;
+  const initialDomain = (rawDomain ?? '').trim();
   return (
     <>
       <Nav />
@@ -53,7 +63,7 @@ export default function ActiveTestPage() {
               </p>
             </header>
 
-            <ActiveTestFlow />
+            <ActiveTestFlow initialDomain={initialDomain} />
           </div>
         </main>
         <Footer />

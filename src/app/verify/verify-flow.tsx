@@ -9,7 +9,13 @@ type Method = 'dns' | 'meta';
 interface Props {
   domain: string;
   token: string;
+  alreadyVerified?: boolean;
 }
+
+const METHOD_TO_API: Record<Method, 'dns_txt' | 'meta_tag'> = {
+  dns: 'dns_txt',
+  meta: 'meta_tag',
+};
 
 const DNS_FALLBACK_STEPS = [
   'Log into your domain registrar or DNS provider',
@@ -80,12 +86,13 @@ const PLATFORMS: Array<{
   },
 ];
 
-export function VerifyFlow({ domain, token }: Props) {
+export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
   const [path, setPath] = useState<Path>('tech');
   const [method, setMethod] = useState<Method>('dns');
   const [platformKey, setPlatformKey] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
-  const [result, setResult] = useState<null | 'ok' | 'fail'>(null);
+  const [result, setResult] = useState<null | 'ok' | 'fail'>(alreadyVerified ? 'ok' : null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const metaTag = `<meta name="vibesafe-verify" content="${token.replace('vibesafe-verify=', '')}" />`;
   const platform = PLATFORMS.find((p) => p.key === platformKey);
@@ -96,14 +103,52 @@ export function VerifyFlow({ domain, token }: Props) {
     setMethod(p?.defaultMethod ?? 'dns');
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     setVerifying(true);
     setResult(null);
-    // demo verification — randomised
-    window.setTimeout(() => {
+    setErrorMessage(null);
+    try {
+      const response = await fetch('/api/v1/verify/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, method: METHOD_TO_API[method] }),
+      });
+
+      if (response.status === 429) {
+        setResult('fail');
+        const retryAfter = response.headers.get('Retry-After');
+        setErrorMessage(
+          retryAfter
+            ? `Too many checks — try again in ${retryAfter} second${retryAfter === '1' ? '' : 's'}.`
+            : 'Too many checks — try again in a moment.',
+        );
+        return;
+      }
+
+      const data = (await response.json().catch(() => ({}))) as {
+        verified?: boolean;
+        reason?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setResult('fail');
+        setErrorMessage(data.error ?? 'Verification check failed.');
+        return;
+      }
+
+      if (data.verified) {
+        setResult('ok');
+      } else {
+        setResult('fail');
+        setErrorMessage(data.reason ?? null);
+      }
+    } catch (err) {
+      setResult('fail');
+      setErrorMessage(err instanceof Error ? err.message : 'Network error.');
+    } finally {
       setVerifying(false);
-      setResult(Math.random() > 0.2 ? 'ok' : 'fail');
-    }, 1200);
+    }
   };
 
   return (
@@ -341,7 +386,7 @@ export function VerifyFlow({ domain, token }: Props) {
         )}
         {result === 'fail' && (
           <p role="alert" style={{ color: '#E11D48' }}>
-            Couldn&apos;t find the record yet. DNS can take up to an hour — try again shortly.
+            {errorMessage ?? 'Couldn’t find the record yet. DNS can take up to an hour — try again shortly.'}
           </p>
         )}
 

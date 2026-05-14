@@ -1,8 +1,12 @@
 # VibeSafe Vision
 
-**Version:** 2.0  
-**Last Updated:** 2026-05-13  
+**Version:** 2.0
+**Last Updated:** 2026-05-13
 **Status:** Active
+
+> ⚠️ **VISION DOCUMENT — describes long-term direction, not what ships today.**
+>
+> This file describes where VibeSafe is heading, not the current shipped feature set. References to "GDPR / CCPA / HIPAA / SOC 2 compliance", regulatory attestation, and the "5 pillars" framing describe future intent — none of these are implemented today. For the honest current-state inventory of what each scan actually checks, see `README.md` "What's Included" and `BUILD_PHASE.md` Phase 2.5 / 4.5. Marketing copy must follow `docs/core/CLAIMS_RULES.md`.
 
 ---
 

@@ -1,21 +1,21 @@
 import type { ScanModule, ScanData } from '@/types';
 
 export const SCAN_MODULES: ScanModule[] = [
-  { id: 'P1-01', name: 'Client-Side Secrets' },
-  { id: 'P1-02', name: 'Sourcemap Exposure' },
-  { id: 'P1-03', name: 'Security Headers' },
-  { id: 'P1-04', name: 'TLS Configuration' },
-  { id: 'P1-05', name: 'Cookie & Storage' },
-  { id: 'P1-06', name: 'Sensitive Paths' },
-  { id: 'P1-07', name: 'CORS Configuration' },
-  { id: 'P1-08', name: 'Mixed Content' },
-  { id: 'P1-09', name: 'Third-Party Scripts' },
-  { id: 'P1-10', name: 'DNS & Email Security' },
-  { id: 'P1-11', name: 'Subdomain Takeover' },
-  { id: 'P1-12', name: 'Error Disclosure' },
-  { id: 'P1-13', name: 'Admin Interfaces' },
-  { id: 'P1-14', name: 'robots.txt & Sitemap' },
-  { id: 'P1-15', name: 'Cache Configuration' },
+  { id: 'P1-01', name: 'Client-Side Secrets',  plainName: 'Exposed API keys & secrets' },
+  { id: 'P1-02', name: 'Sourcemap Exposure',   plainName: 'Source code leak check' },
+  { id: 'P1-03', name: 'Security Headers',     plainName: 'Browser security defenses' },
+  { id: 'P1-04', name: 'TLS Configuration',    plainName: 'HTTPS / SSL setup' },
+  { id: 'P1-05', name: 'Cookie & Storage',     plainName: 'Cookie & session safety' },
+  { id: 'P1-06', name: 'Sensitive Paths',      plainName: 'Hidden admin & config files' },
+  { id: 'P1-07', name: 'CORS Configuration',   plainName: 'Cross-origin access rules' },
+  { id: 'P1-08', name: 'Mixed Content',        plainName: 'Insecure resource loading' },
+  { id: 'P1-09', name: 'Third-Party Scripts',  plainName: 'External script safety' },
+  { id: 'P1-10', name: 'DNS & Email Security', plainName: 'Email spoofing protection' },
+  { id: 'P1-11', name: 'Subdomain Takeover',   plainName: 'Dormant subdomain check' },
+  { id: 'P1-12', name: 'Error Disclosure',     plainName: 'Leaky error messages' },
+  { id: 'P1-13', name: 'Admin Interfaces',     plainName: 'Exposed admin pages' },
+  { id: 'P1-14', name: 'robots.txt & Sitemap', plainName: 'Search engine exposure' },
+  { id: 'P1-15', name: 'Cache Configuration',  plainName: 'Cache leak check' },
 ];
 
 export const ACCENT_THEMES = {

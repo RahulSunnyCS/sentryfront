@@ -69,4 +69,5 @@ export interface ScanData {
 export interface ScanModule {
   id: string;
   name: string;
+  plainName: string;
 }
