@@ -151,6 +151,9 @@ export default async function ReportPage({ params, searchParams }: Props) {
     fetchError = e instanceof Error ? e.message : 'Failed to load report.';
   }
 
+  // Used by ReportView/FindingCard to gate the FP-disposition buttons.
+  const currentUser = await getCurrentUser();
+
   if (fetchError || !scanData) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
@@ -182,7 +185,7 @@ export default async function ReportPage({ params, searchParams }: Props) {
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
       <Nav showReportActions scanUrl={scanUrl} scanId={params.id} />
       <div style={{ paddingTop: 56 }}>
-        <ReportView scanData={scanData} />
+        <ReportView scanData={scanData} authed={Boolean(currentUser)} />
       </div>
     </div>
   );

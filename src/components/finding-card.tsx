@@ -2,17 +2,27 @@
 
 import { useState } from 'react';
 import { SEVERITY_CONFIG } from '@/lib/data';
-import type { Finding, CardStyle } from '@/types';
+import type { Finding, CardStyle, FindingDispositionValue } from '@/types';
 import { SeverityBadge } from './severity-badge';
 import { CopyButton } from './copy-button';
 import { IconChevronDown } from './icons';
+import { useDisposition } from '@/lib/hooks/use-disposition';
 
 interface Props {
   finding: Finding;
   isExpanded: boolean;
   onToggle: () => void;
   cardStyle: CardStyle;
+  scanId?: string;
+  authed?: boolean;
 }
+
+const DISPOSITION_BUTTONS: Array<{ value: FindingDispositionValue; label: string }> = [
+  { value: 'helpful', label: 'Helpful' },
+  { value: 'dismissed', label: 'Dismiss' },
+  { value: 'fp', label: 'False positive' },
+  { value: 'fix_didnt_help', label: "Fix didn't help" },
+];
 
 const sectionTitle: React.CSSProperties = {
   fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
@@ -23,9 +33,10 @@ const bodyText: React.CSSProperties = {
   fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0,
 };
 
-export function FindingCard({ finding, isExpanded, onToggle, cardStyle }: Props) {
+export function FindingCard({ finding, isExpanded, onToggle, cardStyle, scanId, authed }: Props) {
   const [fixTab, setFixTab] = useState<'manual' | 'ai'>('manual');
   const sevConfig = SEVERITY_CONFIG[finding.severity];
+  const disposition = useDisposition(scanId, finding.id, finding.currentDisposition ?? null);
 
   const border = cardStyle === 'bordered'
     ? `1px solid ${sevConfig.border}`
@@ -73,6 +84,48 @@ export function FindingCard({ finding, isExpanded, onToggle, cardStyle }: Props)
           <div style={{ marginTop: 16 }}>
             <div style={sectionTitle}>Impact</div>
             <p style={bodyText}>{finding.impact}</p>
+          </div>
+
+          <div style={{ marginTop: 16 }} data-testid="disposition-row">
+            <div style={sectionTitle}>Was this useful?</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {DISPOSITION_BUTTONS.map((btn) => {
+                const selected = disposition.current === btn.value;
+                return (
+                  <button
+                    key={btn.value}
+                    type="button"
+                    disabled={!authed || disposition.isPending}
+                    onClick={() => disposition.set(btn.value)}
+                    aria-pressed={selected}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: authed ? 'pointer' : 'not-allowed',
+                      backgroundColor: selected ? 'var(--accent)' : 'transparent',
+                      color: selected ? 'var(--accent-contrast, #fff)' : 'var(--text-secondary)',
+                      border: `1px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
+                      opacity: !authed ? 0.6 : 1,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {btn.label}
+                  </button>
+                );
+              })}
+            </div>
+            {!authed && (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6 }}>
+                Sign in to flag findings.
+              </div>
+            )}
+            {disposition.error && (
+              <div style={{ fontSize: 12, color: 'var(--danger, #c0392b)', marginTop: 6 }}>
+                {disposition.error}
+              </div>
+            )}
           </div>
 
           <div style={{ marginTop: 20 }}>
