@@ -223,7 +223,7 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
                 {scanData.summary.CRITICAL} CRITICAL {scanData.summary.CRITICAL === 1 ? 'issue needs' : 'issues need'} immediate action
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.5 }}>
-                Exposed secrets and broken auth can be exploited within hours of public discovery.
+                Most exposed secrets get scraped from public sources within 24-72 hours. The AI fix prompts below pair each issue with a copy-paste remediation you can drop straight into Cursor or Lovable.
               </div>
             </div>
           </aside>
@@ -335,14 +335,19 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           </div>
         )}
 
-        {/* Passed Checks — modules that returned zero findings on this scan */}
+        {/* Passed Checks — modules that returned zero findings on this scan.
+            Auto-expanded on strong grades so the user sees what they got right
+            rather than only the (few) remaining findings. */}
         {passedModules.length > 0 && (
-          <details style={{
-            marginTop: 28, borderRadius: 12,
-            border: '1px solid rgba(5,150,105,0.25)',
-            background: 'rgba(5,150,105,0.04)',
-            padding: '14px 16px',
-          }}>
+          <details
+            open={scanData.grade === 'A' || scanData.grade === 'B'}
+            style={{
+              marginTop: 28, borderRadius: 12,
+              border: '1px solid rgba(5,150,105,0.25)',
+              background: 'rgba(5,150,105,0.04)',
+              padding: '14px 16px',
+            }}
+          >
             <summary
               aria-label="Passed security checks"
               style={{
@@ -440,6 +445,46 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
             Run active test →
           </Link>
         </aside>
+
+        {/* Bottom upgrade card — only for unauthenticated or free-tier users
+            who have at least one finding. Honestly framed: real finding count,
+            no urgency timer, no "everything is critical" theatrics. */}
+        {!loading
+          && (!tierMeta || tierMeta.tier === 'free')
+          && scanData.findings.length > 0
+          && (
+            <aside
+              aria-labelledby="unlock-cta-title"
+              style={{
+                marginTop: 28, borderRadius: 16,
+                border: '1px solid rgba(13,148,136,0.30)',
+                background: 'linear-gradient(135deg, rgba(13,148,136,0.10), rgba(124,58,237,0.06))',
+                padding: '24px 22px',
+                display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <h3
+                  id="unlock-cta-title"
+                  style={{ fontSize: 17, fontWeight: 800, margin: '0 0 6px', color: 'var(--text)' }}
+                >
+                  Get the exact AI fix prompt for every finding
+                </h3>
+                <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                  Paste-ready prompts for Cursor, Lovable, v0, and Bolt — fix all{' '}
+                  {scanData.findings.length}{' '}
+                  {scanData.findings.length === 1 ? 'finding' : 'findings'} in under an hour. One-time $9, no subscription.
+                </p>
+              </div>
+              <Link
+                href="/pricing#one-shot"
+                className="btn-primary"
+                style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                Unlock for $9 →
+              </Link>
+            </aside>
+          )}
       </div>
 
       {/* Watermark for free tier */}

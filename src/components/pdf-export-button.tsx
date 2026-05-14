@@ -33,13 +33,27 @@ export function PdfExportButton({ scanId }: Props) {
       // Download PDF directly (it's a blob/buffer response)
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `vibesafe-report-${scanId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+
+      // iOS Safari <14 ignores <a download> and opens PDFs in-page,
+      // which feels broken (the click looks like nothing happened).
+      // Detect it and fall back to opening the blob in a new tab so
+      // the user can use the native "Save to Files" affordance.
+      const ua = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(ua) && !('MSStream' in window);
+      const isOldIOS = isIOS && /OS (?:1[0-3]|[1-9])_/.test(ua);
+      if (isOldIOS) {
+        window.open(url, '_blank');
+        // Revoke after a short delay so the new tab has time to load it.
+        setTimeout(() => window.URL.revokeObjectURL(url), 10_000);
+      } else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vibesafe-report-${scanId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {

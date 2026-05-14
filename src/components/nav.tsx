@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { IconShield, IconExternalLink } from './icons';
+import { IconShield, IconExternalLink, IconCheck } from './icons';
 import { PdfExportButton } from './pdf-export-button';
 import { AuthButton } from './auth-button';
 import { ThemeToggle } from './theme-toggle';
@@ -127,27 +127,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
             >
               New scan
             </Link>
-            {scanUrl && (
-              <button
-                onClick={() => navigator.clipboard.writeText(window.location.href).catch(() => {})}
-                style={{
-                  padding: '7px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  background: 'var(--accent)',
-                  fontSize: 'var(--fs-sm)',
-                  fontWeight: 600,
-                  color: '#fff',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  cursor: 'pointer',
-                }}
-              >
-                <IconExternalLink size={13} color="#fff" />
-                Share
-              </button>
-            )}
+            {scanUrl && <ShareButton />}
           </>
         )}
         <span className="nav-action-hide-mobile">
@@ -215,5 +195,75 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
         </div>
       </div>
     </nav>
+  );
+}
+
+function ShareButton() {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    if (!url) return;
+
+    // 1. Native share sheet (mobile-first, preferred)
+    const nav = typeof navigator !== 'undefined' ? navigator : null;
+    if (nav && typeof nav.share === 'function') {
+      try {
+        await nav.share({ url, title: 'VibeSafe scan report' });
+        return;
+      } catch {
+        // User dismissed or share API failed — fall through to clipboard.
+      }
+    }
+
+    // 2. Clipboard API (HTTPS, modern browsers)
+    if (nav?.clipboard?.writeText) {
+      try {
+        await nav.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      } catch {
+        // Permissions denied or insecure context — fall through to prompt.
+      }
+    }
+
+    // 3. Last-resort fallback for HTTP origins / very old WebViews.
+    window.prompt('Copy this link:', url);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleShare}
+      aria-live="polite"
+      style={{
+        padding: '7px 14px',
+        borderRadius: 'var(--radius-md)',
+        border: 'none',
+        background: 'var(--accent)',
+        fontSize: 'var(--fs-sm)',
+        fontWeight: 600,
+        color: '#fff',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        cursor: 'pointer',
+        minWidth: 86,
+        justifyContent: 'center',
+      }}
+    >
+      {copied ? (
+        <>
+          <IconCheck size={13} color="#fff" />
+          Copied!
+        </>
+      ) : (
+        <>
+          <IconExternalLink size={13} color="#fff" />
+          Share
+        </>
+      )}
+    </button>
   );
 }
