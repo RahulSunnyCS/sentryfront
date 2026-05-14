@@ -64,6 +64,7 @@
   "landing": {
     "pill": "Sicherheit auf Enterprise-Niveau · Ab $9",
     "heroTitleLine1": "Ihre KI-erstellte Website ist jetzt",
+    "heroTitleInitialLine1": "Ihre KI-erstellte Website ist nicht",
     "heroTitleLine2": "technisch solide",
     "heroLead": "Fügen Sie eine URL ein. In 90 Sekunden wissen Sie, ob Ihre Website Enterprise-bereit ist. Jeder Befund kommt mit dem genauen KI-Prompt, um ihn in Cursor, v0 oder Lovable zu beheben.",
     "urlPlaceholder": "example.com",

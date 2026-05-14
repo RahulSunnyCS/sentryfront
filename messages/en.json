@@ -64,6 +64,7 @@
   "landing": {
     "pill": "Enterprise-grade security · Starting at $9",
     "heroTitleLine1": "Your AI-built site is now",
+    "heroTitleInitialLine1": "Your AI-built site is not",
     "heroTitleLine2": "technically solid",
     "heroLead": "Paste a URL. Know in 90 seconds if your site is enterprise-ready. Every finding comes with the exact AI prompt to fix it in Cursor, v0, or Lovable.",
     "urlPlaceholder": "example.com",

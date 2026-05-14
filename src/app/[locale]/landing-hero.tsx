@@ -5,13 +5,18 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/navigation';
 import { IconShield, IconGlobe, IconArrowRight } from '@/components/icons';
 import { createScan } from '@/lib/api';
+import { HeroHeadlineAnim } from './HeroHeadlineAnim';
 
 function formatCount(n: number | null, locale: string): string {
   if (n === null) return '—';
   return n.toLocaleString(locale);
 }
 
-export function LandingHero() {
+interface LandingHeroProps {
+  initialHeroAnim: 'alpha' | 'beta' | 'gamma';
+}
+
+export function LandingHero({ initialHeroAnim }: LandingHeroProps) {
   const [weeklyCount, setWeeklyCount] = useState<number | null>(null);
   const t = useTranslations('landing');
 
@@ -34,7 +39,7 @@ export function LandingHero() {
 
   return (
     <main id="main" style={{ display: 'flex', flexDirection: 'column' }}>
-      <HeroSection weeklyCount={weeklyCount} />
+      <HeroSection weeklyCount={weeklyCount} initialHeroAnim={initialHeroAnim} />
       <ToolsStrip />
       <HowItWorksSection />
       <StatsSection weeklyCount={weeklyCount} />
@@ -63,7 +68,13 @@ export function LandingHero() {
   );
 }
 
-function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
+function HeroSection({
+  weeklyCount,
+  initialHeroAnim,
+}: {
+  weeklyCount: number | null;
+  initialHeroAnim: 'alpha' | 'beta' | 'gamma';
+}) {
   const t = useTranslations('landing');
   const router = useRouter();
   const [url, setUrl] = useState('');
@@ -123,11 +134,12 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
           {t('pill')}
         </span>
 
-        <h1 id="hero-heading" className="text-hero" style={{ marginBottom: 'var(--space-4)' }}>
-          {t('heroTitleLine1')}
-          <br />
-          {t('heroTitleLine2')}
-        </h1>
+        <HeroHeadlineAnim
+          initial={t('heroTitleInitialLine1')}
+          final={t('heroTitleLine1')}
+          line2={t('heroTitleLine2')}
+          initialVariant={initialHeroAnim}
+        />
 
         <p
           className="text-lead"
