@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SCAN_MODULES } from '@/lib/data';
-import { openScanStream } from '@/lib/api';
+import { fetchScanEvents } from '@/lib/api';
 
 interface Props {
   scanId: string;
@@ -115,7 +115,6 @@ export function ScanProgress({ scanId, scanUrl, initialVariant }: Props) {
   const [scanFailed, setScanFailed] = useState(false);
   const [stuck, setStuck] = useState(false);
   const [usingRealStream, setUsingRealStream] = useState(false);
-  const streamRef = useRef<EventSource | null>(null);
   const lastEventRef = useRef<number>(Date.now());
 
   const total = SCAN_MODULES.length;
@@ -163,46 +162,96 @@ export function ScanProgress({ scanId, scanUrl, initialVariant }: Props) {
   }, []);
 
   useEffect(() => {
-    const stream = openScanStream(scanId);
-
-    if (stream) {
-      streamRef.current = stream;
+    if (scanId !== 'demo') {
       setUsingRealStream(true);
+
+      let cursor = 0;
+      let cancelled = false;
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
       const markEvent = () => {
         lastEventRef.current = Date.now();
         setStuck(false);
       };
 
-      stream.addEventListener('module_complete', (e: MessageEvent) => {
-        markEvent();
-        const data = JSON.parse(e.data) as { module_id: string; findings: number; index: number };
-        setModuleResults((prev) => ({ ...prev, [data.module_id]: data.findings }));
-        setCompletedModules(data.index + 1);
-        setActiveModule(data.index + 1);
-      });
-
-      stream.addEventListener('llm_enrichment_started', markEvent);
-      stream.addEventListener('llm_enrichment_complete', markEvent);
-
-      stream.addEventListener('scan_complete', () => {
-        markEvent();
+      const completeAndRedirect = () => {
         setScanCompleted(true);
-        stream.close();
-        setTimeout(() => router.push(`/report/${scanId}`), 1200);
-      });
+        setTimeout(() => {
+          if (!cancelled) router.push(`/report/${scanId}`);
+        }, 1200);
+      };
 
-      stream.addEventListener('scan_failed', () => {
-        setScanFailed(true);
-        stream.close();
-      });
+      // Returns true if a terminal event was handled and polling should stop.
+      const dispatch = (type: string, payload: Record<string, unknown>): boolean => {
+        switch (type) {
+          case 'module_complete': {
+            markEvent();
+            const d = payload as { module_id: string; findings: number; index: number };
+            setModuleResults((prev) => ({ ...prev, [d.module_id]: d.findings }));
+            setCompletedModules(d.index + 1);
+            setActiveModule(d.index + 1);
+            return false;
+          }
+          case 'llm_enrichment_started':
+          case 'llm_enrichment_complete':
+            markEvent();
+            return false;
+          case 'scan_complete':
+            markEvent();
+            completeAndRedirect();
+            return true;
+          case 'scan_failed':
+          case 'scan_timeout':
+            setScanFailed(true);
+            return true;
+          default:
+            return false;
+        }
+      };
 
-      stream.addEventListener('scan_timeout', () => {
-        setScanFailed(true);
-        stream.close();
-      });
+      const poll = async () => {
+        if (cancelled) return;
+        try {
+          const res = await fetchScanEvents(scanId, cursor);
+          if (cancelled) return;
+          cursor = res.cursor;
 
-      return () => stream.close();
+          let terminal = false;
+          for (const ev of res.events) {
+            if (dispatch(ev.type, ev.payload)) {
+              terminal = true;
+              break;
+            }
+          }
+
+          // Fallback: terminal scan status but no terminal event recorded
+          // (e.g. worker died before publishing). Drive the UI off of `scan.status`.
+          if (!terminal) {
+            if (res.scan.status === 'COMPLETED') {
+              completeAndRedirect();
+              terminal = true;
+            } else if (res.scan.status === 'FAILED' || res.scan.status === 'TIMEOUT') {
+              setScanFailed(true);
+              terminal = true;
+            }
+          }
+
+          if (!terminal && !cancelled) {
+            timeoutId = setTimeout(poll, 1500);
+          }
+        } catch {
+          if (!cancelled) {
+            timeoutId = setTimeout(poll, 3000);
+          }
+        }
+      };
+
+      poll();
+
+      return () => {
+        cancelled = true;
+        if (timeoutId) clearTimeout(timeoutId);
+      };
     }
 
     const BAD_RESULTS: Record<string, number> = {

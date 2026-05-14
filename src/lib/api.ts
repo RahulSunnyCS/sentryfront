@@ -61,8 +61,20 @@ export async function getScan(id: string): Promise<ScanData> {
   };
 }
 
-/** Returns an EventSource for real-time scan progress, or null for the demo scan. */
-export function openScanStream(id: string): EventSource | null {
-  if (id === 'demo') return null;
-  return new EventSource(`${BASE}/scans/${id}/stream`);
+export interface ScanEventEnvelope {
+  id: number;
+  type: string;
+  payload: Record<string, unknown>;
+}
+
+export interface ScanEventsResponse {
+  scan: { id: string; status: string; grade: string | null };
+  events: ScanEventEnvelope[];
+  cursor: number;
+}
+
+export async function fetchScanEvents(id: string, since: number): Promise<ScanEventsResponse> {
+  const res = await fetch(`${BASE}/scans/${id}/events?since=${since}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Scan events request failed (${res.status})`);
+  return res.json();
 }
