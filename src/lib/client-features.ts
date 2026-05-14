@@ -16,7 +16,7 @@ function parseBool(value: string | undefined, defaultValue = false): boolean {
 
 export const clientFeatures = {
   /** Show PDF export button in report UI */
-  pdfExport: parseBool(process.env.NEXT_PUBLIC_PDF_EXPORT_ENABLED),
+  pdfExport: parseBool(process.env.NEXT_PUBLIC_PDF_EXPORT_ENABLED, true),
 
   /** Show pricing/payment UI */
   stripe: parseBool(process.env.NEXT_PUBLIC_STRIPE_ENABLED),
