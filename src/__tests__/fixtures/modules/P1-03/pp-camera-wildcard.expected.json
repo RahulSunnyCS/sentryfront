@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "titleIncludes": "Overly permissive Permissions-Policy directive",
+      "evidenceIncludes": "camera=*"
+    }
+  ]
+}
