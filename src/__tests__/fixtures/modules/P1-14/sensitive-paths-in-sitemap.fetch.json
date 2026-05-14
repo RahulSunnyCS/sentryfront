@@ -1,0 +1,15 @@
+{
+  "responses": [
+    {
+      "url": "https://example.com/robots.txt",
+      "status": 404,
+      "body": ""
+    },
+    {
+      "url": "https://example.com/sitemap.xml",
+      "status": 200,
+      "headers": { "content-type": "application/xml" },
+      "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset><url><loc>https://example.com/</loc></url><url><loc>https://example.com/admin/users</loc></url><url><loc>https://example.com/dashboard/billing</loc></url></urlset>"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-12",
+      "severity": "CRITICAL",
+      "titleIncludes": "Database connection string"
+    }
+  ]
+}

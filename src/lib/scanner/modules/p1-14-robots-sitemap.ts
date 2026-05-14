@@ -79,8 +79,12 @@ export async function runRobotsSitemapModule(crawl: CrawlResult): Promise<RawFin
       });
     }
 
-    // Check if robots.txt blocks all crawlers on a public site
-    if (robotsTxt.includes('Disallow: /') && robotsTxt.includes('User-agent: *')) {
+    // Check if robots.txt blocks all crawlers on a public site.
+    // The Disallow line must be exactly "/", not a prefix like "/admin" — match
+    // a whole line so e.g. `Disallow: /admin` doesn't trip the substring check.
+    const blocksAll = /^\s*Disallow:\s*\/\s*(?:#.*)?$/m.test(robotsTxt);
+    const wildcardUA = /^\s*User-agent:\s*\*\s*(?:#.*)?$/m.test(robotsTxt);
+    if (blocksAll && wildcardUA) {
       findings.push({
         moduleId: 'P1-14',
         severity: 'INFO',

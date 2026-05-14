@@ -56,6 +56,48 @@ strict-transport-security: max-age=31536000; includeSubDomains
 # x-frame-options is intentionally omitted to trigger a finding
 ```
 
+### `<case>.fetch.json`
+
+Canned responses for modules that probe URLs (P1-01, P1-02, P1-06, P1-07,
+P1-11, P1-12, P1-13, P1-14). The harness installs a `global.fetch` mock for
+the duration of the test, then restores the original.
+
+```json
+{
+  "responses": [
+    {
+      "url": "https://example.com/robots.txt",
+      "status": 200,
+      "headers": { "content-type": "text/plain" },
+      "body": "User-agent: *\nDisallow: /admin\n"
+    },
+    {
+      "urlMatches": "https://example\\.com/api/.*",
+      "status": 200,
+      "headers": { "access-control-allow-origin": "*" },
+      "body": ""
+    }
+  ],
+  "default": { "status": 404, "body": "Not Found" }
+}
+```
+
+Match order: each `responses[]` entry is checked in array order (first match
+wins), then `default`. If neither matches, the mock **throws** — this surfaces
+as a clear test failure rather than the module hanging or seeing `undefined`.
+That throw is intentional: every URL the module touches must be accounted for.
+
+Response fields:
+
+- `url` — exact string match.
+- `urlMatches` — JavaScript regex, tested with `new RegExp(value).test(url)`.
+- `status` — default 200.
+- `headers` — default `{}`.
+- `body` — default `""`.
+
+The mock builds a standard `Response` object, so modules can use `.ok`,
+`.status`, `.text()`, `.headers.get()`, etc. as they normally would.
+
 ## Expected file
 
 ```json
@@ -124,7 +166,9 @@ just drop the files in and the next test run picks them up.
 
 ### Modules that make network calls
 
-The current runner builds a `CrawlResult` and calls the module — it does **not**
-mock `fetch`. Modules that probe live endpoints (P1-01, P1-02, P1-06, P1-07,
-P1-11, P1-12, P1-13, P1-14) need a fetch-mock layer before they can be fixtured.
-That's a v2 of this harness; tracked in `BUILD_PHASE.md` Phase 3.10.
+The runner installs a `global.fetch` mock per case, so modules that probe
+live endpoints can be fixtured by adding a `<case>.fetch.json` file (see
+above). For network-probing modules a fetch spec is effectively required —
+if your case is missing canned responses for any URL the module touches,
+the mock throws and the test fails with a clear "no canned response for
+&lt;URL&gt;" message.

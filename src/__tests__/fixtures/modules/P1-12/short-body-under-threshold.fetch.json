@@ -1,0 +1,7 @@
+{
+  "default": {
+    "status": 500,
+    "headers": { "content-type": "text/plain" },
+    "body": "Express 4.5 err"
+  }
+}

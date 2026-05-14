@@ -1,0 +1,10 @@
+{
+  "responses": [
+    {
+      "url": "https://example.com/undefined",
+      "status": 500,
+      "body": "DatabaseError: failed to connect to postgres://app:s3cretP@ss@db.internal:5432/production — please check DATABASE_URL configuration."
+    }
+  ],
+  "default": { "status": 404, "body": "Not Found" }
+}

@@ -4,8 +4,10 @@ import {
   buildCrawl,
   diffFindings,
   discoverFixtures,
+  installFetchMock,
   MODULE_REGISTRY,
   type ExpectedOutput,
+  type FetchSpec,
 } from './runner';
 
 const cases = discoverFixtures();
@@ -30,7 +32,17 @@ describe('Scanner module fixtures', () => {
           fs.readFileSync(fixture.expectedPath, 'utf8'),
         ) as ExpectedOutput;
 
-        const actual = await runner(crawl);
+        const spec: FetchSpec = fixture.inputs.fetch
+          ? (JSON.parse(fixture.inputs.fetch) as FetchSpec)
+          : {};
+        const restoreFetch = installFetchMock(spec);
+
+        let actual;
+        try {
+          actual = await runner(crawl);
+        } finally {
+          restoreFetch();
+        }
         const { missing, unexpected } = diffFindings(expected.findings, actual);
 
         if (missing.length || unexpected.length) {

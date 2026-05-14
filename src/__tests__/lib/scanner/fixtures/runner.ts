@@ -8,12 +8,14 @@
  *   <case>.input.json     — partial CrawlResult, deep-merged over defaults
  *   <case>.input.html     — raw HTML, assigned to crawl.html
  *   <case>.input.headers  — RFC822-style "name: value" lines, assigned to crawl.headers
+ *   <case>.fetch.json     — canned fetch responses for modules that probe URLs
  *   <case>.expected.json  — required; describes expected findings
  *
  * See docs/core/FIXTURE_GUIDE.md for the authoring guide.
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { vi } from 'vitest';
 import type { CrawlResult, RawFinding, Severity } from '@/lib/scanner/types';
 import { runHeadersModule } from '@/lib/scanner/modules/p1-03-headers';
 import { runTLSModule } from '@/lib/scanner/modules/p1-04-tls';
@@ -21,6 +23,8 @@ import { runCookiesModule } from '@/lib/scanner/modules/p1-05-cookies';
 import { runMixedContentModule } from '@/lib/scanner/modules/p1-08-mixed-content';
 import { runThirdPartyScriptsModule } from '@/lib/scanner/modules/p1-09-third-party-scripts';
 import { runCacheModule } from '@/lib/scanner/modules/p1-15-cache';
+import { runErrorDisclosureModule } from '@/lib/scanner/modules/p1-12-error-disclosure';
+import { runRobotsSitemapModule } from '@/lib/scanner/modules/p1-14-robots-sitemap';
 
 type ModuleRunner = (crawl: CrawlResult) => RawFinding[] | Promise<RawFinding[]>;
 
@@ -34,6 +38,8 @@ export const MODULE_REGISTRY: Record<string, ModuleRunner> = {
   'P1-05': runCookiesModule,
   'P1-08': runMixedContentModule,
   'P1-09': runThirdPartyScriptsModule,
+  'P1-12': runErrorDisclosureModule,
+  'P1-14': runRobotsSitemapModule,
   'P1-15': runCacheModule,
 };
 
@@ -52,8 +58,21 @@ export interface ExpectedOutput {
 export interface FixtureCase {
   moduleId: string;
   name: string;
-  inputs: { json?: string; html?: string; headers?: string };
+  inputs: { json?: string; html?: string; headers?: string; fetch?: string };
   expectedPath: string;
+}
+
+export interface FetchResponseSpec {
+  url?: string;          // exact URL match
+  urlMatches?: string;   // regex match against the full URL
+  status?: number;       // default 200
+  headers?: Record<string, string>;
+  body?: string;         // default ''
+}
+
+export interface FetchSpec {
+  responses?: FetchResponseSpec[];
+  default?: FetchResponseSpec;
 }
 
 const FIXTURES_ROOT = path.resolve(
@@ -146,7 +165,7 @@ export function discoverFixtures(root: string = FIXTURES_ROOT): FixtureCase[] {
     const files = fs.readdirSync(moduleDir);
     const caseNames = new Set<string>();
     for (const f of files) {
-      const m = f.match(/^(.+?)\.(input|expected)\.(json|html|headers)$/);
+      const m = f.match(/^(.+?)\.(input|expected|fetch)\.(json|html|headers)$/);
       if (m) caseNames.add(m[1]);
     }
 
@@ -157,9 +176,11 @@ export function discoverFixtures(root: string = FIXTURES_ROOT): FixtureCase[] {
       const jsonPath = path.join(moduleDir, `${name}.input.json`);
       const htmlPath = path.join(moduleDir, `${name}.input.html`);
       const headersPath = path.join(moduleDir, `${name}.input.headers`);
+      const fetchPath = path.join(moduleDir, `${name}.fetch.json`);
       if (fs.existsSync(jsonPath)) inputs.json = fs.readFileSync(jsonPath, 'utf8');
       if (fs.existsSync(htmlPath)) inputs.html = fs.readFileSync(htmlPath, 'utf8');
       if (fs.existsSync(headersPath)) inputs.headers = fs.readFileSync(headersPath, 'utf8');
+      if (fs.existsSync(fetchPath)) inputs.fetch = fs.readFileSync(fetchPath, 'utf8');
 
       cases.push({ moduleId, name, inputs, expectedPath });
     }
@@ -174,6 +195,42 @@ export function matchFinding(expected: ExpectedFinding, actual: RawFinding): boo
   if (expected.titleIncludes && !actual.title.includes(expected.titleIncludes)) return false;
   if (expected.evidenceIncludes && !actual.evidence.includes(expected.evidenceIncludes)) return false;
   return true;
+}
+
+function buildResponse(spec: FetchResponseSpec): Response {
+  return new Response(spec.body ?? '', {
+    status: spec.status ?? 200,
+    headers: spec.headers ?? {},
+  });
+}
+
+function matchResponseSpec(url: string, spec: FetchResponseSpec): boolean {
+  if (spec.url && spec.url === url) return true;
+  if (spec.urlMatches && new RegExp(spec.urlMatches).test(url)) return true;
+  return false;
+}
+
+/**
+ * Installs a mock for global.fetch that returns canned responses per the spec.
+ * Returns a restore function that should be called in a finally block.
+ *
+ * Match order: explicit responses (in array order) → default → throw. A throw
+ * is intentional so a missing canned response shows up as a clear test failure
+ * rather than a hang or a generic network error.
+ */
+export function installFetchMock(spec: FetchSpec): () => void {
+  const originalFetch = global.fetch;
+  global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    for (const r of spec.responses ?? []) {
+      if (matchResponseSpec(url, r)) return buildResponse(r);
+    }
+    if (spec.default) return buildResponse(spec.default);
+    throw new Error(`fixture fetch-mock: no canned response for ${url}`);
+  }) as typeof fetch;
+  return () => {
+    global.fetch = originalFetch;
+  };
 }
 
 export function diffFindings(

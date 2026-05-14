@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-12",
+      "severity": "HIGH",
+      "titleIncludes": "Node.js / Express stack trace"
+    }
+  ]
+}
