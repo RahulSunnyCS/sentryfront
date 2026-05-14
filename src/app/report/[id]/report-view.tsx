@@ -197,6 +197,9 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           </div>
         )}
 
+        {/* Deeper-scan teaser — these issue classes don't surface in a passive scan */}
+        <DeeperScansBox scanUrl={scanData.url} />
+
         {/* Unified Tabs Widget */}
         <div style={{
           background: 'var(--surface)',
@@ -487,6 +490,113 @@ function SecurityTabBody({
             ))}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function DeeperScansBox({ scanUrl }: { scanUrl: string }) {
+  return (
+    <div
+      aria-labelledby="deeper-scans-title"
+      style={{
+        background: 'linear-gradient(135deg, rgba(13,148,136,0.07), rgba(124,58,237,0.05))',
+        border: '1px solid rgba(13,148,136,0.25)',
+        borderRadius: 14,
+        padding: '20px 22px',
+        marginBottom: 20,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <span style={{ fontSize: 22 }} aria-hidden="true">🔎</span>
+        <div>
+          <h3 id="deeper-scans-title" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+            This is a passive surface scan — deeper checks find more issues
+          </h3>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0', lineHeight: 1.5 }}>
+            Some issue classes only surface with authenticated sessions, source-code access, or live exploit probes.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+        <DeeperScanCard
+          emoji="🔐"
+          title="Auth-only flaws"
+          desc="Broken access control, IDOR, privileged endpoints."
+          ctaLabel="Sign in →"
+          href="/login"
+        />
+        <DeeperScanCard
+          emoji="🐙"
+          title="Source-code findings"
+          desc="Hardcoded secrets, vulnerable deps, SSRF gadgets."
+          comingSoon
+        />
+        <DeeperScanCard
+          emoji="🎯"
+          title="Live exploit probes"
+          desc="SQL injection, XSS, API fuzzing — proven by real attacks."
+          ctaLabel="Run active test →"
+          href={`/active-test?url=${encodeURIComponent(scanUrl)}`}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DeeperScanCard({
+  emoji, title, desc, ctaLabel, href, comingSoon,
+}: {
+  emoji: string;
+  title: string;
+  desc: string;
+  ctaLabel?: string;
+  href?: string;
+  comingSoon?: boolean;
+}) {
+  return (
+    <div style={{
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 10,
+      padding: '12px 14px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 6,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 16 }} aria-hidden="true">{emoji}</span>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{title}</div>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{desc}</div>
+      {comingSoon ? (
+        <span style={{
+          alignSelf: 'flex-start',
+          fontSize: 11,
+          fontWeight: 600,
+          color: 'var(--text-tertiary)',
+          background: 'var(--surface-secondary)',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          padding: '3px 8px',
+          marginTop: 2,
+        }}>
+          Coming soon
+        </span>
+      ) : (
+        <Link
+          href={href!}
+          style={{
+            alignSelf: 'flex-start',
+            fontSize: 12,
+            fontWeight: 700,
+            color: 'var(--accent)',
+            marginTop: 2,
+          }}
+        >
+          {ctaLabel}
+        </Link>
       )}
     </div>
   );
