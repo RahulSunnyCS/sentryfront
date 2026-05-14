@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
 import { SEVERITY_CONFIG } from '@/lib/data';
 import type { Finding, CardStyle, Severity } from '@/types';
 import { SeverityBadge } from './severity-badge';
@@ -20,6 +20,8 @@ interface Props {
   isExpanded: boolean;
   onToggle: () => void;
   cardStyle: CardStyle;
+  /** When true, the AI Fix Prompt is hidden behind a Pro Lock overlay. */
+  isAiPromptLocked?: boolean;
 }
 
 const sectionTitle: React.CSSProperties = {
@@ -31,8 +33,7 @@ const bodyText: React.CSSProperties = {
   fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0,
 };
 
-export function FindingCard({ finding, isExpanded, onToggle, cardStyle }: Props) {
-  const [fixTab, setFixTab] = useState<'manual' | 'ai'>('manual');
+export function FindingCard({ finding, isExpanded, onToggle, cardStyle, isAiPromptLocked = false }: Props) {
   const sevConfig = SEVERITY_CONFIG[finding.severity];
 
   const border = cardStyle === 'bordered'
@@ -77,17 +78,18 @@ export function FindingCard({ finding, isExpanded, onToggle, cardStyle }: Props)
       {isExpanded && (
         <div style={{ padding: '0 16px 20px', borderTop: '1px solid var(--border-light)' }}>
           <div style={{ marginTop: 16 }}>
-            <div style={sectionTitle}>What this means</div>
-            <p style={bodyText}>{finding.explanation}</p>
-          </div>
-
-          <div style={{ marginTop: 16 }}>
             <div style={sectionTitle}>Evidence</div>
             <pre style={{
               backgroundColor: '#1a1a2e', color: '#e2e8f0', padding: '14px 16px',
               borderRadius: 8, fontSize: 12.5, lineHeight: 1.6, overflowX: 'auto',
               fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+              margin: 0,
             }}>{finding.evidence}</pre>
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <div style={sectionTitle}>Explanation</div>
+            <p style={bodyText}>{finding.explanation}</p>
           </div>
 
           <div style={{ marginTop: 16 }}>
@@ -96,51 +98,86 @@ export function FindingCard({ finding, isExpanded, onToggle, cardStyle }: Props)
           </div>
 
           <div style={{ marginTop: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={sectionTitle}>How to fix</div>
-              <div style={{ display: 'flex', gap: 2, backgroundColor: 'var(--border-light)', borderRadius: 8, padding: 2 }}>
-                {(['manual', 'ai'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setFixTab(tab)}
+            <div style={sectionTitle}>Manual fix</div>
+            <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {finding.fixManual.map((step, i) => (
+                <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <span
+                    aria-hidden="true"
                     style={{
-                      padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                      fontSize: 12, fontWeight: 600,
-                      backgroundColor: fixTab === tab ? 'var(--surface)' : 'transparent',
-                      color: fixTab === tab ? 'var(--text)' : 'var(--text-tertiary)',
-                      boxShadow: fixTab === tab ? 'var(--shadow-sm)' : 'none',
-                      transition: 'all 0.15s',
+                      flexShrink: 0,
+                      width: 24, height: 24, borderRadius: 999,
+                      background: 'var(--accent)', color: '#fff',
+                      fontSize: 12, fontWeight: 700,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      marginTop: 1,
                     }}
                   >
-                    {tab === 'manual' ? 'Manual steps' : 'AI prompt'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {fixTab === 'manual' ? (
-              <ol style={{ paddingLeft: 20, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {finding.fixManual.map((step, i) => (
-                  <li key={i} style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{step}</li>
-                ))}
-              </ol>
-            ) : (
-              <div>
-                <div style={{
-                  backgroundColor: 'var(--accent-light)', border: '1px solid var(--accent)',
-                  borderRadius: 8, padding: '14px 16px', fontSize: 13, lineHeight: 1.6,
-                  color: 'var(--text)', marginBottom: 10, opacity: 0.9,
-                  fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap',
-                }}>
-                  {finding.fixAiPrompt}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <CopyButton text={finding.fixAiPrompt} label="Copy prompt" />
-                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-                    Paste into Cursor, Lovable, or Bolt
+                    {i + 1}
                   </span>
+                  <span style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* AI Fix Prompt — locked behind a Pro Lock overlay for free / unauthenticated users. */}
+          <div style={{ marginTop: 20 }}>
+            {isAiPromptLocked ? (
+              <Link
+                href="/pricing#one-shot"
+                aria-label="Unlock AI fix prompt"
+                style={{
+                  display: 'block',
+                  borderRadius: 10,
+                  border: '1px dashed rgba(13,148,136,0.4)',
+                  background: 'linear-gradient(135deg, rgba(13,148,136,0.08), rgba(124,58,237,0.06))',
+                  padding: 20,
+                  textAlign: 'center',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <div aria-hidden="true" style={{ fontSize: 20, marginBottom: 6 }}>🔒</div>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>
+                  Pro: Get the exact Cursor / Lovable prompt
                 </div>
-              </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                  AI codes the fix in minutes — paste, review, deploy.
+                </div>
+                <span style={{
+                  display: 'inline-block',
+                  padding: '7px 16px',
+                  background: 'var(--accent)',
+                  color: '#fff',
+                  borderRadius: 7,
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}>
+                  Unlock AI Fix Prompt →
+                </span>
+              </Link>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
+                  <div style={sectionTitle}>🤖 AI fix prompt</div>
+                  <CopyButton text={finding.fixAiPrompt} label="Copy prompt" />
+                </div>
+                <pre style={{
+                  backgroundColor: 'var(--accent-light)',
+                  border: '1px solid var(--accent)',
+                  borderRadius: 8, padding: '14px 16px',
+                  fontSize: 13, lineHeight: 1.6,
+                  color: 'var(--text)', opacity: 0.95,
+                  fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap',
+                  margin: 0,
+                  overflowX: 'auto',
+                }}>{finding.fixAiPrompt}</pre>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6 }}>
+                  Paste into Cursor, Lovable, v0, or Bolt.
+                </div>
+              </>
             )}
           </div>
         </div>

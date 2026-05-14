@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { GRADE_CONFIG, SEVERITY_CONFIG, SCAN_MODULES } from '@/lib/data';
+import { GRADE_CONFIG, SCAN_MODULES } from '@/lib/data';
 import type { ScanData, Severity, Finding, Grade } from '@/types';
 import { GradeDisplay } from '@/components/grade-display';
 import { SeveritySummary } from '@/components/severity-summary';
@@ -52,9 +52,13 @@ interface FindingsResponse {
   };
 }
 
+type ReportView = 'critical' | 'all' | 'passed';
+
 export function ReportView({ scanData }: { scanData: ScanData }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [filterSeverity, setFilterSeverity] = useState<'ALL' | Severity>('ALL');
+  const [activeView, setActiveView] = useState<ReportView>(
+    scanData.summary.CRITICAL > 0 ? 'critical' : 'all',
+  );
   const [gatedFindings, setGatedFindings] = useState<Finding[]>(scanData.findings);
   const [tierMeta, setTierMeta] = useState<FindingsResponse['meta'] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,16 +106,20 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
   const showImprovementPill =
     criticalHighCount > 0 && projectedGrade !== scanData.grade;
   const improvementPill = showImprovementPill ? (
-    <a
-      href="#findings"
+    <button
+      type="button"
+      onClick={() => {
+        setActiveView('critical');
+        document.getElementById('report-views')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }}
       style={{
-        fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)',
-        background: 'var(--surface-secondary)', border: '1px solid var(--border)',
-        borderRadius: 999, padding: '4px 10px', textDecoration: 'none',
+        fontSize: 12, fontWeight: 600, color: '#059669',
+        background: 'rgba(5,150,105,0.10)', border: '1px solid rgba(5,150,105,0.25)',
+        borderRadius: 999, padding: '4px 10px', cursor: 'pointer',
       }}
     >
-      Fix {criticalHighCount} highest-severity {criticalHighCount === 1 ? 'finding' : 'findings'} → grade improves to {projectedGrade}
-    </a>
+      ✨ Fix {criticalHighCount} {criticalHighCount === 1 ? 'finding' : 'findings'} → grade improves to {projectedGrade}
+    </button>
   ) : null;
 
   // Modules with 0 findings on this scan — derived because real scans
@@ -122,15 +130,12 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
   }, {});
   const passedModules = SCAN_MODULES.filter((m) => (findingsPerModule[m.id] ?? 0) === 0);
 
-  const filtered = filterSeverity === 'ALL'
-    ? gatedFindings
-    : gatedFindings.filter((f) => f.severity === filterSeverity);
-
-  const sorted = [...filtered].sort(
+  const sortedAll = [...gatedFindings].sort(
     (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity),
   );
+  const criticalFindings = sortedAll.filter((f) => f.severity === 'CRITICAL');
 
-  const activeSeverities = SEVERITY_ORDER.filter((s) => (scanData.summary[s] ?? 0) > 0);
+  const isLockedAiPrompt = !tierMeta || tierMeta.tier === 'free';
 
   const execSummary =
     scanData.grade === 'D' || scanData.grade === 'F'
@@ -138,6 +143,26 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
       : scanData.grade === 'C'
       ? <>This site has some security gaps that should be addressed. While no critical issues were found, the medium-severity findings reduce your overall security posture.</>
       : <>This site has a <strong style={{ color: 'var(--text)' }}>solid security posture</strong>. The remaining findings are minor improvements that would further harden your site.</>;
+
+  const findingCardsList = (findings: Finding[]) =>
+    findings.length === 0 ? (
+      <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-tertiary)', fontSize: 14 }}>
+        Nothing to show in this view.
+      </div>
+    ) : (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {findings.map((finding) => (
+          <FindingCard
+            key={finding.id}
+            finding={finding}
+            isExpanded={expandedId === finding.id}
+            onToggle={() => setExpandedId(expandedId === finding.id ? null : finding.id)}
+            cardStyle="elevated"
+            isAiPromptLocked={isLockedAiPrompt}
+          />
+        ))}
+      </div>
+    );
 
   return (
     <div className="screen-enter" style={{ minHeight: '100vh', padding: '24px 24px 80px' }}>
@@ -147,7 +172,7 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
         <div style={{
           backgroundColor: 'var(--surface)', borderRadius: 16,
           border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)',
-          padding: 32, marginBottom: 28,
+          padding: 32, marginBottom: 20,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
             <GradeDisplay grade={scanData.grade} size={140} style="ring" animated />
@@ -164,19 +189,6 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
                 <span>{scanData.date}</span>
               </div>
               <SeveritySummary summary={scanData.summary} />
-
-              {/* Soft grade band + honest improvement pill */}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-                <span style={{
-                  fontSize: 12, fontWeight: 600, color: gradeConfig.color,
-                  background: gradeConfig.bg,
-                  border: `1px solid ${gradeConfig.color}33`,
-                  borderRadius: 999, padding: '4px 10px',
-                }}>
-                  {GRADE_BAND[scanData.grade]}
-                </span>
-                {improvementPill}
-              </div>
             </div>
           </div>
 
@@ -191,7 +203,104 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           </div>
         </div>
 
-        {/* CRITICAL urgency callout — shown only when there are CRITICAL findings */}
+        {/* Active Testing CTA Banner — sits between header and findings, matching
+            the demo's order. Encourages active DAST testing as a next step. */}
+        <aside
+          aria-labelledby="active-test-cta-title"
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: 14,
+            border: '1px solid rgba(220,38,38,0.25)',
+            background: 'linear-gradient(135deg, rgba(220,38,38,0.08), rgba(124,58,237,0.08))',
+            padding: '20px 24px',
+            marginBottom: 16,
+            display: 'flex',
+            gap: 16,
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 280 }}>
+            <div
+              aria-hidden="true"
+              style={{
+                width: 40, height: 40, flexShrink: 0,
+                borderRadius: 10,
+                background: 'rgba(220,38,38,0.12)', color: '#DC2626',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18,
+              }}
+            >
+              🔴
+            </div>
+            <div>
+              <h3 id="active-test-cta-title" style={{ fontSize: 14, fontWeight: 700, margin: '0 0 3px', color: 'var(--text)' }}>
+                Go deeper: Run Active Security Test
+              </h3>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                {scanData.summary.CRITICAL > 0 ? (
+                  <>
+                    We found{' '}
+                    <strong style={{ color: '#E11D48' }}>
+                      {scanData.summary.CRITICAL} critical {scanData.summary.CRITICAL === 1 ? 'finding' : 'findings'}
+                    </strong>
+                    {' '}that may be exploitable. Confirm with real attack probes — SQLi, XSS, auth bypass.
+                  </>
+                ) : (
+                  <>
+                    Confirm passive findings with real attack probes — SQLi, XSS, auth bypass — rate-limited and opt-in.
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right' }}>
+              3 credits · ~8 min
+              <br />
+              Requires domain verify
+            </div>
+            <Link
+              href={`/active-test?url=${encodeURIComponent(scanData.url)}`}
+              style={{
+                padding: '10px 20px',
+                background: '#DC2626',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 9,
+                fontSize: 14,
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              Run Active Test →
+            </Link>
+          </div>
+        </aside>
+
+        {/* Grade Percentile + Improvement Bar (demo lines 3162-3170) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <span style={{
+            background: gradeConfig.bg,
+            border: `1px solid ${gradeConfig.color}33`,
+            borderRadius: 8,
+            padding: '8px 14px',
+            fontSize: 13,
+            color: gradeConfig.color,
+            fontWeight: 600,
+          }}>
+            📊 {GRADE_BAND[scanData.grade]}
+          </span>
+          {improvementPill}
+        </div>
+
+        {/* CRITICAL urgency callout — shown only when there are CRITICAL findings.
+            Includes a "View Critical Issues" button that switches to the critical view. */}
         {scanData.summary.CRITICAL > 0 && (
           <aside
             role="alert"
@@ -199,11 +308,11 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
               borderRadius: 14,
               border: '2px solid rgba(225,29,72,0.4)',
               background: 'linear-gradient(135deg, rgba(225,29,72,0.12), rgba(220,38,38,0.06))',
-              padding: '14px 18px',
-              marginBottom: 24,
+              padding: '20px 24px',
+              marginBottom: 20,
               display: 'flex',
               alignItems: 'center',
-              gap: 14,
+              gap: 16,
               flexWrap: 'wrap',
             }}
           >
@@ -219,40 +328,35 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
               <IconAlertCircle size={20} color="#BE123C" />
             </div>
             <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#BE123C', lineHeight: 1.3 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#BE123C', lineHeight: 1.3, marginBottom: 4 }}>
                 {scanData.summary.CRITICAL} CRITICAL {scanData.summary.CRITICAL === 1 ? 'issue needs' : 'issues need'} immediate action
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.5 }}>
-                Most exposed secrets get scraped from public sources within 24-72 hours. The AI fix prompts below pair each issue with a copy-paste remediation you can drop straight into Cursor or Lovable.
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Most exposed secrets get scraped from public sources within 24-72 hours. The fix prompts below pair each issue with a copy-paste remediation.
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveView('critical');
+                document.getElementById('report-views')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              style={{
+                padding: '10px 20px',
+                background: '#E11D48',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 9,
+                fontSize: 14,
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              View Critical Issues →
+            </button>
           </aside>
-        )}
-
-        {/* Performance Section - only show if performance data is available */}
-        {scanData.performanceData && scanData.id && (
-          <PerformanceSection
-            scanId={scanData.id}
-            performanceData={scanData.performanceData}
-          />
-        )}
-
-        {/* Accessibility Section - only show if accessibility data is available */}
-        {scanData.accessibilityData && (
-          <AccessibilitySection
-            accessibilityData={scanData.accessibilityData}
-            findings={gatedFindings}
-          />
-        )}
-
-        {/* SEO Section - only show if SEO data is available */}
-        {scanData.seoData && (
-          <SEOSection
-            seoGrade={scanData.seoData.seoGrade}
-            seoScore={scanData.seoData.seoScore}
-            seoMetrics={scanData.seoData.seoMetrics}
-            findings={gatedFindings}
-          />
         )}
 
         {/* Tier gate banner */}
@@ -266,225 +370,234 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           />
         )}
 
-        {/* Findings header + filter */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-          <h2 id="findings" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', scrollMarginTop: 72 }}>
-            Findings ({sorted.length})
-          </h2>
-          <div role="tablist" aria-label="Filter findings by severity" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {(['ALL', ...activeSeverities] as const).map((sev) => {
-              const active = filterSeverity === sev;
-              const cfg = sev === 'ALL' ? null : SEVERITY_CONFIG[sev as Severity];
-              const count = sev === 'ALL'
-                ? gatedFindings.length
-                : (scanData.summary[sev as Severity] ?? 0);
-              return (
-                <button
-                  key={sev}
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setFilterSeverity(sev)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '5px 11px', borderRadius: 999,
-                    border: '1px solid',
-                    borderColor: active ? (cfg?.color ?? 'var(--text)') : 'var(--border)',
-                    backgroundColor: active ? (cfg?.bg ?? 'var(--text)') : 'var(--surface)',
-                    color: active ? (cfg?.color ?? '#fff') : 'var(--text-secondary)',
-                    fontSize: 11, fontWeight: 700,
-                    letterSpacing: '0.02em',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {cfg && (
-                    <span aria-hidden="true" style={{
-                      width: 6, height: 6, borderRadius: 999,
-                      backgroundColor: cfg.color,
-                    }} />
-                  )}
-                  {sev === 'ALL' ? 'All' : sev.charAt(0) + sev.slice(1).toLowerCase()}
-                  <span style={{
-                    fontSize: 10, fontWeight: 600,
-                    padding: '1px 6px', borderRadius: 999,
-                    backgroundColor: active ? 'rgba(0,0,0,0.06)' : 'var(--surface-secondary)',
-                    color: active ? (cfg?.color ?? 'inherit') : 'var(--text-tertiary)',
-                  }}>{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Finding cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {sorted.map((finding) => (
-            <FindingCard
-              key={finding.id}
-              finding={finding}
-              isExpanded={expandedId === finding.id}
-              onToggle={() => setExpandedId(expandedId === finding.id ? null : finding.id)}
-              cardStyle="elevated"
-            />
-          ))}
-        </div>
-
-        {sorted.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-tertiary)', fontSize: 14 }}>
-            No findings match this filter.
-          </div>
-        )}
-
-        {/* Passed Checks — modules that returned zero findings on this scan.
-            Auto-expanded on strong grades so the user sees what they got right
-            rather than only the (few) remaining findings. */}
-        {passedModules.length > 0 && (
-          <details
-            open={scanData.grade === 'A' || scanData.grade === 'B'}
-            style={{
-              marginTop: 28, borderRadius: 12,
-              border: '1px solid rgba(5,150,105,0.25)',
-              background: 'rgba(5,150,105,0.04)',
-              padding: '14px 16px',
-            }}
-          >
-            <summary
-              aria-label="Passed security checks"
-              style={{
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
-                fontSize: 14, fontWeight: 700, color: 'var(--text)',
-                listStyle: 'none',
-              }}
-            >
-              <span aria-hidden="true" style={{
-                width: 22, height: 22, borderRadius: 999, background: '#059669',
-                color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <IconCheck size={14} color="#fff" />
-              </span>
-              {passedModules.length} {passedModules.length === 1 ? 'check' : 'checks'} passed
-            </summary>
-            <ul style={{
-              listStyle: 'none', padding: 0, margin: '12px 0 0',
-              display: 'flex', flexDirection: 'column', gap: 6,
-            }}>
-              {passedModules.map((m) => (
-                <li key={m.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 12px', borderRadius: 8,
-                  background: 'var(--surface)', border: '1px solid rgba(5,150,105,0.18)',
-                }}>
-                  <span aria-hidden="true" style={{ color: '#059669', display: 'inline-flex', flexShrink: 0 }}>
-                    <IconCheck size={16} color="#059669" />
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{m.plainName}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{m.name}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-
-        {/* Active Testing CTA banner — placed below findings so it lands
-            after the user has seen the issues it promises to verify. */}
-        <aside
-          aria-labelledby="active-test-cta-title"
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: 16,
-            border: '1px solid rgba(220,38,38,0.30)',
-            background: 'linear-gradient(135deg, rgba(220,38,38,0.10), rgba(245,158,11,0.06))',
-            padding: '20px 22px',
-            marginTop: 28,
-            display: 'flex',
-            gap: 20,
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
+        {/* Report filter tabs (demo lines 3183-3193) */}
+        <div
+          id="report-views"
+          role="tablist"
+          aria-label="Filter findings by view"
+          style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', scrollMarginTop: 72 }}
         >
-          <div
-            aria-hidden="true"
-            style={{
-              width: 48, height: 48, flexShrink: 0,
-              borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(220,38,38,0.15)', color: '#DC2626', fontSize: 24,
-            }}
-          >
-            ⚔️
-          </div>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span
+          {([
+            { view: 'critical' as const, label: '🚨 Critical', count: criticalFindings.length, color: '#E11D48' },
+            { view: 'all' as const, label: '📋 All Issues', count: gatedFindings.length, color: 'var(--text-tertiary)' },
+            { view: 'passed' as const, label: '✅ Passed', count: passedModules.length, color: '#059669' },
+          ]).map(({ view, label, count, color }) => {
+            const active = activeView === view;
+            return (
+              <button
+                key={view}
+                role="tab"
+                type="button"
+                aria-selected={active}
+                onClick={() => setActiveView(view)}
                 style={{
-                  fontSize: 10, fontWeight: 800, color: '#DC2626',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                  padding: '3px 8px', borderRadius: 999,
-                  background: 'rgba(220,38,38,0.12)',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 14px', borderRadius: 999,
+                  border: '1px solid',
+                  borderColor: active ? color : 'var(--border)',
+                  background: active ? `${color}1A` : 'var(--surface)',
+                  color: active ? color : 'var(--text-secondary)',
+                  fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
                 }}
               >
-                <span className="pulse-soft" aria-hidden="true">●</span> Next step
-              </span>
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>~8 min · 3 credits</span>
-            </div>
-            <h3 id="active-test-cta-title" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>
-              Want CONFIRMED proof these issues are exploitable?
-            </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-              Run an active DAST scan — real attack probes (SQLi, XSS, auth bypass) rate-limited and opt-in. Replaces a $5,000 manual pentest.
-            </p>
-          </div>
-          <Link
-            href={`/active-test?url=${encodeURIComponent(scanData.url)}`}
-            className="btn-primary"
-            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-          >
-            Run active test →
-          </Link>
-        </aside>
+                {label}
+                <span style={{
+                  background: color,
+                  color: '#fff',
+                  padding: '1px 7px',
+                  borderRadius: 10,
+                  fontSize: 11,
+                  marginLeft: 2,
+                }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Bottom upgrade card — only for unauthenticated or free-tier users
-            who have at least one finding. Honestly framed: real finding count,
-            no urgency timer, no "everything is critical" theatrics. */}
-        {!loading
-          && (!tierMeta || tierMeta.tier === 'free')
-          && scanData.findings.length > 0
-          && (
-            <aside
-              aria-labelledby="unlock-cta-title"
-              style={{
-                marginTop: 28, borderRadius: 16,
-                border: '1px solid rgba(13,148,136,0.30)',
-                background: 'linear-gradient(135deg, rgba(13,148,136,0.10), rgba(124,58,237,0.06))',
-                padding: '24px 22px',
-                display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 220 }}>
-                <h3
-                  id="unlock-cta-title"
-                  style={{ fontSize: 17, fontWeight: 800, margin: '0 0 6px', color: 'var(--text)' }}
-                >
-                  Get the exact AI fix prompt for every finding
-                </h3>
-                <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                  Paste-ready prompts for Cursor, Lovable, v0, and Bolt — fix all{' '}
-                  {scanData.findings.length}{' '}
-                  {scanData.findings.length === 1 ? 'finding' : 'findings'} in under an hour. One-time $9, no subscription.
-                </p>
-              </div>
+        {/* CRITICAL ISSUES VIEW */}
+        {activeView === 'critical' && (
+          <div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              {criticalFindings.length > 0
+                ? <>Showing {criticalFindings.length} critical {criticalFindings.length === 1 ? 'issue' : 'issues'} — fix these first.</>
+                : <>No critical issues found on this scan. Check the All Issues or Passed tabs.</>}
+            </div>
+            {findingCardsList(criticalFindings)}
+          </div>
+        )}
+
+        {/* ALL ISSUES VIEW — grouped under a Security category header.
+            Other categories (Performance/Accessibility/SEO) are rendered as
+            their own scored sections below the findings list. */}
+        {activeView === 'all' && (
+          <div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              {gatedFindings.length > 0
+                ? <>All {gatedFindings.length} {gatedFindings.length === 1 ? 'finding' : 'findings'} detected across Security{scanData.performanceData ? ', Performance' : ''}{scanData.accessibilityData ? ', Accessibility' : ''}{scanData.seoData ? ', SEO' : ''}.</>
+                : <>No findings detected on this scan.</>}
+            </div>
+
+            {gatedFindings.length > 0 && (
+              <>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+                  letterSpacing: '0.08em', color: 'var(--text-tertiary)',
+                  margin: '20px 0 10px',
+                }}>
+                  🛡️ Security
+                </div>
+                {findingCardsList(sortedAll)}
+              </>
+            )}
+
+            {scanData.performanceData && scanData.id && (
+              <>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+                  letterSpacing: '0.08em', color: 'var(--text-tertiary)',
+                  margin: '24px 0 10px',
+                }}>
+                  ⚡ Performance
+                </div>
+                <PerformanceSection
+                  scanId={scanData.id}
+                  performanceData={scanData.performanceData}
+                />
+              </>
+            )}
+
+            {scanData.accessibilityData && (
+              <>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+                  letterSpacing: '0.08em', color: 'var(--text-tertiary)',
+                  margin: '24px 0 10px',
+                }}>
+                  ♿ Accessibility
+                </div>
+                <AccessibilitySection
+                  accessibilityData={scanData.accessibilityData}
+                  findings={gatedFindings}
+                />
+              </>
+            )}
+
+            {scanData.seoData && (
+              <>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+                  letterSpacing: '0.08em', color: 'var(--text-tertiary)',
+                  margin: '24px 0 10px',
+                }}>
+                  🔍 SEO
+                </div>
+                <SEOSection
+                  seoGrade={scanData.seoData.seoGrade}
+                  seoScore={scanData.seoData.seoScore}
+                  seoMetrics={scanData.seoData.seoMetrics}
+                  findings={gatedFindings}
+                />
+              </>
+            )}
+          </div>
+        )}
+
+        {/* PASSED CHECKS VIEW */}
+        {activeView === 'passed' && (
+          <div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              {passedModules.length > 0
+                ? <>{passedModules.length} {passedModules.length === 1 ? 'check' : 'checks'} passed — your site is already doing these things right.</>
+                : <>No passed checks to show.</>}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {passedModules.map((m) => (
+                <div key={m.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 16px', borderRadius: 10,
+                  background: 'var(--surface)',
+                  border: '1px solid rgba(5,150,105,0.2)',
+                }}>
+                  <span aria-hidden="true" style={{
+                    width: 24, height: 24, borderRadius: 999,
+                    background: '#059669',
+                    color: '#fff',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <IconCheck size={14} color="#fff" />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{m.plainName}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{m.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Upgrade prompt (demo lines 3625-3634) — shown in all views.
+            Two-button: $9 one-shot + $29 growth, gated to unauthed/free users. */}
+        {!loading && (!tierMeta || tierMeta.tier === 'free') && scanData.findings.length > 0 && (
+          <div
+            id="upgrade-prompt"
+            style={{
+              background: 'linear-gradient(135deg, rgba(13,148,136,0.10), rgba(124,58,237,0.08))',
+              border: '1px solid rgba(13,148,136,0.3)',
+              borderRadius: 16,
+              padding: '28px 32px',
+              marginTop: 32,
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8, color: 'var(--text)' }}>
+              Fix all {scanData.findings.length} {scanData.findings.length === 1 ? 'finding' : 'findings'} with AI fix prompts
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.5 }}>
+              Get the exact Cursor / Lovable / v0 / Bolt prompt for every finding — AI codes the fix, you paste and deploy.
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 20 }}>
+              No consultant fees, no subscription required. Starting at $9.
+            </div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link
                 href="/pricing#one-shot"
-                className="btn-primary"
-                style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                style={{
+                  padding: '13px 28px', background: 'var(--accent)', color: '#fff',
+                  border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700,
+                  textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
+                }}
               >
-                Unlock for $9 →
+                Get AI Fix Prompts — $9 →
               </Link>
-            </aside>
-          )}
+              <Link
+                href="/pricing#growth"
+                style={{
+                  padding: '13px 28px',
+                  background: 'transparent',
+                  color: 'var(--text)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                  fontSize: 15,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+              >
+                Growth: 25 scans for $29
+              </Link>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 14 }}>
+              Credits never expire · Stripe-secured · 30-day refund guarantee
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Watermark for free tier */}
