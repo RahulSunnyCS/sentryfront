@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeSafe Report · taskflow.app · May 14, 2026</title>
+  <style>
+    /* ───────────────────────────────────────────────────────────
+       Design tokens (light — PDFs default to paper)
+       ─────────────────────────────────────────────────────────── */
+    :root {
+      --bg: #FFFFFF;
+      --surface: #F9FAFB;
+      --surface-2: #F3F4F6;
+      --border: #E5E7EB;
+      --border-strong: #D1D5DB;
+      --text: #111827;
+      --text-secondary: #4B5563;
+      --text-tertiary: #6B7280;
+      --accent: #0D9488;
+      --accent-soft: rgba(13,148,136,0.10);
+      --accent-strong: #0F766E;
+      --critical: #DC2626;
+      --high: #EA580C;
+      --medium: #CA8A04;
+      --low: #2563EB;
+      --pass: #059669;
+      --shadow-card: 0 1px 2px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.05);
+      --radius: 10px;
+      --radius-lg: 14px;
+      --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #E5E7EB; /* paper-on-desk feel when viewed on screen */
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 11pt;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent-strong); text-decoration: none; }
+    h1, h2, h3, h4 { color: var(--text); margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+    p { margin: 0; }
+    ul, ol { margin: 0; padding-left: 1.1em; }
+    code, pre { font-family: var(--mono); font-size: 10pt; }
+
+    /* ───────────────────────────────────────────────────────────
+       Page model — every .page is an A4 sheet on screen, paginated
+       on print. .page-cover starts on its own sheet.
+       ─────────────────────────────────────────────────────────── */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 24px auto;
+      background: var(--bg);
+      padding: 18mm 16mm 22mm; /* leave room for running footer */
+      position: relative;
+      box-shadow: 0 4px 24px rgba(15,23,42,0.10);
+      page-break-after: always;
+    }
+    .page:last-of-type { page-break-after: auto; }
+
+    /* Running header */
+    .running-header {
+      position: absolute;
+      top: 8mm;
+      left: 16mm;
+      right: 16mm;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 9pt;
+      color: var(--text-tertiary);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4mm;
+    }
+    .running-header .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .running-header .brand-mark {
+      width: 14px; height: 14px;
+      background: var(--accent);
+      border-radius: 3px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 9pt;
+      font-weight: 800;
+    }
+    .running-header .meta { font-variant-numeric: tabular-nums; }
+
+    /* Running footer */
+    .running-footer {
+      position: absolute;
+      bottom: 8mm;
+      left: 16mm;
+      right: 16mm;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 9pt;
+      color: var(--text-tertiary);
+      border-top: 1px solid var(--border);
+      padding-top: 4mm;
+    }
+    .running-footer .scan-id {
+      font-family: var(--mono);
+      font-size: 8.5pt;
+      letter-spacing: 0.02em;
+    }
+
+    /* Cover page — no running header/footer, dedicated styling */
+    .page-cover {
+      padding: 0;
+      overflow: hidden;
+    }
+    .page-cover .running-header,
+    .page-cover .running-footer { display: none; }
+
+    .cover-inner {
+      padding: 22mm 18mm;
+      min-height: 297mm;
+      display: flex;
+      flex-direction: column;
+      gap: 14mm;
+    }
+
+    /* ───────────────────────────────────────────────────────────
+       Cover
+       ─────────────────────────────────────────────────────────── */
+    .cover-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .cover-brand .mark {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 18pt;
+    }
+    .cover-brand .name {
+      font-size: 16pt; font-weight: 800; letter-spacing: -0.01em;
+    }
+    .cover-brand .tag {
+      margin-left: auto;
+      font-size: 9.5pt;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .cover-title h1 {
+      font-size: 30pt;
+      line-height: 1.1;
+      margin-bottom: 6mm;
+    }
+    .cover-title p {
+      font-size: 13pt;
+      color: var(--text-secondary);
+      max-width: 140mm;
+    }
+
+    .cover-subject {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16mm;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 12mm;
+    }
+    .cover-subject .url {
+      font-size: 18pt;
+      font-weight: 700;
+    }
+    .cover-subject .url-note {
+      font-size: 10pt;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    /* Grade ring (SVG inside) */
+    .grade-ring {
+      width: 110px;
+      height: 110px;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .grade-ring svg { width: 100%; height: 100%; }
+    .grade-ring .letter {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38pt;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .cover-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6mm;
+    }
+    .cover-meta-grid .item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6mm 5mm;
+    }
+    .cover-meta-grid .item .label {
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+      font-weight: 700;
+      margin-bottom: 3mm;
+    }
+    .cover-meta-grid .item .value {
+      font-size: 13pt;
+      font-weight: 700;
+    }
+
+    .cover-toc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 10mm 12mm;
+    }
+    .cover-toc h2 {
+      font-size: 11pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+      margin-bottom: 6mm;
+    }
+    .cover-toc ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      columns: 2;
+      column-gap: 12mm;
+    }
+    .cover-toc li {
+      display: flex;
+      justify-content: space-between;
+      gap: 6mm;
+      padding: 2mm 0;
+      border-bottom: 1px dotted var(--border);
+      break-inside: avoid;
+      font-size: 11pt;
+    }
+    .cover-toc li .num {
+      color: var(--text-tertiary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cover-footer {
+      margin-top: auto;
+      padding-top: 8mm;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      gap: 6mm;
+      font-size: 9.5pt;
+      color: var(--text-tertiary);
+    }
+    .cover-footer strong { color: var(--text-secondary); font-weight: 600; }
+
+    /* ───────────────────────────────────────────────────────────
+       Section headings inside content pages
+       ─────────────────────────────────────────────────────────── */
+    .section { margin-top: 6mm; }
+    .section + .section { margin-top: 8mm; }
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 5mm;
+      padding-bottom: 3mm;
+      border-bottom: 2px solid var(--text);
+    }
+    .section-head .num {
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--accent-strong);
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+    }
+    .section-head h2 {
+      font-size: 16pt;
+      letter-spacing: -0.01em;
+    }
+    .section-head .right {
+      margin-left: auto;
+      font-size: 9.5pt;
+      color: var(--text-tertiary);
+    }
+
+    .lede {
+      font-size: 11.5pt;
+      color: var(--text-secondary);
+      max-width: 150mm;
+      margin-bottom: 6mm;
+    }
+
+    /* ───────────────────────────────────────────────────────────
+       Executive summary
+       ─────────────────────────────────────────────────────────── */
+    .exec-grid {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 8mm;
+      align-items: center;
+      padding: 6mm;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 6mm;
+    }
+    .exec-grid .verdict h3 {
+      font-size: 14pt;
+      margin-bottom: 2mm;
+    }
+    .exec-grid .verdict p {
+      font-size: 10.5pt;
+      color: var(--text-secondary);
+    }
+    .severity-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4mm;
+      margin: 4mm 0 6mm;
+    }
+    .sev-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4mm 5mm;
+      display: flex;
+      flex-direction: column;
+      gap: 1mm;
+    }
+    .sev-pill .n {
+      font-size: 22pt;
+      font-weight: 800;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .sev-pill .label {
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+      font-weight: 700;
+    }
+    .sev-pill.critical .n { color: var(--critical); }
+    .sev-pill.high .n     { color: var(--high); }
+    .sev-pill.medium .n   { color: var(--medium); }
+    .sev-pill.low .n      { color: var(--low); }
+    .sev-pill.passed .n   { color: var(--pass); }
+
+    .category-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 3mm;
+      margin-top: 4mm;
+    }
+    .cat-row {
+      display: grid;
+      grid-template-columns: 36mm 1fr 16mm;
+      gap: 5mm;
+      align-items: center;
+      font-size: 10.5pt;
+    }
+    .cat-row .name { font-weight: 600; }
+    .cat-row .track {
+      height: 8px;
+      background: var(--surface-2);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .cat-row .fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: inherit;
+    }
+    .cat-row .fill.good   { background: #10B981; }
+    .cat-row .fill.warn   { background: var(--medium); }
+    .cat-row .fill.bad    { background: var(--critical); }
+    .cat-row .score {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    /* ───────────────────────────────────────────────────────────
+       Scope / methodology
+       ─────────────────────────────────────────────────────────── */
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 4mm 8mm;
+      margin-top: 4mm;
+    }
+    .kv {
+      display: flex;
+      gap: 5mm;
+      padding: 3mm 0;
+      border-bottom: 1px dotted var(--border);
+      font-size: 10.5pt;
+    }
+    .kv .k {
+      flex: 0 0 38mm;
+      color: var(--text-tertiary);
+      font-weight: 600;
+    }
+    .kv .v { color: var(--text); font-weight: 500; }
+    .kv .v code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; }
+
+    .callout {
+      background: var(--accent-soft);
+      border: 1px solid rgba(13,148,136,0.30);
+      border-radius: var(--radius);
+      padding: 5mm 6mm;
+      font-size: 10.5pt;
+      color: var(--text-secondary);
+      margin-top: 4mm;
+    }
+    .callout strong { color: var(--text); }
+
+    /* ───────────────────────────────────────────────────────────
+       Finding cards
+       ─────────────────────────────────────────────────────────── */
+    .finding {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 5mm 6mm;
+      margin-bottom: 4mm;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      background: var(--bg);
+    }
+    .finding-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 4mm;
+      margin-bottom: 3mm;
+    }
+    .severity-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 8.5pt;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      color: #fff;
+    }
+    .severity-chip.critical { background: var(--critical); }
+    .severity-chip.high     { background: var(--high); }
+    .severity-chip.medium   { background: var(--medium); }
+    .severity-chip.low      { background: var(--low); }
+    .severity-chip.info     { background: var(--text-tertiary); }
+
+    .finding-head h4 {
+      font-size: 12pt;
+      flex: 1;
+      letter-spacing: -0.005em;
+    }
+    .finding-id {
+      font-family: var(--mono);
+      font-size: 9pt;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+    .finding-meta {
+      display: flex;
+      gap: 6mm;
+      font-size: 9.5pt;
+      color: var(--text-tertiary);
+      margin-bottom: 3mm;
+    }
+    .finding-meta span { display: inline-flex; gap: 4px; }
+    .finding-body { font-size: 10.5pt; color: var(--text-secondary); }
+    .finding-body p + p,
+    .finding-body p + ul { margin-top: 2mm; }
+    .finding-body h5 {
+      font-size: 9.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      margin: 4mm 0 1.5mm;
+      font-weight: 700;
+    }
+    .evidence {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3mm 4mm;
+      font-family: var(--mono);
+      font-size: 9.5pt;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 2mm;
+    }
+
+    .category-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 6mm 0 3mm;
+      font-size: 9.5pt;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+    .category-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Passed checks list */
+    .passed-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 3mm 5mm;
+      list-style: none;
+      padding: 0;
+    }
+    .passed-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 3mm;
+      font-size: 10.5pt;
+      padding: 2mm 0;
+    }
+    .passed-list li::before {
+      content: '✓';
+      flex-shrink: 0;
+      width: 16px; height: 16px;
+      border-radius: 999px;
+      background: var(--pass);
+      color: #fff;
+      font-size: 9pt;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 800;
+      margin-top: 2px;
+    }
+    .passed-list li strong { display: block; color: var(--text); }
+    .passed-list li span { color: var(--text-tertiary); font-size: 9.5pt; }
+
+    /* Next-steps */
+    .next-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5mm;
+      margin-top: 4mm;
+    }
+    .next-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6mm;
+      display: flex;
+      flex-direction: column;
+      gap: 3mm;
+    }
+    .next-card .step {
+      font-size: 9pt;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--accent-strong);
+      text-transform: uppercase;
+    }
+    .next-card h4 { font-size: 11.5pt; }
+    .next-card p { font-size: 10pt; color: var(--text-secondary); }
+
+    /* Glossary */
+    .glossary {
+      display: grid;
+      grid-template-columns: 36mm 1fr;
+      gap: 3mm 6mm;
+      font-size: 10pt;
+    }
+    .glossary dt {
+      font-weight: 700;
+      color: var(--text);
+      padding: 2mm 0;
+      border-top: 1px solid var(--border);
+    }
+    .glossary dd {
+      color: var(--text-secondary);
+      padding: 2mm 0;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* Sign-off */
+    .signoff {
+      margin-top: 8mm;
+      padding: 6mm;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6mm;
+      font-size: 10pt;
+    }
+    .signoff .label {
+      font-size: 8.5pt;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      font-weight: 700;
+      margin-bottom: 2mm;
+    }
+    .signoff .line {
+      height: 1px;
+      background: var(--text-secondary);
+      margin: 8mm 0 2mm;
+    }
+
+    /* ───────────────────────────────────────────────────────────
+       Print rules — paginate cleanly, hide on-screen "paper" shadow
+       ─────────────────────────────────────────────────────────── */
+    @page {
+      size: A4;
+      margin: 0;
+    }
+    @media print {
+      html, body { background: #fff; }
+      .page {
+        margin: 0;
+        box-shadow: none;
+        width: auto;
+        min-height: auto;
+      }
+      .finding,
+      .next-card,
+      .cover-toc li,
+      .sev-pill { break-inside: avoid; }
+    }
+
+    /* Tight responsiveness for screen viewing on smaller windows */
+    @media (max-width: 900px) {
+      .page {
+        width: auto;
+        max-width: 100%;
+        min-height: 0;
+        padding: 24px 20px 56px;
+        margin: 16px;
+      }
+      .running-header, .running-footer { left: 20px; right: 20px; }
+      .severity-row { grid-template-columns: repeat(2, 1fr); }
+      .cover-meta-grid { grid-template-columns: repeat(2, 1fr); }
+      .next-grid, .passed-list, .kv-grid { grid-template-columns: 1fr; }
+      .exec-grid { grid-template-columns: 1fr; text-align: left; }
+      .exec-grid .grade-ring { margin: 0 auto; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 1 — COVER
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page page-cover" aria-label="Cover">
+    <div class="cover-inner">
+
+      <div class="cover-brand">
+        <span class="mark">V</span>
+        <span class="name">VibeSafe</span>
+        <span class="tag">Security · Performance · Accessibility · SEO</span>
+      </div>
+
+      <div class="cover-title">
+        <h1>Web Quality &amp; Security<br />Audit Report</h1>
+        <p>An automated, evidence-based assessment of your site's public-facing
+          security posture, performance budget, accessibility compliance, and
+          search-engine readiness.</p>
+      </div>
+
+      <div class="cover-subject">
+        <div>
+          <div class="url">taskflow.app</div>
+          <div class="url-note">Unauthenticated scope · public surface · 1 origin</div>
+        </div>
+        <div class="grade-ring" aria-label="Overall grade C, 71 out of 100">
+          <svg viewBox="0 0 120 120" role="img">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#F3F4F6" stroke-width="10" />
+            <circle cx="60" cy="60" r="52" fill="none"
+                    stroke="#CA8A04" stroke-width="10"
+                    stroke-linecap="round"
+                    stroke-dasharray="232 327"
+                    transform="rotate(-90 60 60)" />
+          </svg>
+          <div class="letter" style="color:#CA8A04;">C</div>
+        </div>
+      </div>
+
+      <div class="cover-meta-grid">
+        <div class="item"><div class="label">Report date</div><div class="value">May 14, 2026</div></div>
+        <div class="item"><div class="label">Scan duration</div><div class="value">47s</div></div>
+        <div class="item"><div class="label">Findings</div><div class="value">7 issues · 12 passed</div></div>
+        <div class="item"><div class="label">Scanner</div><div class="value">VibeSafe v0.4.2</div></div>
+      </div>
+
+      <div class="cover-toc">
+        <h2>Contents</h2>
+        <ol>
+          <li><span>Executive summary</span><span class="num">02</span></li>
+          <li><span>Scope &amp; methodology</span><span class="num">03</span></li>
+          <li><span>Priority findings</span><span class="num">04</span></li>
+          <li><span>All findings — Security</span><span class="num">05</span></li>
+          <li><span>All findings — Performance</span><span class="num">07</span></li>
+          <li><span>All findings — Accessibility &amp; SEO</span><span class="num">08</span></li>
+          <li><span>What passed</span><span class="num">09</span></li>
+          <li><span>Recommended next steps</span><span class="num">10</span></li>
+          <li><span>Glossary &amp; references</span><span class="num">11</span></li>
+          <li><span>Report attestation</span><span class="num">12</span></li>
+        </ol>
+      </div>
+
+      <div class="cover-footer">
+        <div><strong>Prepared for</strong> The TaskFlow team</div>
+        <div><strong>Report ID</strong> rpt_8f3a91c2</div>
+        <div><strong>Confidentiality</strong> Internal use</div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 2 — EXECUTIVE SUMMARY
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page" aria-label="Executive summary">
+    <header class="running-header">
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
+    </header>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="num">01</span>
+        <h2>Executive summary</h2>
+        <span class="right">Page 02</span>
+      </div>
+
+      <p class="lede">
+        taskflow.app earned an overall grade of <strong>C (71/100)</strong>. No
+        critical issues were found, but several medium-severity gaps weaken the
+        site's defense-in-depth posture and one high-severity cookie misconfiguration
+        risks session theft on non-HTTPS networks.
+      </p>
+
+      <div class="exec-grid">
+        <div class="grade-ring" aria-hidden="true">
+          <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#F3F4F6" stroke-width="10" />
+            <circle cx="60" cy="60" r="52" fill="none"
+                    stroke="#CA8A04" stroke-width="10"
+                    stroke-linecap="round"
+                    stroke-dasharray="232 327"
+                    transform="rotate(-90 60 60)" />
+          </svg>
+          <div class="letter" style="color:#CA8A04;">C</div>
+        </div>
+        <div class="verdict">
+          <h3>Solid foundations — a handful of fixes raise this to a B</h3>
+          <p>The site already gets the hard parts right: HTTPS is enforced everywhere,
+            authentication uses a modern provider, and no secrets were found in
+            client bundles. Closing the seven findings below — most of which are
+            single-line header changes — would lift the grade to a projected
+            <strong>B (84/100)</strong>.</p>
+        </div>
+      </div>
+
+      <h3 style="font-size:11pt;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:4mm;">
+        Findings by severity
+      </h3>
+      <div class="severity-row">
+        <div class="sev-pill critical"><span class="n">0</span><span class="label">Critical</span></div>
+        <div class="sev-pill high"><span class="n">1</span><span class="label">High</span></div>
+        <div class="sev-pill medium"><span class="n">4</span><span class="label">Medium</span></div>
+        <div class="sev-pill low"><span class="n">2</span><span class="label">Low</span></div>
+        <div class="sev-pill passed"><span class="n">12</span><span class="label">Passed</span></div>
+      </div>
+
+      <h3 style="font-size:11pt;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:4mm;">
+        Score by category
+      </h3>
+      <div class="category-bars">
+        <div class="cat-row">
+          <span class="name">🛡️ Security</span>
+          <span class="track"><span class="fill warn" style="width:64%;"></span></span>
+          <span class="score">64 / 100</span>
+        </div>
+        <div class="cat-row">
+          <span class="name">⚡ Performance</span>
+          <span class="track"><span class="fill good" style="width:82%;"></span></span>
+          <span class="score">82 / 100</span>
+        </div>
+        <div class="cat-row">
+          <span class="name">♿ Accessibility</span>
+          <span class="track"><span class="fill good" style="width:88%;"></span></span>
+          <span class="score">88 / 100</span>
+        </div>
+        <div class="cat-row">
+          <span class="name">🔍 SEO</span>
+          <span class="track"><span class="fill good" style="width:79%;"></span></span>
+          <span class="score">79 / 100</span>
+        </div>
+        <div class="cat-row">
+          <span class="name">🏛️ Compliance signals</span>
+          <span class="track"><span class="fill warn" style="width:60%;"></span></span>
+          <span class="score">60 / 100</span>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>What this report covers and what it doesn't.</strong>
+        VibeSafe tested only what an anonymous visitor can reach: the public,
+        unauthenticated surface of taskflow.app. Authenticated routes, admin
+        flows, and post-login state weren't probed. Source code, dependency
+        SBOMs, and live exploit verification are out of scope for a passive
+        scan — see <em>Recommended next steps</em>.
+      </div>
+    </div>
+
+    <footer class="running-footer">
+      <span>VibeSafe Report · <a href="https://vibesafe.app">vibesafe.app</a></span>
+      <span class="scan-id">scan_2026-05-14-7f3a · Page 02 of 12</span>
+    </footer>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 3 — SCOPE & METHODOLOGY
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page" aria-label="Scope and methodology">
+    <header class="running-header">
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
+    </header>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="num">02</span>
+        <h2>Scope &amp; methodology</h2>
+        <span class="right">Page 03</span>
+      </div>
+
+      <p class="lede">
+        This scan executed 23 detection modules across five categories. Every
+        finding below is backed by reproducible evidence captured at scan time.
+      </p>
+
+      <div class="kv-grid">
+        <div class="kv"><span class="k">Target URL</span><span class="v"><code>https://taskflow.app</code></span></div>
+        <div class="kv"><span class="k">Resolved IP</span><span class="v"><code>76.76.21.21</code> (Vercel)</span></div>
+        <div class="kv"><span class="k">Detected stack</span><span class="v">Next.js 14 · React 18 · Stripe · Sentry</span></div>
+        <div class="kv"><span class="k">TLS</span><span class="v">TLS 1.3 · Let's Encrypt · valid 71 days</span></div>
+        <div class="kv"><span class="k">Pages crawled</span><span class="v">12 pages · 4 origins · 1 robots-disallowed path skipped</span></div>
+        <div class="kv"><span class="k">User agent</span><span class="v"><code>VibeSafeBot/0.4.2 (+vibesafe.app/bot)</code></span></div>
+        <div class="kv"><span class="k">Modules run</span><span class="v">23 of 23 (all enabled tiers)</span></div>
+        <div class="kv"><span class="k">Authentication</span><span class="v">None — anonymous visitor only</span></div>
+      </div>
+
+      <h3 style="font-size:11pt;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin:8mm 0 4mm;">
+        What we tested
+      </h3>
+      <ul style="font-size:10.5pt;color:var(--text-secondary);columns:2;column-gap:10mm;">
+        <li>HTTPS enforcement &amp; HSTS</li>
+        <li>Content Security Policy</li>
+        <li>Cookie flags (Secure, HttpOnly, SameSite)</li>
+        <li>Clickjacking protection</li>
+        <li>MIME-type sniffing</li>
+        <li>Referrer policy</li>
+        <li>Subresource integrity</li>
+        <li>CORS &amp; CSRF tokens</li>
+        <li>Information disclosure in headers</li>
+        <li>Vulnerable JS dependency fingerprints</li>
+        <li>Mixed content</li>
+        <li>Core Web Vitals (LCP, INP, CLS)</li>
+        <li>Image format optimization</li>
+        <li>WCAG 2.2 AA checks via Lighthouse</li>
+        <li>Color contrast &amp; landmarks</li>
+        <li>Robots.txt &amp; sitemap.xml</li>
+        <li>Open Graph &amp; structured data</li>
+        <li>Canonicalization &amp; redirects</li>
+      </ul>
+
+      <div class="callout">
+        <strong>Reproducibility.</strong> Each finding's <em>Evidence</em> block contains the raw
+        request/response excerpt that triggered the detection. To rerun the
+        scan locally, install the VibeSafe CLI and run
+        <code>vibesafe scan https://taskflow.app --modules all</code>. Module IDs
+        (e.g. <code>S2-04</code>) map to the source files in
+        <code>src/lib/scanner/modules/</code>.
+      </div>
+    </div>
+
+    <footer class="running-footer">
+      <span>VibeSafe Report · <a href="https://vibesafe.app">vibesafe.app</a></span>
+      <span class="scan-id">scan_2026-05-14-7f3a · Page 03 of 12</span>
+    </footer>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 4 — PRIORITY FINDINGS
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page" aria-label="Priority findings">
+    <header class="running-header">
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
+    </header>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="num">03</span>
+        <h2>Priority findings</h2>
+        <span class="right">Page 04</span>
+      </div>
+
+      <p class="lede">
+        These five findings move the most points on your grade. We recommend
+        fixing them first; the remaining low-severity issues can be batched
+        with normal maintenance.
+      </p>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip high">High</span>
+          <h4>Session cookies missing the <code>Secure</code> attribute</h4>
+          <span class="finding-id">S3-02</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 Security · Cookies</span>
+          <span>🎯 <code>Set-Cookie: sid=…</code></span>
+          <span>⏱ Fix time ≈ 5 min</span>
+        </div>
+        <div class="finding-body">
+          <p>The session cookie set at login can be transmitted over plaintext HTTP.
+            An attacker on the same Wi-Fi (coffee shop, conference, captive portal)
+            can capture it and impersonate the user. HSTS mitigates this for
+            modern browsers but doesn't protect first visits or non-browser
+            clients.</p>
+          <h5>Evidence</h5>
+          <pre class="evidence">HTTP/2 200
+set-cookie: sid=ey8nQ...; Path=/; HttpOnly; SameSite=Lax
+                                          ↑ Secure flag missing</pre>
+          <h5>Remediation</h5>
+          <p>Add <code>Secure</code> to every authentication cookie. In Next.js,
+            set <code>cookies().set('sid', token, { secure: true, httpOnly: true, sameSite: 'lax' })</code>.
+            If you use NextAuth, the cookie name prefix
+            <code>__Secure-</code> enforces this at the browser level.</p>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip medium">Medium</span>
+          <h4>No Content-Security-Policy header</h4>
+          <span class="finding-id">S2-01</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 Security · Headers</span>
+          <span>🎯 All HTML responses</span>
+          <span>⏱ Fix time ≈ 30 min</span>
+        </div>
+        <div class="finding-body">
+          <p>Without a CSP, the browser will execute any script that ends up in
+            the DOM — including injected ones from a stored-XSS payload or a
+            compromised third-party tag. A CSP turns successful XSS attempts
+            into harmless console warnings.</p>
+          <h5>Evidence</h5>
+          <pre class="evidence">curl -I https://taskflow.app/ | grep -i csp
+(no header returned)</pre>
+          <h5>Remediation</h5>
+          <p>Start with a report-only policy to learn what your site loads:
+            <code>Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com</code>.
+            After a week of clean reports, drop <code>-Report-Only</code> to enforce.</p>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip medium">Medium</span>
+          <h4>HSTS max-age is below 6 months</h4>
+          <span class="finding-id">S2-04</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 Security · TLS</span>
+          <span>🎯 <code>Strict-Transport-Security</code></span>
+          <span>⏱ Fix time ≈ 5 min</span>
+        </div>
+        <div class="finding-body">
+          <p>You return <code>max-age=86400</code> (1 day). HSTS only protects users
+            for that long; if the browser hasn't visited your site in 24 hours,
+            it can be downgraded to HTTP again. The HSTS preload list requires
+            <code>max-age ≥ 31536000</code>.</p>
+          <h5>Evidence</h5>
+          <pre class="evidence">strict-transport-security: max-age=86400</pre>
+          <h5>Remediation</h5>
+          <p>Raise to <code>max-age=63072000; includeSubDomains; preload</code> once
+            you're confident every subdomain serves HTTPS. Submit at
+            <a href="https://hstspreload.org">hstspreload.org</a>.</p>
+        </div>
+      </article>
+    </div>
+
+    <footer class="running-footer">
+      <span>VibeSafe Report · <a href="https://vibesafe.app">vibesafe.app</a></span>
+      <span class="scan-id">scan_2026-05-14-7f3a · Page 04 of 12</span>
+    </footer>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 5–6 — ALL SECURITY FINDINGS
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page" aria-label="All security findings">
+    <header class="running-header">
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
+    </header>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="num">04</span>
+        <h2>All findings — Security</h2>
+        <span class="right">Pages 05–06</span>
+      </div>
+
+      <div class="category-label">Headers &amp; transport (3 issues)</div>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip medium">Medium</span>
+          <h4>Missing <code>X-Frame-Options</code> / CSP <code>frame-ancestors</code></h4>
+          <span class="finding-id">S2-07</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 Headers</span><span>🎯 All HTML responses</span><span>⏱ ≈ 5 min</span>
+        </div>
+        <div class="finding-body">
+          <p>The site can be embedded inside an <code>&lt;iframe&gt;</code> on any
+            origin, enabling clickjacking attacks against authenticated users.</p>
+          <h5>Remediation</h5>
+          <p>Set <code>Content-Security-Policy: frame-ancestors 'none'</code> (modern)
+            and/or <code>X-Frame-Options: DENY</code> (legacy fallback).</p>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip low">Low</span>
+          <h4>Verbose <code>Server</code> header leaks runtime</h4>
+          <span class="finding-id">S1-11</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 Information disclosure</span><span>🎯 All responses</span><span>⏱ ≈ 2 min</span>
+        </div>
+        <div class="finding-body">
+          <p>Responses include <code>Server: Vercel</code> and
+            <code>x-powered-by: Next.js</code>. These don't enable attacks on
+            their own but trim down the reconnaissance phase of any future probe.</p>
+          <h5>Remediation</h5>
+          <p>In <code>next.config.mjs</code>, set <code>poweredByHeader: false</code>.
+            Vercel's <code>Server</code> header can be suppressed via a custom
+            response header in <code>vercel.json</code>.</p>
+        </div>
+      </article>
+
+      <div class="category-label">Cookies &amp; sessions (1 issue)</div>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip high">High</span>
+          <h4>Session cookies missing the <code>Secure</code> attribute</h4>
+          <span class="finding-id">S3-02</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 Cookies</span><span>🎯 <code>Set-Cookie: sid=…</code></span><span>⏱ ≈ 5 min</span>
+        </div>
+        <div class="finding-body">
+          <p>See <em>Priority findings</em>, page 04, for full remediation guidance.</p>
+        </div>
+      </article>
+
+      <div class="category-label">Content security (2 issues)</div>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip medium">Medium</span>
+          <h4>Subresource integrity not used for third-party scripts</h4>
+          <span class="finding-id">S4-03</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 Supply chain</span><span>🎯 <code>cdn.posthog.com/array.js</code></span><span>⏱ ≈ 15 min</span>
+        </div>
+        <div class="finding-body">
+          <p>Three external scripts load without an <code>integrity</code> hash.
+            If any CDN is compromised, the modified script will execute with the
+            full privileges of your origin.</p>
+          <h5>Remediation</h5>
+          <p>Add <code>integrity="sha384-…"</code> and <code>crossorigin="anonymous"</code>
+            to each <code>&lt;script&gt;</code> tag. Where vendors don't publish
+            stable hashes, consider proxying the asset through your own origin.</p>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip low">Low</span>
+          <h4>Mixed-content image on <code>/blog/launch</code></h4>
+          <span class="finding-id">S4-08</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 Mixed content</span><span>🎯 <code>http://i.imgur.com/x4F.png</code></span><span>⏱ ≈ 2 min</span>
+        </div>
+        <div class="finding-body">
+          <p>A single image on a blog post is referenced over HTTP. Modern
+            browsers auto-upgrade these, but older clients (and some embeds)
+            won't.</p>
+        </div>
+      </article>
+    </div>
+
+    <footer class="running-footer">
+      <span>VibeSafe Report · <a href="https://vibesafe.app">vibesafe.app</a></span>
+      <span class="scan-id">scan_2026-05-14-7f3a · Page 05 of 12</span>
+    </footer>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 7 — PERFORMANCE
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page" aria-label="Performance findings">
+    <header class="running-header">
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
+    </header>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="num">05</span>
+        <h2>All findings — Performance</h2>
+        <span class="right">Page 07</span>
+      </div>
+
+      <p class="lede">
+        Core Web Vitals on the homepage are inside Google's "good" thresholds.
+        The one finding below is an opportunity, not a regression.
+      </p>
+
+      <div class="severity-row" style="grid-template-columns:repeat(3,1fr);">
+        <div class="sev-pill"><span class="n" style="color:#10B981;">1.4s</span><span class="label">LCP — Good</span></div>
+        <div class="sev-pill"><span class="n" style="color:#10B981;">128ms</span><span class="label">INP — Good</span></div>
+        <div class="sev-pill"><span class="n" style="color:#10B981;">0.04</span><span class="label">CLS — Good</span></div>
+      </div>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip medium">Medium</span>
+          <h4>Hero image served as PNG instead of AVIF/WebP</h4>
+          <span class="finding-id">P2-02</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 Image optimization</span><span>🎯 <code>/_next/static/media/hero.png</code></span><span>⏱ ≈ 20 min</span>
+        </div>
+        <div class="finding-body">
+          <p>The hero PNG is 482 KB. Re-encoding to AVIF reduces it to roughly
+            74 KB (85% savings) with no perceptible quality loss, shaving
+            ~0.3s off the LCP on slow 4G.</p>
+          <h5>Remediation</h5>
+          <p>Use Next.js's <code>&lt;Image&gt;</code> component or pre-encode with
+            <code>sharp</code>. Serve AVIF with a WebP fallback for older
+            browsers.</p>
+        </div>
+      </article>
+    </div>
+
+    <footer class="running-footer">
+      <span>VibeSafe Report · <a href="https://vibesafe.app">vibesafe.app</a></span>
+      <span class="scan-id">scan_2026-05-14-7f3a · Page 07 of 12</span>
+    </footer>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 8 — ACCESSIBILITY & SEO
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page" aria-label="Accessibility and SEO findings">
+    <header class="running-header">
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
+    </header>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="num">06</span>
+        <h2>All findings — Accessibility &amp; SEO</h2>
+        <span class="right">Page 08</span>
+      </div>
+
+      <div class="category-label">Accessibility (1 issue)</div>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip low">Low</span>
+          <h4>Low contrast on muted text in pricing table</h4>
+          <span class="finding-id">A2-05</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 WCAG 2.2 · 1.4.3</span><span>🎯 <code>.text-tertiary</code> on light surface</span><span>⏱ ≈ 5 min</span>
+        </div>
+        <div class="finding-body">
+          <p>Computed contrast ratio is <strong>3.9 : 1</strong>; WCAG AA requires
+            <strong>4.5 : 1</strong> for body copy. Affects 11 nodes on
+            <code>/pricing</code>.</p>
+          <h5>Remediation</h5>
+          <p>Darken <code>--text-tertiary</code> from <code>#9CA3AF</code> to
+            <code>#6B7280</code> when used on a light surface, or boost the
+            background contrast.</p>
+        </div>
+      </article>
+
+      <div class="category-label">SEO (0 issues — opportunities only)</div>
+
+      <article class="finding">
+        <div class="finding-head">
+          <span class="severity-chip info">Info</span>
+          <h4>Open Graph image is below recommended dimensions</h4>
+          <span class="finding-id">S5-12</span>
+        </div>
+        <div class="finding-meta">
+          <span>📁 Social previews</span><span>🎯 <code>og:image</code> 600×315</span><span>⏱ ≈ 10 min</span>
+        </div>
+        <div class="finding-body">
+          <p>Twitter/X and Slack downsample images below 1200×630, producing a
+            blurry social card. Not a defect, but worth a refresh next time the
+            brand updates.</p>
+        </div>
+      </article>
+    </div>
+
+    <footer class="running-footer">
+      <span>VibeSafe Report · <a href="https://vibesafe.app">vibesafe.app</a></span>
+      <span class="scan-id">scan_2026-05-14-7f3a · Page 08 of 12</span>
+    </footer>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 9 — WHAT PASSED
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page" aria-label="What passed">
+    <header class="running-header">
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
+    </header>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="num">07</span>
+        <h2>What passed</h2>
+        <span class="right">Page 09</span>
+      </div>
+
+      <p class="lede">
+        Twelve checks passed cleanly. Worth keeping a list of these so future
+        regressions are easy to spot.
+      </p>
+
+      <ul class="passed-list">
+        <li><div><strong>HTTPS enforced site-wide</strong><span>All HTTP requests 301 → HTTPS.</span></div></li>
+        <li><div><strong>Valid TLS certificate</strong><span>Let's Encrypt, 71 days remaining.</span></div></li>
+        <li><div><strong>No secrets in client bundle</strong><span>23 entropy candidates triaged, all false positives.</span></div></li>
+        <li><div><strong>HttpOnly + SameSite on session cookie</strong><span>Only <code>Secure</code> flag missing.</span></div></li>
+        <li><div><strong>No vulnerable JS dependency fingerprints</strong><span>Cross-referenced against KEV + EPSS.</span></div></li>
+        <li><div><strong>CSRF tokens present on state-changing forms</strong><span>NextAuth + form-level tokens.</span></div></li>
+        <li><div><strong>Robots.txt and sitemap.xml are well-formed</strong><span>123 URLs in sitemap, all canonical.</span></div></li>
+        <li><div><strong>Canonical tags on every indexable page</strong><span>No conflicting canonicals.</span></div></li>
+        <li><div><strong>Structured data validates</strong><span>Organization, Product, BreadcrumbList.</span></div></li>
+        <li><div><strong>Semantic landmarks on all pages</strong><span><code>header</code>, <code>nav</code>, <code>main</code>, <code>footer</code>.</span></div></li>
+        <li><div><strong>Alt text on every image</strong><span>118 images checked.</span></div></li>
+        <li><div><strong>CWV: LCP, INP, CLS all in "good"</strong><span>Field data not yet available — lab only.</span></div></li>
+      </ul>
+    </div>
+
+    <footer class="running-footer">
+      <span>VibeSafe Report · <a href="https://vibesafe.app">vibesafe.app</a></span>
+      <span class="scan-id">scan_2026-05-14-7f3a · Page 09 of 12</span>
+    </footer>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 10 — NEXT STEPS
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page" aria-label="Recommended next steps">
+    <header class="running-header">
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
+    </header>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="num">08</span>
+        <h2>Recommended next steps</h2>
+        <span class="right">Page 10</span>
+      </div>
+
+      <p class="lede">
+        A pragmatic three-week plan. Each step is reversible and ships behind a
+        feature flag where appropriate.
+      </p>
+
+      <div class="next-grid">
+        <div class="next-card">
+          <span class="step">This week</span>
+          <h4>Patch the easy wins</h4>
+          <p>Add the <code>Secure</code> cookie flag, set <code>X-Frame-Options</code>,
+            drop <code>x-powered-by</code>. Six header changes, one deploy,
+            <strong>+9 points</strong> to the security score.</p>
+        </div>
+        <div class="next-card">
+          <span class="step">Next sprint</span>
+          <h4>Roll out a report-only CSP</h4>
+          <p>Land <code>Content-Security-Policy-Report-Only</code> in production
+            for one week, fix anything that reports, then enforce. Expect
+            <strong>+12 points</strong> once enforced.</p>
+        </div>
+        <div class="next-card">
+          <span class="step">Within 30 days</span>
+          <h4>Run an active DAST scan</h4>
+          <p>This passive scan can't verify exploitability. Verify your domain
+            and run a $9 active test to probe SQL injection, XSS, and API
+            fuzzing on authenticated routes.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top:6mm;">
+        <strong>Want to compare this scan to your last one?</strong>
+        Re-scan from your dashboard and select <em>Compare to previous</em>.
+        VibeSafe will show which findings opened, closed, or changed severity
+        since this report.
+      </div>
+
+      <h3 style="font-size:11pt;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin:8mm 0 4mm;">
+        Out of scope for a passive scan
+      </h3>
+      <ul style="font-size:10.5pt;color:var(--text-secondary);">
+        <li><strong>Authenticated flows.</strong> Broken access control, IDOR, and privileged endpoints — need a logged-in session to test.</li>
+        <li><strong>Source-code findings.</strong> Hardcoded secrets in private repos, vulnerable dependency versions resolved from <code>package.json</code>, SSRF gadgets — require code access.</li>
+        <li><strong>Live exploit probes.</strong> Real SQL injection, XSS payloads, and API fuzzing — require domain verification and explicit consent.</li>
+      </ul>
+    </div>
+
+    <footer class="running-footer">
+      <span>VibeSafe Report · <a href="https://vibesafe.app">vibesafe.app</a></span>
+      <span class="scan-id">scan_2026-05-14-7f3a · Page 10 of 12</span>
+    </footer>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 11 — GLOSSARY
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page" aria-label="Glossary and references">
+    <header class="running-header">
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
+    </header>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="num">09</span>
+        <h2>Glossary &amp; references</h2>
+        <span class="right">Page 11</span>
+      </div>
+
+      <dl class="glossary">
+        <dt>CSP</dt>
+        <dd>Content Security Policy — an HTTP header that tells the browser which sources of scripts, styles, images, and connections are allowed. Mitigates XSS impact.</dd>
+
+        <dt>HSTS</dt>
+        <dd>HTTP Strict Transport Security — instructs browsers to refuse plaintext HTTP to your origin for a given duration. Preloading bakes this into the browser itself.</dd>
+
+        <dt>SRI</dt>
+        <dd>Subresource Integrity — a cryptographic hash on a <code>&lt;script&gt;</code> or <code>&lt;link&gt;</code> tag. The browser refuses to execute the resource if the bytes don't match.</dd>
+
+        <dt>SameSite</dt>
+        <dd>A cookie attribute (<code>Strict</code>, <code>Lax</code>, <code>None</code>) controlling whether the cookie is sent on cross-site requests. Mitigates CSRF.</dd>
+
+        <dt>LCP / INP / CLS</dt>
+        <dd>Core Web Vitals: Largest Contentful Paint (when the main content appears), Interaction to Next Paint (responsiveness), Cumulative Layout Shift (visual stability).</dd>
+
+        <dt>WCAG 2.2 AA</dt>
+        <dd>Web Content Accessibility Guidelines, level AA — the legal baseline for accessibility in the EU, UK, and most US public-sector procurement.</dd>
+
+        <dt>DAST</dt>
+        <dd>Dynamic Application Security Testing — probing a running application with real attack payloads, as opposed to static analysis of source code.</dd>
+
+        <dt>KEV / EPSS</dt>
+        <dd>CISA's Known Exploited Vulnerabilities catalog and FIRST's Exploit Prediction Scoring System — used to rank CVEs by real-world exploitation rather than CVSS alone.</dd>
+      </dl>
+
+      <h3 style="font-size:11pt;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin:8mm 0 4mm;">
+        References
+      </h3>
+      <ul style="font-size:10pt;color:var(--text-secondary);">
+        <li>OWASP Secure Headers Project — <a href="https://owasp.org/www-project-secure-headers/">owasp.org/www-project-secure-headers</a></li>
+        <li>Mozilla Observatory — <a href="https://observatory.mozilla.org">observatory.mozilla.org</a></li>
+        <li>Google web.dev — <a href="https://web.dev/vitals">web.dev/vitals</a></li>
+        <li>W3C WCAG 2.2 — <a href="https://www.w3.org/TR/WCAG22/">w3.org/TR/WCAG22</a></li>
+      </ul>
+    </div>
+
+    <footer class="running-footer">
+      <span>VibeSafe Report · <a href="https://vibesafe.app">vibesafe.app</a></span>
+      <span class="scan-id">scan_2026-05-14-7f3a · Page 11 of 12</span>
+    </footer>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PAGE 12 — REPORT ATTESTATION
+       ════════════════════════════════════════════════════════════ -->
+  <section class="page" aria-label="Report attestation">
+    <header class="running-header">
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
+    </header>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="num">10</span>
+        <h2>Report attestation</h2>
+        <span class="right">Page 12</span>
+      </div>
+
+      <p class="lede">
+        This report was generated automatically by VibeSafe and is not a
+        substitute for a manual penetration test. It is designed for triage,
+        prioritization, and conversation — not certification.
+      </p>
+
+      <div class="kv-grid">
+        <div class="kv"><span class="k">Report ID</span><span class="v"><code>rpt_8f3a91c2</code></span></div>
+        <div class="kv"><span class="k">Scan ID</span><span class="v"><code>scan_2026-05-14-7f3a</code></span></div>
+        <div class="kv"><span class="k">Issued</span><span class="v">May 14, 2026 at 16:42 UTC</span></div>
+        <div class="kv"><span class="k">Valid until</span><span class="v">Aug 14, 2026 (or next deploy)</span></div>
+        <div class="kv"><span class="k">Scanner version</span><span class="v">VibeSafe v0.4.2 · ruleset 2026-05</span></div>
+        <div class="kv"><span class="k">Verification</span><span class="v">Hash: <code>e3 b0 c4 42 98 fc 1c 14 9a fb f4 c8</code></span></div>
+      </div>
+
+      <div class="signoff">
+        <div>
+          <div class="label">Issued by</div>
+          <div>VibeSafe Automated Scanner</div>
+          <div style="color:var(--text-tertiary);font-size:9.5pt;">vibesafe.app · contact@vibesafe.app</div>
+        </div>
+        <div>
+          <div class="label">Reviewed by</div>
+          <div class="line"></div>
+          <div style="color:var(--text-tertiary);font-size:9.5pt;">Name &amp; date (optional human review)</div>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top:8mm;">
+        <strong>How to read this report.</strong> Severity reflects exploitability
+        and blast radius, not absolute risk. A high-severity finding on a
+        low-traffic marketing page is less urgent than a medium on the login
+        flow. Use the <em>Priority findings</em> section as your starting point —
+        it's already ordered for you.
+      </div>
+
+      <p style="font-size:9pt;color:var(--text-tertiary);margin-top:10mm;">
+        © 2026 VibeSafe. This report is confidential and intended for the
+        named recipient only. Findings are based on the public response of
+        taskflow.app at the time of scanning and may not reflect the current
+        state of the site.
+      </p>
+    </div>
+
+    <footer class="running-footer">
+      <span>VibeSafe Report · <a href="https://vibesafe.app">vibesafe.app</a></span>
+      <span class="scan-id">scan_2026-05-14-7f3a · Page 12 of 12</span>
+    </footer>
+  </section>
+
+</body>
+</html>

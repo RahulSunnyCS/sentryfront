@@ -10,6 +10,7 @@ These files exist as design fidelity targets — single-page HTML that captures 
 |------|------|------|
 | `vibesafe-demo.html` | `/` (landing) and `/report/[id]` (report view) | The big one. 4,000+ lines covering the marketing hero, feature blocks, and a full sample report layout. The shipped landing in `src/app/landing-hero.tsx` and the report view in `src/app/report/[id]/report-view.tsx` derive from this. |
 | `verify-domain.html` | `/verify` | Reference for the domain-verification flow. The shipped flow is `src/app/verify/verify-flow.tsx`. |
+| `report-design.html` | The generated PDF (not a page) | Print-styled mockup for the PDF a user downloads from `/report/[id]`. Paginated A4 layout with running header/footer, cover page, executive summary, scope, full findings, passed checks, next steps, glossary, and attestation. Sample data is a C-grade scan of the fictional `taskflow.app`. Drives the print CSS in `src/app/globals.css` and the document structure rendered by the report view when printed. |
 
 ## Editing rules
 
