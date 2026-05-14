@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { aggregateFpRates } from '@/lib/fp-rates/aggregate';
 import { writeFpRatesSection } from '@/lib/fp-rates/markdown-writer';
+import { writeFpRateSnapshots } from '@/lib/fp-rates/snapshots';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -38,6 +39,18 @@ export async function GET(req: NextRequest) {
   const rates = await aggregateFpRates(prisma);
   const totalDispositions = rates.reduce((sum, r) => sum + r.total, 0);
 
+  // Phase 3.7.1: persist a daily snapshot row per (moduleId, confidence) so
+  // /internal/fp-rates can render sparklines without rescanning dispositions.
+  // Idempotent per UTC day.
+  let wroteSnapshot = false;
+  try {
+    wroteSnapshot = await writeFpRateSnapshots(prisma, rates, generatedAt);
+  } catch (err) {
+    logger.warn('Failed to write FpRateSnapshot rows', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
   let wrote = false;
   if (process.env.FP_RATES_WRITE_LOCAL === '1') {
     const target = path.join(process.cwd(), 'docs', 'core', 'MODULE_QUALITY.md');
@@ -56,6 +69,7 @@ export async function GET(req: NextRequest) {
     totalDispositions,
     generatedAt: generatedAt.toISOString(),
     wroteMarkdown: wrote,
+    wroteSnapshot,
     rates,
   });
 }
