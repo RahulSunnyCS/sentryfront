@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth/helpers';
+import { getCurrentUser, isAuthEnabled } from '@/lib/auth/helpers';
 import { applyTierGating } from '@/lib/tier-gating';
 import type { Severity } from '@/types';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  // Auth wall: when auth is enabled, findings require a sign-in.
+  // Demo scan stays public.
+  const user = await getCurrentUser();
+  if (isAuthEnabled() && params.id !== 'demo' && !user) {
+    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  }
+
   const scan = await prisma.scan.findUnique({
     where: { id: params.id },
     include: { findings: true },
@@ -33,8 +40,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     fixAiPrompt: f.fixAiPrompt,
   }));
 
-  // Get current user's tier (if authenticated)
-  const user = await getCurrentUser();
   const tier = user?.tier || scan.tier || 'free';
 
   // Apply tier-based gating

@@ -12,9 +12,18 @@ import { logger } from './logger';
 // Rate limit configuration
 const RATE_LIMIT_WINDOW_HOURS = 1;
 const RATE_LIMIT_WINDOW_MS = RATE_LIMIT_WINDOW_HOURS * 60 * 60 * 1000;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Default IP-based rate limits (when no user is authenticated)
 const DEFAULT_IP_LIMIT = Number(process.env.RATE_LIMIT_PER_HOUR ?? 10);
+
+// Weekly passive-scan quota for authenticated users
+const WEEKLY_QUOTA_BY_TIER: Record<UserTier, number> = {
+  free: 1,
+  'one-shot': Number.MAX_SAFE_INTEGER,
+  pro: Number.MAX_SAFE_INTEGER,
+  studio: Number.MAX_SAFE_INTEGER,
+};
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -123,6 +132,70 @@ export function getRateLimitHeaders(result: RateLimitResult): Record<string, str
   }
 
   return headers;
+}
+
+// ── Weekly Quota (per-user) ──────────────────────────────────────────────────
+
+export interface WeeklyQuotaResult {
+  allowed: boolean;
+  limit: number;
+  remaining: number;
+  nextScanAt: number | null; // Unix ms when the user's week rolls over, or null when unlimited
+}
+
+/**
+ * Check and increment the per-user weekly scan quota.
+ *
+ * Resets the counter when the user's `scanWeekStart` is missing or older than
+ * 7 days. When `consume` is true (default), increments the counter atomically
+ * before returning — callers should only consume on the same path that creates
+ * the scan record.
+ */
+export async function checkWeeklyScanQuota(
+  userId: string,
+  tier: UserTier,
+  consume: boolean = true,
+): Promise<WeeklyQuotaResult> {
+  const limit = WEEKLY_QUOTA_BY_TIER[tier] ?? WEEKLY_QUOTA_BY_TIER.free;
+  if (limit >= Number.MAX_SAFE_INTEGER) {
+    return { allowed: true, limit, remaining: limit, nextScanAt: null };
+  }
+
+  const now = new Date();
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { scansThisWeek: true, scanWeekStart: true },
+  });
+
+  if (!user) {
+    return { allowed: false, limit, remaining: 0, nextScanAt: null };
+  }
+
+  const weekStart = user.scanWeekStart;
+  const isWindowOpen = weekStart !== null && now.getTime() - weekStart.getTime() < WEEK_MS;
+  const currentCount = isWindowOpen ? user.scansThisWeek : 0;
+
+  if (currentCount >= limit) {
+    const nextScanAt = weekStart ? weekStart.getTime() + WEEK_MS : now.getTime();
+    return { allowed: false, limit, remaining: 0, nextScanAt };
+  }
+
+  if (consume) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: isWindowOpen
+        ? { scansThisWeek: { increment: 1 } }
+        : { scansThisWeek: 1, scanWeekStart: now },
+    });
+  }
+
+  const nextStart = isWindowOpen ? weekStart!.getTime() : now.getTime();
+  return {
+    allowed: true,
+    limit,
+    remaining: Math.max(0, limit - currentCount - (consume ? 1 : 0)),
+    nextScanAt: nextStart + WEEK_MS,
+  };
 }
 
 /**

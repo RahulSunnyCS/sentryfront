@@ -4,66 +4,47 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { GRADE_CONFIG, SEVERITY_CONFIG } from '@/lib/data';
 import type { ScanData, Severity, Finding } from '@/types';
+
+interface FindingsResponse {
+  findings: Finding[];
+}
 import { GradeDisplay } from '@/components/grade-display';
 import { SeveritySummary } from '@/components/severity-summary';
 import { FindingCard } from '@/components/finding-card';
 import { IconGlobe, IconClock } from '@/components/icons';
-import { TierGateBanner } from '@/components/tier-gate-banner';
-import { ReportWatermark } from '@/components/report-watermark';
 import { PerformanceSection } from '@/components/performance-section';
 import { AccessibilitySection } from '@/components/accessibility-section';
 import { SEOSection } from '@/components/seo-section';
 
 const SEVERITY_ORDER: Severity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
 
-interface FindingsResponse {
-  findings: Finding[];
-  meta: {
-    isLimited: boolean;
-    tier: string;
-    total: number;
-    shown: number;
-    limit?: number;
-    hiddenCount?: number;
-  };
-}
-
 export function ReportView({ scanData }: { scanData: ScanData }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<'ALL' | Severity>('ALL');
-  const [gatedFindings, setGatedFindings] = useState<Finding[]>(scanData.findings);
-  const [tierMeta, setTierMeta] = useState<FindingsResponse['meta'] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [findings, setFindings] = useState<Finding[]>(scanData.findings);
 
-  // Fetch findings with tier gating applied
   useEffect(() => {
-    async function fetchFindings() {
-      try {
-        const res = await fetch(`/api/v1/scans/${scanData.id}/findings`);
-        if (!res.ok) {
-          console.error('Failed to fetch findings');
-          setGatedFindings(scanData.findings);
-          setLoading(false);
-          return;
-        }
-        const data: FindingsResponse = await res.json();
-        setGatedFindings(data.findings);
-        setTierMeta(data.meta);
-      } catch (error) {
-        console.error('Error fetching findings:', error);
-        setGatedFindings(scanData.findings);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchFindings();
-  }, [scanData.id, scanData.findings]);
+    let cancelled = false;
+    fetch(`/api/v1/scans/${scanData.id}/findings`)
+      .then((res) => (res.ok ? (res.json() as Promise<FindingsResponse>) : null))
+      .then((data) => {
+        if (!cancelled && data?.findings) setFindings(data.findings);
+      })
+      .catch(() => { /* keep server-rendered findings */ });
+    return () => { cancelled = true; };
+  }, [scanData.id]);
 
   const gradeConfig = GRADE_CONFIG[scanData.grade];
 
+  // Calibrate the Active Test CTA tone to the grade: red urgency only when
+  // the scan found real problems (D/F). On healthy sites the CTA stays as a
+  // neutral "extra confidence" offer.
+  const criticalCount = scanData.summary.CRITICAL ?? 0;
+  const isAlarmingGrade = scanData.grade === 'D' || scanData.grade === 'F' || criticalCount > 0;
+
   const filtered = filterSeverity === 'ALL'
-    ? gatedFindings
-    : gatedFindings.filter((f) => f.severity === filterSeverity);
+    ? findings
+    : findings.filter((f) => f.severity === filterSeverity);
 
   const sorted = [...filtered].sort(
     (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity),
@@ -117,15 +98,19 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           </div>
         </div>
 
-        {/* Active Testing CTA banner */}
+        {/* Active Testing CTA banner — tone calibrated to grade */}
         <aside
           aria-labelledby="active-test-cta-title"
           style={{
             position: 'relative',
             overflow: 'hidden',
             borderRadius: 16,
-            border: '1px solid rgba(220,38,38,0.30)',
-            background: 'linear-gradient(135deg, rgba(220,38,38,0.10), rgba(245,158,11,0.06))',
+            border: isAlarmingGrade
+              ? '1px solid rgba(220,38,38,0.30)'
+              : '1px solid var(--border)',
+            background: isAlarmingGrade
+              ? 'linear-gradient(135deg, rgba(220,38,38,0.10), rgba(245,158,11,0.06))'
+              : 'var(--surface)',
             padding: '20px 22px',
             marginBottom: 24,
             display: 'flex',
@@ -139,30 +124,42 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
             style={{
               width: 48, height: 48, flexShrink: 0,
               borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(220,38,38,0.15)', color: '#DC2626', fontSize: 24,
+              background: isAlarmingGrade ? 'rgba(220,38,38,0.15)' : 'var(--surface-secondary)',
+              color: isAlarmingGrade ? '#DC2626' : 'var(--accent)',
+              fontSize: 24,
             }}
           >
-            ⚔️
+            {isAlarmingGrade ? '⚔️' : '🛡️'}
           </div>
           <div style={{ flex: 1, minWidth: 220 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span
                 style={{
-                  fontSize: 10, fontWeight: 800, color: '#DC2626',
+                  fontSize: 10, fontWeight: 800,
+                  color: isAlarmingGrade ? '#DC2626' : 'var(--accent)',
                   textTransform: 'uppercase', letterSpacing: '0.08em',
                   padding: '3px 8px', borderRadius: 999,
-                  background: 'rgba(220,38,38,0.12)',
+                  background: isAlarmingGrade
+                    ? 'rgba(220,38,38,0.12)'
+                    : 'var(--accent-light)',
                 }}
               >
-                <span className="pulse-soft" aria-hidden="true">●</span> Next step
+                {isAlarmingGrade && (
+                  <span className="pulse-soft" aria-hidden="true">● </span>
+                )}
+                {isAlarmingGrade ? 'Next step' : 'Optional'}
               </span>
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>~8 min · 3 credits</span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>~8 min · $9</span>
             </div>
             <h3 id="active-test-cta-title" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>
-              Want CONFIRMED proof these issues are exploitable?
+              {isAlarmingGrade
+                ? 'Want CONFIRMED proof these issues are exploitable?'
+                : 'Add active DAST verification for extra confidence.'}
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-              Run an active DAST scan — real attack probes (SQLi, XSS, auth bypass) rate-limited and opt-in. Replaces a $5,000 manual pentest.
+              {isAlarmingGrade
+                ? 'Run an active DAST scan — real attack probes (SQLi, XSS, auth bypass) rate-limited and opt-in. Replaces a $5,000 manual pentest.'
+                : 'Even a clean passive scan can miss exploitable logic flaws. Active DAST sends real attack probes against your verified domain.'}
             </p>
           </div>
           <Link
@@ -186,7 +183,7 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
         {scanData.accessibilityData && (
           <AccessibilitySection
             accessibilityData={scanData.accessibilityData}
-            findings={gatedFindings}
+            findings={findings}
           />
         )}
 
@@ -196,18 +193,7 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
             seoGrade={scanData.seoData.seoGrade}
             seoScore={scanData.seoData.seoScore}
             seoMetrics={scanData.seoData.seoMetrics}
-            findings={gatedFindings}
-          />
-        )}
-
-        {/* Tier gate banner */}
-        {!loading && tierMeta && (
-          <TierGateBanner
-            isLimited={tierMeta.isLimited}
-            tier={tierMeta.tier}
-            total={tierMeta.total}
-            shown={tierMeta.shown}
-            hiddenCount={tierMeta.hiddenCount}
+            findings={findings}
           />
         )}
 
@@ -221,7 +207,7 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
               const active = filterSeverity === sev;
               const cfg = sev === 'ALL' ? null : SEVERITY_CONFIG[sev as Severity];
               const count = sev === 'ALL'
-                ? gatedFindings.length
+                ? findings.length
                 : (scanData.summary[sev as Severity] ?? 0);
               return (
                 <button
@@ -280,11 +266,6 @@ export function ReportView({ scanData }: { scanData: ScanData }) {
           </div>
         )}
       </div>
-
-      {/* Watermark for free tier */}
-      {!loading && tierMeta && (
-        <ReportWatermark tier={tierMeta.tier} isLimited={tierMeta.isLimited} />
-      )}
     </div>
   );
 }

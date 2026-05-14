@@ -10,30 +10,32 @@ import type { Finding } from '@/types';
 
 // ── Tier Limits ──────────────────────────────────────────────────────────────
 
+// Pivot: free passive scans are fully unlocked once the user is signed in
+// (the weekly quota is the gate — see rate-limiter.ts).
 export const TIER_LIMITS = {
   free: {
-    maxFindings: 5,
-    allowPdfExport: false,
+    maxFindings: Infinity,
+    allowPdfExport: true,
     allowScanDiff: false,
-    scansPerMonth: 1,
+    weeklyScanLimit: 1,
   },
   'one-shot': {
     maxFindings: Infinity,
     allowPdfExport: true,
     allowScanDiff: false,
-    scansPerMonth: 1, // One-shot is for a single scan
+    weeklyScanLimit: Infinity,
   },
   pro: {
     maxFindings: Infinity,
     allowPdfExport: true,
     allowScanDiff: true,
-    scansPerMonth: Infinity,
+    weeklyScanLimit: Infinity,
   },
   studio: {
     maxFindings: Infinity,
     allowPdfExport: true,
     allowScanDiff: true,
-    scansPerMonth: Infinity,
+    weeklyScanLimit: Infinity,
   },
 } as const;
 
@@ -118,11 +120,11 @@ export function canAccessFeature(tier: string, feature: 'pdfExport' | 'scanDiff'
  */
 export function getUpgradeMessage(tier: string): string {
   if (tier === 'free') {
-    return 'Upgrade to Pro to see all findings and unlock advanced features.';
+    return 'Upgrade to confirm exploitability with active DAST testing.';
   }
 
   if (tier === 'one-shot') {
-    return 'Upgrade to Pro for unlimited scans and scan comparison.';
+    return 'Need more active tests? Buy the Active Pack for 5 DAST scans.';
   }
 
   return '';

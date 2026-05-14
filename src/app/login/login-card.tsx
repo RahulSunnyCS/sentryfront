@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { IconShield } from '@/components/icons';
 
@@ -10,12 +11,14 @@ export function LoginCard() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState<null | 'github' | 'google' | 'email'>(null);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard';
 
   const handleOAuth = async (provider: 'github' | 'google') => {
     setError(null);
     setLoading(provider);
     try {
-      await signIn(provider, { callbackUrl: '/dashboard' });
+      await signIn(provider, { callbackUrl });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sign-in failed');
       setLoading(null);
@@ -31,14 +34,14 @@ export function LoginCard() {
         redirect: false,
         email,
         password,
-        callbackUrl: '/dashboard',
+        callbackUrl,
       });
       if (result?.error) {
         setError('Invalid credentials');
         setLoading(null);
         return;
       }
-      window.location.href = result?.url ?? '/dashboard';
+      window.location.href = result?.url ?? callbackUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign-in failed');
       setLoading(null);

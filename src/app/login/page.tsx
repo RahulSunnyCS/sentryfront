@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
 import { LoginCard } from './login-card';
@@ -25,7 +26,9 @@ export default function LoginPage() {
             padding: 'var(--space-10) var(--space-4)',
           }}
         >
-          <LoginCard />
+          <Suspense fallback={null}>
+            <LoginCard />
+          </Suspense>
         </main>
         <Footer />
       </div>

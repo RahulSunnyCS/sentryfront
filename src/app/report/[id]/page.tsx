@@ -1,7 +1,9 @@
+import { redirect } from 'next/navigation';
 import { Nav } from '@/components/nav';
 import { ReportView } from './report-view';
 import { prisma } from '@/lib/prisma';
 import { BAD_SCAN } from '@/lib/data';
+import { getCurrentUser, isAuthEnabled } from '@/lib/auth/helpers';
 import type { ScanData, ScanSummary, Finding, Grade, ScanStatus } from '@/types';
 
 interface Props {
@@ -111,6 +113,29 @@ async function getReportData(id: string): Promise<ScanData> {
 }
 
 export default async function ReportPage({ params, searchParams }: Props) {
+  // Auth wall: when auth is enabled, viewing a report requires sign-in.
+  // The demo report stays public so the marketing flow keeps working.
+  if (isAuthEnabled() && params.id !== 'demo') {
+    const user = await getCurrentUser();
+    if (!user) {
+      const callbackUrl = `/report/${params.id}${searchParams.url ? `?url=${encodeURIComponent(searchParams.url)}` : ''}`;
+      redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    }
+
+    // Opportunistically attach orphan scans to the signed-in user so the
+    // "scan anon, sign in to view" flow leaves the scan in their history.
+    const existing = await prisma.scan.findUnique({
+      where: { id: params.id },
+      select: { userId: true },
+    });
+    if (existing && existing.userId === null) {
+      await prisma.scan.update({
+        where: { id: params.id },
+        data: { userId: user.id },
+      });
+    }
+  }
+
   let scanData: ScanData | null = null;
   let fetchError: string | null = null;
 
