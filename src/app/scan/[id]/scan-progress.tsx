@@ -10,7 +10,13 @@ interface Props {
   scanUrl: string;
 }
 
-const MOCK_INTERVAL_MS = 340;
+// Per-module mock durations, summing to ~60 000 ms so the demo loader
+// paces like a real scan instead of finishing in 5 s.
+const MOCK_MODULE_DURATIONS_MS = [
+  3500, 2800, 4200, 5500, 3000,
+  4800, 3500, 2500, 5800, 4500,
+  3800, 3000, 4500, 2200, 6400,
+];
 
 const SECURITY_FACTS = [
   '60% of small businesses fold within 6 months of a cyberattack — Verizon DBIR',
@@ -26,7 +32,7 @@ const SECURITY_FACTS = [
 ];
 
 const FACT_ROTATE_MS = 4500;
-const ESTIMATED_TOTAL_S = 75;
+const ESTIMATED_TOTAL_S = 60;
 
 export function ScanProgress({ scanId, scanUrl }: Props) {
   const router = useRouter();
@@ -86,22 +92,34 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
       'P1-13': 1, 'P1-14': 1, 'P1-15': 0,
     };
 
-    let idx = 0;
-    const interval = setInterval(() => {
-      idx++;
-      const mod = SCAN_MODULES[idx - 1];
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const tick = (idx: number) => {
+      if (cancelled) return;
+      const mod = SCAN_MODULES[idx];
       if (mod) {
         setModuleResults((prev) => ({ ...prev, [mod.id]: BAD_RESULTS[mod.id] ?? 0 }));
       }
-      setActiveModule(idx);
-      setCompletedModules(idx);
-      if (idx >= total) {
-        clearInterval(interval);
-        setTimeout(() => router.push(`/report/${scanId}?url=${encodeURIComponent(scanUrl)}`), 1200);
+      const nextIdx = idx + 1;
+      setActiveModule(nextIdx);
+      setCompletedModules(nextIdx);
+      if (nextIdx >= total) {
+        timeoutId = setTimeout(() => {
+          if (!cancelled) router.push(`/report/${scanId}?url=${encodeURIComponent(scanUrl)}`);
+        }, 1200);
+        return;
       }
-    }, MOCK_INTERVAL_MS);
+      const delay = MOCK_MODULE_DURATIONS_MS[nextIdx] ?? 4000;
+      timeoutId = setTimeout(() => tick(nextIdx), delay);
+    };
 
-    return () => clearInterval(interval);
+    timeoutId = setTimeout(() => tick(0), MOCK_MODULE_DURATIONS_MS[0] ?? 4000);
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [scanId, scanUrl, router, total]);
 
   return (
@@ -213,7 +231,21 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
                 >
                   {statusSymbol}
                 </div>
-                <span style={{ flex: 1, minWidth: 0, color: 'var(--text)', wordBreak: 'break-word' }}>{mod.name}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: 'var(--text)', wordBreak: 'break-word' }}>
+                    {mod.plainName}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-tertiary)',
+                      marginTop: 2,
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {mod.name}
+                  </div>
+                </div>
                 {isDone && findCount > 0 && (
                   <span
                     style={{
