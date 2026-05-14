@@ -6,10 +6,10 @@ interface Props {
   initial: string;
   final: string;
   line2: string;
+  initialVariant: 'alpha' | 'beta' | 'gamma';
 }
 
 type Variant = 'alpha' | 'beta' | 'gamma';
-const VARIANTS: Variant[] = ['alpha', 'beta', 'gamma'];
 const COOKIE_KEY = 'sentry:lastHeroAnim';
 
 // Split initial/final into shared prefix + diverging swap word + shared suffix.
@@ -38,44 +38,24 @@ function diffWord(initial: string, final: string) {
   };
 }
 
-function readCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
-  return m ? decodeURIComponent(m[1]) : null;
-}
-
 function writeCookie(name: string, value: string) {
   if (typeof document === 'undefined') return;
   document.cookie = `${name}=${value}; path=/; max-age=${60 * 60 * 24 * 90}; SameSite=Lax`;
 }
 
-export function HeroHeadlineAnim({ initial, final, line2 }: Props) {
-  const [variant, setVariant] = useState<Variant>('alpha');
+export function HeroHeadlineAnim({ initial, final, line2, initialVariant }: Props) {
+  const variant = initialVariant;
   const [phase, setPhase] = useState<'before' | 'fixed'>('before');
-  const [ready, setReady] = useState(false);
   const swapRef = useRef<HTMLSpanElement | null>(null);
 
-  // Pick variant from URL ?heroAnim=… or round-robin cookie.
+  // Persist the server-picked variant so the *next* visit rotates.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const override = params.get('heroAnim');
-    let chosen: Variant;
-    if (override && (VARIANTS as string[]).includes(override)) {
-      chosen = override as Variant;
-    } else {
-      const last = readCookie(COOKIE_KEY) as Variant | null;
-      const idx = last ? VARIANTS.indexOf(last) : -1;
-      chosen = VARIANTS[(idx + 1) % VARIANTS.length];
-    }
-    setVariant(chosen);
-    writeCookie(COOKIE_KEY, chosen);
-    try { localStorage.setItem(COOKIE_KEY, chosen); } catch {}
-    setReady(true);
-  }, []);
+    writeCookie(COOKIE_KEY, variant);
+    try { localStorage.setItem(COOKIE_KEY, variant); } catch {}
+  }, [variant]);
 
-  // Kick off the animation after the variant is locked in.
+  // Kick off the animation after mount.
   useEffect(() => {
-    if (!ready) return;
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if (reduced) {
       setPhase('fixed');
@@ -84,12 +64,15 @@ export function HeroHeadlineAnim({ initial, final, line2 }: Props) {
     const delays: Record<Variant, number> = { alpha: 2400, beta: 2000, gamma: 1500 };
     const t = window.setTimeout(() => setPhase('fixed'), delays[variant]);
     return () => window.clearTimeout(t);
-  }, [ready, variant]);
+  }, [variant]);
 
   const diff = diffWord(initial, final);
 
   return (
-    <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+    <div
+      data-hero-anim={variant}
+      style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}
+    >
       <h1
         id="hero-heading"
         className="text-hero hero-anim-h1"
@@ -106,10 +89,10 @@ export function HeroHeadlineAnim({ initial, final, line2 }: Props) {
         {line2}
       </h1>
 
-      {ready && variant === 'alpha' && <HeroAnimAlpha phase={phase} swapRef={swapRef} />}
-      {ready && variant === 'beta' && <HeroAnimBeta phase={phase} swapRef={swapRef} />}
-      {ready && variant === 'gamma' && <HeroAnimGamma phase={phase} swapRef={swapRef} />}
-      {ready && <HeroVariantSwitcher current={variant} />}
+      {variant === 'alpha' && <HeroAnimAlpha phase={phase} swapRef={swapRef} />}
+      {variant === 'beta' && <HeroAnimBeta phase={phase} swapRef={swapRef} />}
+      {variant === 'gamma' && <HeroAnimGamma phase={phase} swapRef={swapRef} />}
+      <HeroVariantSwitcher current={variant} />
     </div>
   );
 }

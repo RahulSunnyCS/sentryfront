@@ -12,7 +12,11 @@ function formatCount(n: number | null, locale: string): string {
   return n.toLocaleString(locale);
 }
 
-export function LandingHero() {
+interface LandingHeroProps {
+  initialHeroAnim: 'alpha' | 'beta' | 'gamma';
+}
+
+export function LandingHero({ initialHeroAnim }: LandingHeroProps) {
   const [weeklyCount, setWeeklyCount] = useState<number | null>(null);
   const t = useTranslations('landing');
 
@@ -35,7 +39,7 @@ export function LandingHero() {
 
   return (
     <main id="main" style={{ display: 'flex', flexDirection: 'column' }}>
-      <HeroSection weeklyCount={weeklyCount} />
+      <HeroSection weeklyCount={weeklyCount} initialHeroAnim={initialHeroAnim} />
       <ToolsStrip />
       <HowItWorksSection />
       <StatsSection weeklyCount={weeklyCount} />
@@ -64,7 +68,13 @@ export function LandingHero() {
   );
 }
 
-function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
+function HeroSection({
+  weeklyCount,
+  initialHeroAnim,
+}: {
+  weeklyCount: number | null;
+  initialHeroAnim: 'alpha' | 'beta' | 'gamma';
+}) {
   const t = useTranslations('landing');
   const router = useRouter();
   const [url, setUrl] = useState('');
@@ -128,6 +138,7 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
           initial={t('heroTitleInitialLine1')}
           final={t('heroTitleLine1')}
           line2={t('heroTitleLine2')}
+          initialVariant={initialHeroAnim}
         />
 
         <p
