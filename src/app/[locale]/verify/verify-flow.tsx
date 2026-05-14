@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 type Path = 'tech' | 'guided';
 type Method = 'dns' | 'meta';
@@ -17,6 +18,7 @@ const METHOD_TO_API: Record<Method, 'dns_txt' | 'meta_tag'> = {
   meta: 'meta_tag',
 };
 
+// Platform-specific UI navigation strings (describe English-only platform UIs).
 const DNS_FALLBACK_STEPS = [
   'Log into your domain registrar or DNS provider',
   'Add a TXT record — Name: @, Value: the token below',
@@ -80,13 +82,14 @@ const PLATFORMS: Array<{
     metaSteps: META_FALLBACK_STEPS,
   },
   {
-    key: 'other', name: 'Other', icon: '❓', defaultMethod: 'dns',
+    key: 'other', name: '__OTHER__', icon: '❓', defaultMethod: 'dns',
     dnsSteps: ['Log into your DNS provider', 'Add a TXT record on the apex (@) with the token below', 'Wait 1–5 minutes and click "Verify"'],
     metaSteps: META_FALLBACK_STEPS,
   },
 ];
 
 export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
+  const t = useTranslations('verify');
   const [path, setPath] = useState<Path>('tech');
   const [method, setMethod] = useState<Method>('dns');
   const [platformKey, setPlatformKey] = useState<string | null>(null);
@@ -96,6 +99,7 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
 
   const metaTag = `<meta name="vibesafe-verify" content="${token.replace('vibesafe-verify=', '')}" />`;
   const platform = PLATFORMS.find((p) => p.key === platformKey);
+  const platformName = (p: { key: string; name: string }) => (p.key === 'other' ? t('platformOther') : p.name);
 
   const selectPlatform = (key: string) => {
     const p = PLATFORMS.find((pl) => pl.key === key);
@@ -117,10 +121,11 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
       if (response.status === 429) {
         setResult('fail');
         const retryAfter = response.headers.get('Retry-After');
+        const seconds = retryAfter ? parseInt(retryAfter, 10) : null;
         setErrorMessage(
-          retryAfter
-            ? `Too many checks — try again in ${retryAfter} second${retryAfter === '1' ? '' : 's'}.`
-            : 'Too many checks — try again in a moment.',
+          seconds && Number.isFinite(seconds)
+            ? t('tooManyChecksRetry', { seconds, plural: seconds === 1 ? '' : 's' })
+            : t('tooManyChecks'),
         );
         return;
       }
@@ -133,7 +138,7 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
 
       if (!response.ok) {
         setResult('fail');
-        setErrorMessage(data.error ?? 'Verification check failed.');
+        setErrorMessage(data.error ?? t('checkFailed'));
         return;
       }
 
@@ -145,7 +150,7 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
       }
     } catch (err) {
       setResult('fail');
-      setErrorMessage(err instanceof Error ? err.message : 'Network error.');
+      setErrorMessage(err instanceof Error ? err.message : t('networkError'));
     } finally {
       setVerifying(false);
     }
@@ -153,7 +158,6 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
 
   return (
     <>
-      {/* Why verify */}
       <aside
         style={{
           background: 'linear-gradient(135deg, rgba(245,158,11,0.10), rgba(220,38,38,0.06))',
@@ -169,20 +173,18 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
         <span aria-hidden="true" style={{ fontSize: 24, flexShrink: 0 }}>⚖️</span>
         <div>
           <strong style={{ fontSize: 'var(--fs-md)', display: 'block', marginBottom: 4 }}>
-            Why we ask
+            {t('whyTitle')}
           </strong>
-          <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
-            Active scans send actual attack probes. The US Computer Fraud and Abuse Act (and its global equivalents) make
-            this illegal without authorization. Verifying ownership <strong style={{ color: 'var(--text)' }}>is</strong>{' '}
-            your authorization — it&apos;s a one-time setup and can be removed any time.
-          </p>
+          <p
+            style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}
+            dangerouslySetInnerHTML={{ __html: t.raw('whyBody') as string }}
+          />
         </div>
       </aside>
 
-      {/* Path selector */}
       <div
         role="tablist"
-        aria-label="Verification path"
+        aria-label={t('pathTabsLabel')}
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
@@ -191,13 +193,13 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
           margin: '0 auto var(--space-8)',
         }}
       >
-        <PathBtn active={path === 'tech'}   onClick={() => setPath('tech')}   emoji="👨‍💻" title="I'm a developer" desc="Show me DNS / meta options" />
-        <PathBtn active={path === 'guided'} onClick={() => setPath('guided')} emoji="🌐" title="I use a builder"   desc="Walk me through it (Wix, Webflow, …)" />
+        <PathBtn active={path === 'tech'}   onClick={() => setPath('tech')}   emoji="👨‍💻" title={t('pathTechTitle')}   desc={t('pathTechDesc')} />
+        <PathBtn active={path === 'guided'} onClick={() => setPath('guided')} emoji="🌐" title={t('pathGuidedTitle')} desc={t('pathGuidedDesc')} />
       </div>
 
       {path === 'tech' ? (
         <section
-          aria-label="Technical verification methods"
+          aria-label={t('techMethodsLabel')}
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
@@ -208,45 +210,56 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
         >
           <MethodCard
             recommended
+            recommendedLabel={t('recommendedBadge')}
             active={method === 'dns'}
             onClick={() => setMethod('dns')}
-            title="DNS TXT record"
-            sub="~60 seconds · most reliable"
+            title={t('dnsTitle')}
+            sub={t('dnsSub')}
           >
             <ol style={olCss}>
-              <li>Open your DNS provider</li>
-              <li>Add a TXT record:</li>
+              <li>{t('dnsStep1')}</li>
+              <li>{t('dnsStep2')}</li>
             </ol>
-            <RecordBox lines={[['Type', 'TXT'], ['Name', '@'], ['Value', token]]} />
-            <p style={hintCss}>Cloudflare · Namecheap · GoDaddy · Route 53 · Google Domains</p>
+            <RecordBox
+              lines={[
+                [t('recordType'), 'TXT'],
+                [t('recordName'), '@'],
+                [t('recordValue'), token],
+              ]}
+              copyLabel={t('copy')}
+              copyAria={(field) => t('copyAria', { field })}
+            />
+            <p style={hintCss}>{t('dnsHint')}</p>
             <ol start={3} style={olCss}>
-              <li>Wait 1–5 minutes for propagation</li>
-              <li>Click verify</li>
+              <li>{t('dnsStep3')}</li>
+              <li>{t('dnsStep4')}</li>
             </ol>
           </MethodCard>
 
           <MethodCard
             active={method === 'meta'}
             onClick={() => setMethod('meta')}
-            title="HTML meta tag"
-            sub="Use if you can edit your site's HTML"
+            title={t('metaTagTitle')}
+            sub={t('metaTagSub')}
           >
             <ol style={olCss}>
-              <li>Paste this inside the <code style={codeInlineCss}>&lt;head&gt;</code> of your home page:</li>
+              <li>
+                {t('metaStep1Prefix')} <code style={codeInlineCss}>&lt;head&gt;</code> {t('metaStep1Suffix')}
+              </li>
             </ol>
-            <CodeBlock code={metaTag} />
+            <CodeBlock code={metaTag} copyLabel={t('copy')} copyAria={t('copyCodeAria')} />
             <ol start={2} style={olCss}>
-              <li>Deploy your site so it&apos;s live</li>
-              <li>Click verify</li>
+              <li>{t('metaStep2')}</li>
+              <li>{t('metaStep3')}</li>
             </ol>
           </MethodCard>
         </section>
       ) : (
-        <section aria-label="Guided platform walkthrough" style={{ maxWidth: 900, margin: '0 auto' }}>
+        <section aria-label={t('pathGuidedTitle')} style={{ maxWidth: 900, margin: '0 auto' }}>
           {platform == null ? (
             <>
               <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
-                Pick your platform — we&apos;ll show you exactly where to paste the verification.
+                {t('guidedHelp')}
               </p>
               <ul
                 style={{
@@ -276,9 +289,9 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
                       }}
                     >
                       <span aria-hidden="true" style={{ fontSize: 24 }}>{p.icon}</span>
-                      <strong>{p.name}</strong>
+                      <strong>{platformName(p)}</strong>
                       <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
-                        {p.defaultMethod === 'dns' ? 'DNS · meta tag' : 'meta tag · DNS'}
+                        {p.key === 'other' ? t('platformOtherDescription') : (p.defaultMethod === 'dns' ? 'DNS · meta tag' : 'meta tag · DNS')}
                       </span>
                     </button>
                   </li>
@@ -290,7 +303,7 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
                   onClick={() => setPath('tech')}
                   style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 600 }}
                 >
-                  ← I&apos;d rather see the developer view
+                  {t('devViewLink')}
                 </button>
               </p>
             </>
@@ -303,21 +316,20 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
                   className="btn-secondary"
                   style={{ padding: '6px 12px', minHeight: 0 }}
                 >
-                  ← Other platform
+                  {t('otherPlatformLink')}
                 </button>
                 <span aria-hidden="true" style={{ fontSize: 28 }}>{platform.icon}</span>
-                <h2 className="text-h3" style={{ margin: 0 }}>{platform.name}</h2>
+                <h2 className="text-h3" style={{ margin: 0 }}>{platformName(platform)}</h2>
                 {platform.defaultMethod === method && (
                   <span className="pill pill-accent" style={{ marginLeft: 'auto', fontSize: 'var(--fs-xs)' }}>
-                    Recommended for {platform.name}
+                    {t('recommendedFor', { platform: platformName(platform) })}
                   </span>
                 )}
               </header>
 
-              {/* Method tabs */}
               <div
                 role="tablist"
-                aria-label="Verification method"
+                aria-label={t('methodTabsLabel')}
                 style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-5)' }}
               >
                 {(['dns', 'meta'] as Method[]).map((m) => (
@@ -340,9 +352,9 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
                       transition: 'border-color 0.15s, background 0.15s',
                     }}
                   >
-                    {m === 'dns' ? '🌐 DNS TXT record' : '🏷 HTML meta tag'}
+                    {m === 'dns' ? t('tabDnsLabel') : t('tabMetaLabel')}
                     {platform.defaultMethod === m && (
-                      <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.75 }}>★ recommended</span>
+                      <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.75 }}>{t('methodRecommendedMarker')}</span>
                     )}
                   </button>
                 ))}
@@ -355,15 +367,22 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
               </ol>
               <div style={{ marginTop: 'var(--space-5)' }}>
                 {method === 'dns'
-                  ? <RecordBox lines={[['Type', 'TXT'], ['Name', '@'], ['Value', token]]} />
-                  : <CodeBlock code={metaTag} />}
+                  ? <RecordBox
+                      lines={[
+                        [t('recordType'), 'TXT'],
+                        [t('recordName'), '@'],
+                        [t('recordValue'), token],
+                      ]}
+                      copyLabel={t('copy')}
+                      copyAria={(field) => t('copyAria', { field })}
+                    />
+                  : <CodeBlock code={metaTag} copyLabel={t('copy')} copyAria={t('copyCodeAria')} />}
               </div>
             </article>
           )}
         </section>
       )}
 
-      {/* Verify action */}
       <div
         style={{
           maxWidth: 640,
@@ -376,17 +395,21 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
         }}
       >
         <button type="button" className="btn-primary" onClick={handleVerify} disabled={verifying}>
-          {verifying ? 'Verifying…' : `Verify ${method === 'dns' ? 'DNS record' : 'meta tag'} for ${domain}`}
+          {verifying
+            ? t('verifying')
+            : method === 'dns'
+              ? t('verifyDnsBtn', { domain })
+              : t('verifyMetaBtn', { domain })}
         </button>
         {result === 'ok' && (
           <p role="status" style={{ color: 'var(--success)', fontWeight: 600 }}>
-            ✓ Verified — you can now run active tests.{' '}
-            <Link href="/active-test" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>Continue →</Link>
+            {t('verifiedOk')}{' '}
+            <Link href="/active-test" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>{t('verifiedContinue')}</Link>
           </p>
         )}
         {result === 'fail' && (
           <p role="alert" style={{ color: '#E11D48' }}>
-            {errorMessage ?? 'Couldn’t find the record yet. DNS can take up to an hour — try again shortly.'}
+            {errorMessage ?? t('verifyFailFallback')}
           </p>
         )}
 
@@ -401,9 +424,9 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
             margin: 'var(--space-5) 0 0',
           }}
         >
-          {['One-time setup', 'Remove anytime', 'We re-check on each scan', 'No tracking pixel'].map((t) => (
-            <li key={t} style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
-              ✓ {t}
+          {[t('trustOneTime'), t('trustRemove'), t('trustRecheck'), t('trustNoTracking')].map((badge) => (
+            <li key={badge} style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
+              ✓ {badge}
             </li>
           ))}
         </ul>
@@ -411,8 +434,6 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
     </>
   );
 }
-
-/* ──── primitives ──── */
 
 const olCss: React.CSSProperties = {
   paddingLeft: 18,
@@ -473,6 +494,7 @@ function PathBtn({
 
 function MethodCard({
   recommended,
+  recommendedLabel,
   active,
   onClick,
   title,
@@ -480,6 +502,7 @@ function MethodCard({
   children,
 }: {
   recommended?: boolean;
+  recommendedLabel?: string;
   active?: boolean;
   onClick: () => void;
   title: string;
@@ -503,7 +526,7 @@ function MethodCard({
         transition: 'border-color 0.15s ease',
       }}
     >
-      {recommended && (
+      {recommended && recommendedLabel && (
         <div
           style={{
             position: 'absolute',
@@ -519,7 +542,7 @@ function MethodCard({
             letterSpacing: '0.06em',
           }}
         >
-          Recommended
+          {recommendedLabel}
         </div>
       )}
       <h2 style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, marginBottom: 4 }}>{title}</h2>
@@ -529,7 +552,15 @@ function MethodCard({
   );
 }
 
-function RecordBox({ lines }: { lines: Array<[string, string]> }) {
+function RecordBox({
+  lines,
+  copyLabel,
+  copyAria,
+}: {
+  lines: Array<[string, string]>;
+  copyLabel: string;
+  copyAria: (field: string) => string;
+}) {
   return (
     <div
       style={{
@@ -548,13 +579,23 @@ function RecordBox({ lines }: { lines: Array<[string, string]> }) {
       }}
     >
       {lines.map(([k, v]) => (
-        <ContentsRow key={k} k={k} v={v} />
+        <ContentsRow key={k} k={k} v={v} copyLabel={copyLabel} copyAria={copyAria(k)} />
       ))}
     </div>
   );
 }
 
-function ContentsRow({ k, v }: { k: string; v: string }) {
+function ContentsRow({
+  k,
+  v,
+  copyLabel,
+  copyAria,
+}: {
+  k: string;
+  v: string;
+  copyLabel: string;
+  copyAria: string;
+}) {
   const copy = () => navigator.clipboard?.writeText(v).catch(() => {});
   return (
     <>
@@ -563,7 +604,7 @@ function ContentsRow({ k, v }: { k: string; v: string }) {
       <button
         type="button"
         onClick={copy}
-        aria-label={`Copy ${k}`}
+        aria-label={copyAria}
         style={{
           background: 'transparent',
           border: '1px solid var(--border)',
@@ -575,13 +616,13 @@ function ContentsRow({ k, v }: { k: string; v: string }) {
           cursor: 'pointer',
         }}
       >
-        Copy
+        {copyLabel}
       </button>
     </>
   );
 }
 
-function CodeBlock({ code }: { code: string }) {
+function CodeBlock({ code, copyLabel, copyAria }: { code: string; copyLabel: string; copyAria: string }) {
   const copy = () => navigator.clipboard?.writeText(code).catch(() => {});
   return (
     <div
@@ -601,7 +642,7 @@ function CodeBlock({ code }: { code: string }) {
       <button
         type="button"
         onClick={copy}
-        aria-label="Copy code"
+        aria-label={copyAria}
         style={{
           position: 'absolute',
           top: 8,
@@ -616,7 +657,7 @@ function CodeBlock({ code }: { code: string }) {
           cursor: 'pointer',
         }}
       >
-        Copy
+        {copyLabel}
       </button>
     </div>
   );

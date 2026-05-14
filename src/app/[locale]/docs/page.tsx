@@ -1,23 +1,41 @@
 import type { Metadata } from 'next';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
 import { DocsLayout } from './docs-layout';
+import { routing, type Locale } from '@/i18n/routing';
 
-export const metadata: Metadata = {
-  title: 'Documentation',
-  description:
-    'VibeSafe documentation — quick start, active testing, API reference, webhooks, CI/CD integration, fix prompts, and FAQ. Everything you need to ship a secure AI-built site.',
-  alternates: { canonical: '/docs' },
-  openGraph: {
-    title: 'VibeSafe documentation',
-    description:
-      'Quick start, active testing, API reference, webhooks, CI/CD integration, and more.',
-    url: '/docs',
-    type: 'article',
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'docs' });
+  return {
+    title: t('metaTitle'),
+    description: t('metaDesc'),
+    alternates: { canonical: `/${locale}/docs` },
+    openGraph: {
+      title: t('ogTitle'),
+      description: t('ogDesc'),
+      url: `/${locale}/docs`,
+      type: 'article',
+    },
+  };
+}
 
-export default function DocsPage() {
+export function generateStaticParams() {
+  return routing.locales.map((locale: Locale) => ({ locale }));
+}
+
+export default async function DocsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   return (
     <>
       <Nav />

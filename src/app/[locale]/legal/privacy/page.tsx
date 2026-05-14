@@ -1,23 +1,68 @@
+import type { Metadata } from 'next';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Nav } from '@/components/nav';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { routing, type Locale } from '@/i18n/routing';
 
-export const metadata = {
-  title: 'Privacy Policy — VibeSafe',
-  description: 'Privacy Policy for VibeSafe security scanner',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'legal' });
+  return {
+    title: t('privacyMetaTitle'),
+    description: t('privacyMetaDesc'),
+    alternates: { canonical: `/${locale}/legal/privacy` },
+  };
+}
 
-export default function PrivacyPage() {
+export function generateStaticParams() {
+  return routing.locales.map((locale: Locale) => ({ locale }));
+}
+
+export default async function PrivacyPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'legal' });
+  const date = new Date().toLocaleDateString(locale, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
       <Nav />
       <div style={{ paddingTop: 56 }}>
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px' }}>
           <h1 style={{ fontSize: 32, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>
-            Privacy Policy
+            {t('privacyTitle')}
           </h1>
-          <p style={{ fontSize: 14, color: 'var(--text-tertiary)', marginBottom: 48 }}>
-            Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          <p style={{ fontSize: 14, color: 'var(--text-tertiary)', marginBottom: 16 }}>
+            {t('lastUpdated', { date })}
           </p>
+          {locale !== 'en' && (
+            <p
+              style={{
+                fontSize: 13,
+                color: 'var(--text-tertiary)',
+                fontStyle: 'italic',
+                marginBottom: 32,
+                padding: '12px 14px',
+                background: 'var(--surface-secondary)',
+                borderLeft: '3px solid var(--accent)',
+                borderRadius: 4,
+              }}
+            >
+              {t('englishCanonicalNotice')}
+            </p>
+          )}
 
           <div className="legal-content" style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text-secondary)' }}>
             <h2>1. Information We Collect</h2>

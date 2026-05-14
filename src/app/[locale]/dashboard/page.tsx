@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { Link, redirect } from '@/i18n/navigation';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
 import { IconArrowRight } from '@/components/icons';
@@ -13,18 +13,31 @@ import {
   type ScanListItem,
 } from '@/lib/dashboard-queries';
 import { logger } from '@/lib/logger';
+import { routing, type Locale } from '@/i18n/routing';
 
-export const metadata: Metadata = {
-  title: 'Dashboard',
-  description:
-    'View recent scans, security grade trends, critical findings, and monitored sites — all in one place.',
-  alternates: { canonical: '/dashboard' },
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'dashboard' });
+  return {
+    title: t('metaTitle'),
+    description: t('metaDesc'),
+    alternates: { canonical: `/${locale}/dashboard` },
+    robots: { index: false, follow: false },
+  };
+}
+
+export function generateStaticParams() {
+  return routing.locales.map((locale: Locale) => ({ locale }));
+}
 
 export const dynamic = 'force-dynamic';
 
 type StatTone = 'neutral' | 'danger' | 'accent';
+type Translator = Awaited<ReturnType<typeof getTranslations<'dashboard'>>>;
 
 interface StatCard {
   value: string;
@@ -41,55 +54,63 @@ const GRADE_TONE: Record<Grade, { bg: string; fg: string }> = {
   F: { bg: 'rgba(220,38,38,0.18)', fg: '#DC2626' },
 };
 
-function buildStatCards(stats: DashboardStats): StatCard[] {
+function buildStatCards(stats: DashboardStats, t: Translator): StatCard[] {
   return [
     {
       value: stats.totalScans.toString(),
-      label: 'Total scans',
+      label: t('totalScans'),
       trend: stats.trends.totalScans,
       tone: 'neutral',
     },
     {
       value: stats.criticalIssues.toString(),
-      label: 'Critical issues',
+      label: t('criticalIssues'),
       trend: stats.trends.criticalIssues,
       tone: stats.criticalIssues > 0 ? 'danger' : 'neutral',
     },
     {
       value: stats.avgGrade ?? '—',
-      label: 'Avg. grade',
+      label: t('avgGrade'),
       trend: stats.trends.avgGrade,
       tone: 'accent',
     },
     {
       value: stats.monitoredSites.toString(),
-      label: 'Monitored sites',
+      label: t('monitoredSites'),
       trend: stats.trends.monitoredSites,
       tone: 'neutral',
     },
   ];
 }
 
-function formatRelative(iso: string | null): string {
+function formatRelative(iso: string | null, locale: string, t: Translator): string {
   if (!iso) return '—';
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return '—';
   const diffSec = Math.floor((Date.now() - then) / 1000);
-  if (diffSec < 60) return 'Just now';
+  if (diffSec < 60) return t('justNow');
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+  if (diffMin < 60) return t('minutesAgo', { count: diffMin });
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
+  if (diffHr < 24) return t('hoursAgo', { count: diffHr });
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay === 1) return 'Yesterday';
-  if (diffDay < 7) return `${diffDay} days ago`;
-  return new Date(iso).toLocaleDateString();
+  if (diffDay === 1) return t('yesterday');
+  if (diffDay < 7) return t('daysAgo', { count: diffDay });
+  return new Date(iso).toLocaleDateString(locale);
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'dashboard' });
+
   const user = await getCurrentUser();
   if (!user) {
-    redirect('/login?next=/dashboard');
+    redirect({ href: '/login?next=/dashboard', locale: locale as Locale });
   }
 
   let stats: DashboardStats | null = null;
@@ -97,17 +118,17 @@ export default async function DashboardPage() {
   let loadError = false;
   try {
     const [statsResult, scansResult] = await Promise.all([
-      getDashboardStats(user.id),
-      listUserScans(user.id, { limit: 20 }),
+      getDashboardStats(user!.id),
+      listUserScans(user!.id, { limit: 20 }),
     ]);
     stats = statsResult;
     scans = scansResult.items;
   } catch (err) {
-    logger.error('Dashboard page load failed', { userId: user.id }, err as Error);
+    logger.error('Dashboard page load failed', { userId: user!.id }, err as Error);
     loadError = true;
   }
 
-  const statCards = stats ? buildStatCards(stats) : [];
+  const statCards = stats ? buildStatCards(stats, t) : [];
 
   return (
     <>
@@ -127,23 +148,23 @@ export default async function DashboardPage() {
             >
               <div>
                 <h1 className="text-h2" style={{ marginBottom: 'var(--space-2)' }}>
-                  Dashboard
+                  {t('title')}
                 </h1>
                 <p className="text-lead" style={{ margin: 0 }}>
-                  Manage and monitor your website scans
+                  {t('lead')}
                 </p>
               </div>
               <Link href="/" className="btn-primary">
-                New scan
+                {t('newScan')}
                 <IconArrowRight size={16} color="#fff" />
               </Link>
             </header>
 
-            {loadError && <LoadError />}
+            {loadError && <LoadError message={t('loadError')} />}
 
             {!loadError && stats && (
               <section
-                aria-label="Account summary"
+                aria-label={t('accountSummary')}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
@@ -194,11 +215,15 @@ export default async function DashboardPage() {
             {!loadError && (
               <section aria-labelledby="recent-heading">
                 <h2 id="recent-heading" className="text-h3" style={{ marginBottom: 'var(--space-6)' }}>
-                  Recent scans
+                  {t('recentScans')}
                 </h2>
 
                 {scans.length === 0 ? (
-                  <EmptyState />
+                  <EmptyState
+                    title={t('emptyTitle')}
+                    desc={t('emptyDesc')}
+                    cta={t('emptyCta')}
+                  />
                 ) : (
                   <>
                     <div
@@ -211,19 +236,25 @@ export default async function DashboardPage() {
                       }}
                     >
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--fs-base)' }}>
-                        <caption className="sr-only">Recent website scans</caption>
+                        <caption className="sr-only">{t('recentScansCaption')}</caption>
                         <thead>
                           <tr style={{ background: 'var(--surface-secondary)' }}>
-                            <th style={tHeadCss} scope="col">Site</th>
-                            <th style={tHeadCss} scope="col">Grade</th>
-                            <th style={tHeadCss} scope="col">Issues</th>
-                            <th style={tHeadCss} scope="col">Scanned</th>
-                            <th style={{ ...tHeadCss, textAlign: 'right' }} scope="col">Report</th>
+                            <th style={tHeadCss} scope="col">{t('colSite')}</th>
+                            <th style={tHeadCss} scope="col">{t('colGrade')}</th>
+                            <th style={tHeadCss} scope="col">{t('colIssues')}</th>
+                            <th style={tHeadCss} scope="col">{t('colScanned')}</th>
+                            <th style={{ ...tHeadCss, textAlign: 'right' }} scope="col">{t('colReport')}</th>
                           </tr>
                         </thead>
                         <tbody>
                           {scans.map((s, i) => (
-                            <ScanRow key={s.id} scan={s} isFirst={i === 0} />
+                            <ScanRow
+                              key={s.id}
+                              scan={s}
+                              isFirst={i === 0}
+                              locale={locale}
+                              t={t}
+                            />
                           ))}
                         </tbody>
                       </table>
@@ -241,7 +272,7 @@ export default async function DashboardPage() {
                       }}
                     >
                       {scans.map((s) => (
-                        <ScanCard key={s.id} scan={s} />
+                        <ScanCard key={s.id} scan={s} locale={locale} t={t} />
                       ))}
                     </ul>
                   </>
@@ -256,7 +287,17 @@ export default async function DashboardPage() {
   );
 }
 
-function ScanRow({ scan, isFirst }: { scan: ScanListItem; isFirst: boolean }) {
+function ScanRow({
+  scan,
+  isFirst,
+  locale,
+  t,
+}: {
+  scan: ScanListItem;
+  isFirst: boolean;
+  locale: string;
+  t: Translator;
+}) {
   const tone = scan.grade ? GRADE_TONE[scan.grade] : null;
   return (
     <tr style={{ borderTop: isFirst ? 'none' : '1px solid var(--border-light)' }}>
@@ -291,10 +332,15 @@ function ScanRow({ scan, isFirst }: { scan: ScanListItem; isFirst: boolean }) {
         )}
       </td>
       <td style={tCellCss}>
-        <IssueChips critical={scan.critical} high={scan.high} medium={scan.medium} />
+        <IssueChips
+          critical={scan.critical}
+          high={scan.high}
+          medium={scan.medium}
+          labels={{ critical: t('critical'), high: t('high'), medium: t('medium') }}
+        />
       </td>
       <td style={{ ...tCellCss, color: 'var(--text-tertiary)' }}>
-        {formatRelative(scan.completedAt ?? scan.startedAt)}
+        {formatRelative(scan.completedAt ?? scan.startedAt, locale, t)}
       </td>
       <td style={{ ...tCellCss, textAlign: 'right' }}>
         <Link
@@ -309,7 +355,7 @@ function ScanRow({ scan, isFirst }: { scan: ScanListItem; isFirst: boolean }) {
             color: 'var(--accent)',
           }}
         >
-          View
+          {t('view')}
           <IconArrowRight size={14} color="var(--accent)" />
         </Link>
       </td>
@@ -317,7 +363,15 @@ function ScanRow({ scan, isFirst }: { scan: ScanListItem; isFirst: boolean }) {
   );
 }
 
-function ScanCard({ scan }: { scan: ScanListItem }) {
+function ScanCard({
+  scan,
+  locale,
+  t,
+}: {
+  scan: ScanListItem;
+  locale: string;
+  t: Translator;
+}) {
   const tone = scan.grade ? GRADE_TONE[scan.grade] : null;
   return (
     <li>
@@ -357,16 +411,21 @@ function ScanCard({ scan }: { scan: ScanListItem }) {
             </span>
           )}
         </div>
-        <IssueChips critical={scan.critical} high={scan.high} medium={scan.medium} />
+        <IssueChips
+          critical={scan.critical}
+          high={scan.high}
+          medium={scan.medium}
+          labels={{ critical: t('critical'), high: t('high'), medium: t('medium') }}
+        />
         <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
-          {formatRelative(scan.completedAt ?? scan.startedAt)}
+          {formatRelative(scan.completedAt ?? scan.startedAt, locale, t)}
         </div>
       </Link>
     </li>
   );
 }
 
-function EmptyState() {
+function EmptyState({ title, desc, cta }: { title: string; desc: string; cta: string }) {
   return (
     <div
       style={{
@@ -377,19 +436,19 @@ function EmptyState() {
         textAlign: 'center',
       }}
     >
-      <h3 style={{ marginBottom: 'var(--space-2)' }}>No scans yet</h3>
+      <h3 style={{ marginBottom: 'var(--space-2)' }}>{title}</h3>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
-        Paste a URL on the homepage to run your first scan.
+        {desc}
       </p>
       <Link href="/" className="btn-primary" style={{ display: 'inline-flex' }}>
-        Run your first scan
+        {cta}
         <IconArrowRight size={16} color="#fff" />
       </Link>
     </div>
   );
 }
 
-function LoadError() {
+function LoadError({ message }: { message: string }) {
   return (
     <div
       role="alert"
@@ -402,7 +461,7 @@ function LoadError() {
         marginBottom: 'var(--space-10)',
       }}
     >
-      We couldn&apos;t load your dashboard data. Please refresh to try again.
+      {message}
     </div>
   );
 }
@@ -422,12 +481,22 @@ const tCellCss: React.CSSProperties = {
   textAlign: 'left',
 };
 
-function IssueChips({ critical, high, medium }: { critical: number; high: number; medium: number }) {
+function IssueChips({
+  critical,
+  high,
+  medium,
+  labels,
+}: {
+  critical: number;
+  high: number;
+  medium: number;
+  labels: { critical: string; high: string; medium: string };
+}) {
   return (
     <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', fontSize: 'var(--fs-xs)', fontWeight: 600 }}>
-      <Chip n={critical} label="Critical" color="#DC2626" bg="rgba(220,38,38,0.12)" />
-      <Chip n={high} label="High" color="#F59E0B" bg="rgba(245,158,11,0.12)" />
-      <Chip n={medium} label="Medium" color="#CA8A04" bg="rgba(202,138,4,0.10)" />
+      <Chip n={critical} label={labels.critical} color="#DC2626" bg="rgba(220,38,38,0.12)" />
+      <Chip n={high} label={labels.high} color="#F59E0B" bg="rgba(245,158,11,0.12)" />
+      <Chip n={medium} label={labels.medium} color="#CA8A04" bg="rgba(202,138,4,0.10)" />
     </div>
   );
 }

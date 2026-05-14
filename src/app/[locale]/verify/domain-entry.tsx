@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 
 interface Props {
   initialDomain: string;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function DomainEntry({ initialDomain, error }: Props) {
+  const t = useTranslations('verify');
   const router = useRouter();
   const [domain, setDomain] = useState(initialDomain);
   const [submitting, setSubmitting] = useState(false);
@@ -33,10 +35,10 @@ export function DomainEntry({ initialDomain, error }: Props) {
       }}
     >
       <h2 className="text-h3" style={{ marginBottom: 'var(--space-2)' }}>
-        Which domain are you verifying?
+        {t('askDomainTitle')}
       </h2>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
-        Enter the bare domain — no <code>https://</code>, no path.
+        {t('askDomainHint')}
       </p>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -50,7 +52,7 @@ export function DomainEntry({ initialDomain, error }: Props) {
               marginBottom: 'var(--space-2)',
             }}
           >
-            Domain
+            {t('domainLabel')}
           </label>
           <input
             id="domain-input"
@@ -62,7 +64,7 @@ export function DomainEntry({ initialDomain, error }: Props) {
             required
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
-            placeholder="example.com"
+            placeholder={t('domainPlaceholder')}
             className="field"
             disabled={submitting}
           />
@@ -80,7 +82,7 @@ export function DomainEntry({ initialDomain, error }: Props) {
           disabled={submitting || !domain.trim()}
           style={{ justifyContent: 'center' }}
         >
-          {submitting ? 'Loading…' : 'Continue'}
+          {submitting ? t('loadingBtn') : t('continueBtn')}
         </button>
       </form>
     </section>
