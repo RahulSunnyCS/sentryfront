@@ -36,11 +36,20 @@ function computeGrade(findings: RawFinding[]): { grade: string; score: number } 
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Per-module placeholder delays (~60 s total, variable so each step feels distinct).
+// Mirrors the frontend MOCK_MODULE_DURATIONS_MS so the loader paces the same
+// whether the UI is in demo mode or connected to a real scan.
+const PLACEHOLDER_MODULE_DELAYS_MS = [
+  3500, 2800, 4200, 5500, 3000,
+  4800, 3500, 2500, 5800, 4500,
+  3800, 3000, 4500, 2200, 6400,
+];
+
 // Emit placeholder progress events while the scanner crawls, so the UI
 // doesn't stall on a blank progress bar during the initial HTTP fetch.
 async function emitPlaceholderProgress(scanId: string, count: number): Promise<void> {
   for (let i = 0; i < count; i++) {
-    await sleep(350);
+    await sleep(PLACEHOLDER_MODULE_DELAYS_MS[i] ?? 4000);
     await publishEvent(scanId, 'module_complete', {
       scan_id: scanId,
       module_id: ALL_MODULES[i],
