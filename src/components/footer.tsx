@@ -1,6 +1,10 @@
-import Link from 'next/link';
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 export function Footer() {
+  const t = useTranslations('footer');
   const currentYear = new Date().getFullYear();
 
   return (
@@ -36,28 +40,28 @@ export function Footer() {
               VibeSafe
             </h3>
             <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-              Security, performance &amp; compliance scanner for AI-built sites. Full report in under 90 seconds.
+              {t('tagline')}
             </p>
           </div>
 
-          <FooterCol title="Product">
-            <FooterLink href="/">Home</FooterLink>
-            <FooterLink href="/pricing">Pricing</FooterLink>
-            <FooterLink href="/#features">Features</FooterLink>
-            <FooterLink href="/#faq">FAQ</FooterLink>
-            <FooterLink href="/docs">Docs</FooterLink>
+          <FooterCol title={t('product')}>
+            <FooterLink href="/">{t('home')}</FooterLink>
+            <FooterLink href="/pricing">{t('pricing')}</FooterLink>
+            <FooterLink href="/#features">{t('features')}</FooterLink>
+            <FooterLink href="/#faq">{t('faq')}</FooterLink>
+            <FooterLink href="/docs">{t('docs')}</FooterLink>
           </FooterCol>
 
-          <FooterCol title="Legal">
-            <FooterLink href="/legal/terms">Terms of service</FooterLink>
-            <FooterLink href="/legal/privacy">Privacy policy</FooterLink>
-            <FooterLink href="/legal/contact">Contact</FooterLink>
+          <FooterCol title={t('legal')}>
+            <FooterLink href="/legal/terms">{t('terms')}</FooterLink>
+            <FooterLink href="/legal/privacy">{t('privacy')}</FooterLink>
+            <FooterLink href="/legal/contact">{t('contact')}</FooterLink>
           </FooterCol>
 
-          <FooterCol title="Support">
-            <FooterLink href="mailto:security@vibesafe.app">Security</FooterLink>
-            <FooterLink href="mailto:abuse@vibesafe.app">Report abuse</FooterLink>
-            <FooterLink href="mailto:support@vibesafe.app">Support</FooterLink>
+          <FooterCol title={t('support')}>
+            <FooterExternal href="mailto:security@vibesafe.app">{t('security')}</FooterExternal>
+            <FooterExternal href="mailto:abuse@vibesafe.app">{t('abuse')}</FooterExternal>
+            <FooterExternal href="mailto:support@vibesafe.app">{t('supportEmail')}</FooterExternal>
           </FooterCol>
         </div>
 
@@ -73,10 +77,10 @@ export function Footer() {
           }}
         >
           <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
-            © {currentYear} VibeSafe. All rights reserved.
+            {t('copyright', { year: currentYear })}
           </p>
           <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
-            Made for the AI coding community.
+            {t('community')}
           </p>
         </div>
       </div>
@@ -115,5 +119,17 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
     >
       {children}
     </Link>
+  );
+}
+
+function FooterExternal({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      className="nav-link"
+      style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}
+    >
+      {children}
+    </a>
   );
 }

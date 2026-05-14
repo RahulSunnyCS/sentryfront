@@ -1,0 +1,13 @@
+{
+  "responses": [
+    {
+      "url": "https://example.com/.DS_Store",
+      "status": 200,
+      "body": "<!doctype html><html><body>App shell</body></html>"
+    }
+  ],
+  "default": {
+    "status": 404,
+    "body": "<html><body>Not found</body></html>"
+  }
+}

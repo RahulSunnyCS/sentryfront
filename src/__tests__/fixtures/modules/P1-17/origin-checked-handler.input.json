@@ -1,0 +1,9 @@
+{
+  "finalUrl": "https://example.com/",
+  "serviceWorkerRegistrations": [
+    { "url": "https://example.com/sw.js", "scope": "/" }
+  ],
+  "serviceWorkerScripts": {
+    "https://example.com/sw.js": "self.addEventListener('fetch', (event) => { if (new URL(event.request.url).origin !== self.origin) return; event.respondWith(fetch(event.request)); });"
+  }
+}

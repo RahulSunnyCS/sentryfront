@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-18",
+      "severity": "LOW",
+      "titleIncludes": "not fetchable"
+    }
+  ]
+}

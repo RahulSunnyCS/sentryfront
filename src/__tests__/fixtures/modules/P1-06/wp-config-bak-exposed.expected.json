@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "titleIncludes": "/wp-config.php.bak",
+      "evidenceIncludes": "/wp-config.php.bak"
+    }
+  ]
+}

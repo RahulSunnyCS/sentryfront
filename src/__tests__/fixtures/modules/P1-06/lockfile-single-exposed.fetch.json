@@ -1,0 +1,13 @@
+{
+  "responses": [
+    {
+      "url": "https://example.com/Gemfile.lock",
+      "status": 200,
+      "body": "GEM\n  remote: https://rubygems.org/\n  specs:\n    rails (7.0.0)\n"
+    }
+  ],
+  "default": {
+    "status": 404,
+    "body": "<html><body>Not found</body></html>"
+  }
+}

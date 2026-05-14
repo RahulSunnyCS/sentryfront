@@ -221,4 +221,111 @@ describe('P1-01: Client-Side Secrets Module', () => {
       expect(findings).toHaveLength(0);
     });
   });
+
+  // ── Phase 3.8.3: AI-builder artifact patterns ───────────────────────────
+
+  const aiCrawl = (inlineScriptContent: string): CrawlResult =>
+    ({
+      finalUrl: 'https://example.com',
+      html: '',
+      headers: {},
+      cookies: [],
+      localStorage: {},
+      sessionStorage: {},
+      scripts: [],
+      links: [],
+      resources: [],
+      statusCode: 200,
+      inlineScriptContent,
+      jsBundleUrls: [],
+    } as unknown as CrawlResult);
+
+  describe('Lovable preview URL (3.8.3)', () => {
+    it('flags a preview--*.lovable.app URL at LOW severity with fingerprint copy', async () => {
+      const findings = await runSecretsModule(
+        aiCrawl('const url = "https://preview--my-app-abc123.lovable.app/dashboard";'),
+      );
+      const lov = findings.find((f) => f.title.includes('Lovable preview/staging'));
+      expect(lov).toBeDefined();
+      expect(lov?.severity).toBe('LOW');
+      expect(lov?.category).toBe('AI-Builder Artifact Exposure');
+      expect(lov?.explanation).toContain('Lovable preview');
+      expect(lov?.impact).toContain('No account access');
+      expect(lov?.evidence).toContain('lovable.app/****');
+    });
+
+    it('flags a non-preview *.lovable.app URL', async () => {
+      const findings = await runSecretsModule(
+        aiCrawl('<a href="https://my-app-abc.lovable.app/">Live</a>'),
+      );
+      expect(findings.find((f) => f.title.includes('Lovable preview/staging'))).toBeDefined();
+    });
+
+    it('flags a lovable.dev/projects URL with the project-URL variant', async () => {
+      const findings = await runSecretsModule(
+        aiCrawl('fetch("https://lovable.dev/projects/abc-123-def");'),
+      );
+      const f = findings.find((x) => x.title.includes('Lovable project URL'));
+      expect(f).toBeDefined();
+      expect(f?.severity).toBe('LOW');
+    });
+
+    it('does not flag prose mentioning lovable without a URL', async () => {
+      const findings = await runSecretsModule(
+        aiCrawl('// Just a comment about lovable platforms, not a URL\nconst x = 1;'),
+      );
+      expect(findings.find((f) => f.category === 'AI-Builder Artifact Exposure')).toBeUndefined();
+    });
+  });
+
+  describe('Bolt.new / StackBlitz URL (3.8.3)', () => {
+    it('flags a bolt.new/~/<slug> URL at INFO with no-fix-required copy', async () => {
+      const findings = await runSecretsModule(
+        aiCrawl('window.boltSrc = "https://bolt.new/~/abc-123-xyz";'),
+      );
+      const f = findings.find((x) => x.title.includes('Bolt.new / StackBlitz'));
+      expect(f).toBeDefined();
+      expect(f?.severity).toBe('INFO');
+      expect(f?.impact).toContain('No security impact');
+      expect(f?.fixManual?.[0]).toContain('No fix required');
+    });
+
+    it('flags a stackblitz.com/edit URL', async () => {
+      const findings = await runSecretsModule(
+        aiCrawl('// from https://stackblitz.com/edit/abc-123-def'),
+      );
+      expect(findings.find((f) => f.title.includes('Bolt.new / StackBlitz'))).toBeDefined();
+    });
+
+    it('does not flag bolt.new without a slug', async () => {
+      const findings = await runSecretsModule(aiCrawl('const home = "https://bolt.new";'));
+      expect(findings.find((f) => f.category === 'AI-Builder Artifact Exposure')).toBeUndefined();
+    });
+  });
+
+  describe('v0.dev URL (3.8.3)', () => {
+    it('flags a v0.dev/chat URL at INFO', async () => {
+      const findings = await runSecretsModule(
+        aiCrawl('const chatLink = "https://v0.dev/chat/xY3z9abc";'),
+      );
+      const f = findings.find((x) => x.title.includes('v0.dev'));
+      expect(f).toBeDefined();
+      expect(f?.severity).toBe('INFO');
+      expect(f?.evidence).toContain('****');
+    });
+
+    it('flags a v0.dev/r URL', async () => {
+      const findings = await runSecretsModule(
+        aiCrawl('window.open("https://v0.dev/r/abc-def-123");'),
+      );
+      expect(findings.find((f) => f.title.includes('v0.dev'))).toBeDefined();
+    });
+
+    it('flags a v0.dev/build URL', async () => {
+      const findings = await runSecretsModule(
+        aiCrawl('// generated from https://v0.dev/build/xyz123abc'),
+      );
+      expect(findings.find((f) => f.title.includes('v0.dev'))).toBeDefined();
+    });
+  });
 });
