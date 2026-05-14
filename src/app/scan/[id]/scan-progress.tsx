@@ -2,9 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { SCAN_MODULES, SEVERITY_CONFIG } from '@/lib/data';
+import { SCAN_MODULES } from '@/lib/data';
 import { openScanStream } from '@/lib/api';
-import { IconGlobe, IconCheckCircle, IconAlertCircle, IconSpinner } from '@/components/icons';
 
 interface Props {
   scanId: string;
@@ -39,17 +38,14 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
   const streamRef = useRef<EventSource | null>(null);
 
   const total = SCAN_MODULES.length;
-  const progress = Math.round((completedModules / total) * 100);
   const etaSeconds = Math.max(0, ESTIMATED_TOTAL_S - elapsed);
 
-  // Elapsed timer
   useEffect(() => {
     if (completedModules >= total) return;
     const t = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(t);
   }, [completedModules, total]);
 
-  // Rotating security facts
   useEffect(() => {
     const t = setInterval(() => {
       setFactIdx((i) => (i + 1) % SECURITY_FACTS.length);
@@ -61,7 +57,6 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
     const stream = openScanStream(scanId);
 
     if (stream) {
-      // Real SSE mode
       streamRef.current = stream;
 
       stream.addEventListener('module_complete', (e: MessageEvent) => {
@@ -84,7 +79,6 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
       return () => stream.close();
     }
 
-    // Mock mode — simulate module-by-module progress with fixture results
     const BAD_RESULTS: Record<string, number> = {
       'P1-01': 1, 'P1-02': 1, 'P1-03': 2, 'P1-04': 0,
       'P1-05': 1, 'P1-06': 1, 'P1-07': 1, 'P1-08': 1,
@@ -111,102 +105,126 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
   }, [scanId, scanUrl, router, total]);
 
   return (
-    <div style={{
-      minHeight: 'calc(100vh - 56px)', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', padding: 24,
-    }}>
-      <div className="screen-enter" style={{
-        width: '100%', maxWidth: 520, backgroundColor: 'var(--surface)',
-        borderRadius: 16, border: '1px solid var(--border)', padding: '36px 32px',
-        boxShadow: 'var(--shadow-lg)',
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-            <IconGlobe size={18} color="var(--accent)" />
-            <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>{scanUrl}</span>
-          </div>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
-            {completedModules < total ? 'Scanning in progress…' : 'Analysis complete — preparing report'}
-          </p>
+    <div style={{ maxWidth: 560, margin: '80px auto', padding: 24 }}>
+      <div
+        className="screen-enter"
+        style={{
+          background: 'var(--surface)',
+          borderRadius: 16,
+          border: '1px solid var(--border)',
+          padding: 40,
+          textAlign: 'center',
+          boxShadow: 'var(--shadow-lg)',
+        }}
+      >
+        <div
+          aria-hidden="true"
+          style={{
+            width: 64,
+            height: 64,
+            border: '4px solid var(--border)',
+            borderTopColor: 'var(--accent)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 24px',
+          }}
+        />
+
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: 'var(--text)' }}>
+          Scanning {scanUrl}
+        </div>
+        <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 32 }}>
+          Running {total} security, performance, and compliance checks...
         </div>
 
-        {/* Timer + ETA row */}
-        <div
-          aria-live="polite"
+        <aside
+          aria-label="Did you know?"
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            fontSize: 12,
-            fontVariantNumeric: 'tabular-nums',
-            color: 'var(--text-tertiary)',
-            marginBottom: 8,
+            background: 'var(--surface-secondary)',
+            borderLeft: '3px solid var(--accent)',
+            padding: '16px 20px',
+            borderRadius: 8,
+            margin: '24px 0',
+            fontSize: 14,
+            lineHeight: 1.6,
+            color: 'var(--text-secondary)',
+            textAlign: 'left',
           }}
         >
-          <span>
-            <span aria-hidden="true">⏱ </span>
-            Elapsed <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{formatTime(elapsed)}</strong>
-          </span>
-          <span>{progress}%</span>
-          <span>
-            {completedModules >= total
-              ? 'Finalising…'
-              : <>ETA <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{formatTime(etaSeconds)}</strong></>
-            }
-          </span>
-        </div>
+          <div
+            style={{
+              fontSize: 11,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--accent)',
+              fontWeight: 700,
+              marginBottom: 6,
+            }}
+          >
+            💡 Did you know?
+          </div>
+          <div key={factIdx} className="fact-fade">
+            {SECURITY_FACTS[factIdx]}
+          </div>
+        </aside>
 
-        {/* Progress bar */}
-        <div style={{
-          position: 'relative',
-          height: 8, borderRadius: 4,
-          backgroundColor: 'var(--border-light)',
-          marginBottom: 28, overflow: 'hidden',
-        }}>
-          <div style={{
-            height: '100%', borderRadius: 4,
-            background: 'linear-gradient(90deg, var(--accent), #14B8A6)',
-            width: `${progress}%`,
-            transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: '0 0 12px rgba(13,148,136,0.55)',
-          }} />
-        </div>
-
-        {/* Module list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left' }}>
           {SCAN_MODULES.map((mod, i) => {
             const isDone = i < completedModules;
             const isActive = i === activeModule && !isDone && i < total;
-            const isPending = !isDone && !isActive;
             const findCount = moduleResults[mod.id] ?? 0;
 
+            const statusBg = isDone
+              ? '#059669'
+              : isActive
+              ? 'var(--accent)'
+              : 'var(--border)';
+            const statusColor = isDone || isActive ? '#fff' : 'var(--text-tertiary)';
+            const statusSymbol = isDone ? '✓' : isActive ? '⏳' : '○';
+
             return (
-              <div key={mod.id} style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px',
-                borderRadius: 8, opacity: isPending ? 0.4 : 1,
-                backgroundColor: isActive ? 'var(--accent-light)' : 'transparent',
-                transition: 'all 0.3s',
-              }}>
-                <div style={{ width: 22, display: 'flex', justifyContent: 'center' }}>
-                  {isDone ? (
-                    findCount > 0
-                      ? <IconAlertCircle size={18} color={SEVERITY_CONFIG[findCount >= 2 ? 'MEDIUM' : 'HIGH'].color} />
-                      : <IconCheckCircle size={18} color="#059669" />
-                  ) : isActive ? (
-                    <IconSpinner size={18} />
-                  ) : (
-                    <div style={{ width: 8, height: 8, borderRadius: 8, backgroundColor: 'var(--border)' }} />
-                  )}
+              <div
+                key={mod.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 16px',
+                  background: 'var(--bg)',
+                  borderRadius: 8,
+                  fontSize: 14,
+                }}
+              >
+                <div
+                  aria-hidden="true"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 12,
+                    background: statusBg,
+                    color: statusColor,
+                    flexShrink: 0,
+                    animation: isActive ? 'pulse-soft 2s ease-in-out infinite' : undefined,
+                  }}
+                >
+                  {statusSymbol}
                 </div>
-                <span style={{
-                  flex: 1, fontSize: 14, fontWeight: isDone || isActive ? 500 : 400,
-                  color: isPending ? 'var(--text-tertiary)' : 'var(--text)',
-                }}>{mod.name}</span>
+                <span style={{ flex: 1, color: 'var(--text)' }}>{mod.name}</span>
                 {isDone && findCount > 0 && (
-                  <span style={{
-                    fontSize: 12, fontWeight: 600, color: 'var(--accent)',
-                    padding: '1px 8px', borderRadius: 10, backgroundColor: 'var(--accent-light)',
-                  }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--accent)',
+                      padding: '1px 8px',
+                      borderRadius: 10,
+                      background: 'var(--accent-light)',
+                    }}
+                  >
                     {findCount} found
                   </span>
                 )}
@@ -218,50 +236,24 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
           })}
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'var(--text-tertiary)' }}>
-          {completedModules}/{total} checks completed
-        </div>
-
-        {/* Rotating security fact */}
-        <aside
-          aria-label="Did you know?"
+        <p
+          aria-live="polite"
           style={{
+            fontSize: 13,
+            color: 'var(--text-tertiary)',
             marginTop: 24,
-            padding: '14px 16px',
-            borderRadius: 12,
-            border: '1px solid var(--border)',
-            background: 'var(--surface-secondary)',
-            display: 'flex',
-            gap: 12,
-            alignItems: 'flex-start',
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
-          <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>💡</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: 10, fontWeight: 700, color: 'var(--accent)',
-              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4,
-            }}>
-              Did you know?
-            </div>
-            <p
-              key={factIdx}
-              className="fact-fade"
-              style={{
-                fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary)', margin: 0,
-              }}
-            >
-              {SECURITY_FACTS[factIdx]}
-            </p>
-          </div>
-        </aside>
+          {completedModules >= total ? (
+            'Finalising report…'
+          ) : (
+            <>
+              Estimated time remaining: <span>{etaSeconds}</span> seconds
+            </>
+          )}
+        </p>
       </div>
     </div>
   );
-}
-
-function formatTime(s: number): string {
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${sec.toString().padStart(2, '0')}`;
 }
