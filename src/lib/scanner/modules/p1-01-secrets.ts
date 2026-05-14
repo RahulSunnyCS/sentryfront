@@ -7,6 +7,14 @@ interface SecretPattern {
   pattern: RegExp;
   severity: RawFinding['severity'];
   redact: (match: string) => string;
+  // Phase 3.8.3: optional copy overrides so non-credential findings (AI-builder
+  // artifacts, fingerprinting hits) don't inherit the "rotate immediately"
+  // template designed for live API keys.
+  title?: (match: string) => string;
+  explanation?: string;
+  impact?: string;
+  fixManual?: string[];
+  fixAiPrompt?: string;
 }
 
 const PATTERNS: SecretPattern[] = [
@@ -58,6 +66,84 @@ const PATTERNS: SecretPattern[] = [
     pattern: /-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/g,
     severity: 'CRITICAL',
     redact: () => '-----BEGIN PRIVATE KEY----- [redacted]',
+  },
+  // ── Phase 3.8.3: AI-builder artifact patterns ──────────────────────────────
+  // Hostname-anchored, not token-shape. These flag fingerprint leakage from
+  // AI-built sites — they are NOT credentials and do NOT grant account access.
+  // Severity is intentionally LOW / INFO; the finding copy below is overridden
+  // so the report doesn't push users to "rotate immediately".
+  {
+    name: 'Lovable preview URL',
+    category: 'AI-Builder Artifact Exposure',
+    pattern: /https:\/\/(?:preview--)?[a-z0-9-]+\.lovable\.app\/[^\s"'<>)]*/gi,
+    severity: 'LOW',
+    redact: (m) => m.replace(/lovable\.app\/.*$/, 'lovable.app/****'),
+    title: () => 'Lovable preview/staging URL embedded in production',
+    explanation:
+      'A Lovable preview or staging URL is referenced in production HTML or JS. Lovable previews are intended for in-progress sharing, not as long-lived production traffic. The link itself is not a credential, but its presence often means a staging environment was accidentally exposed in customer-facing code.',
+    impact:
+      'No account access is granted by this URL. The preview environment may run older or unfinished code, expose internal hostnames, or get indexed by search engines if linked from production.',
+    fixManual: [
+      'Remove the lovable.app URL from production HTML and JavaScript bundles.',
+      'If the reference is intentional (e.g. a canonical link back to the Lovable project), confirm the preview is meant to be public and consider adding a robots noindex.',
+      'Audit Lovable project settings to ensure preview links are not shared more broadly than intended.',
+    ],
+    fixAiPrompt:
+      'My production site is leaking a Lovable preview URL (lovable.app) in the HTML. Remove the reference from the production build and confirm whether the preview environment was meant to be public.',
+  },
+  {
+    name: 'Lovable project URL',
+    category: 'AI-Builder Artifact Exposure',
+    pattern: /https:\/\/lovable\.dev\/projects\/[a-zA-Z0-9-]{6,}/gi,
+    severity: 'LOW',
+    redact: (m) => m.replace(/projects\/.*/, 'projects/****'),
+    title: () => 'Lovable project URL embedded in production',
+    explanation:
+      'A Lovable project URL (lovable.dev/projects/<id>) is referenced from production HTML or JavaScript. Project URLs are not credentials, but they expose the upstream build artefact and may be discoverable by anyone who scrapes the production site.',
+    impact:
+      'No direct account compromise. The referenced project may be discoverable; if it has open share permissions, an attacker could read its history or source.',
+    fixManual: [
+      'Remove the lovable.dev/projects/ reference from production output.',
+      'Audit Lovable project sharing settings if the project is meant to stay private.',
+    ],
+    fixAiPrompt:
+      'My production site leaks a lovable.dev/projects/<id> URL. Remove the reference from the build output and confirm the underlying Lovable project is not over-shared.',
+  },
+  {
+    name: 'Bolt.new / StackBlitz project URL',
+    category: 'AI-Builder Artifact Exposure',
+    pattern: /https:\/\/(?:bolt\.new\/~?\/|stackblitz\.com\/edit\/)[a-z0-9-]{6,}/gi,
+    severity: 'INFO',
+    redact: (m) => `${m.slice(0, 30)}****`,
+    title: () => 'Bolt.new / StackBlitz project URL referenced in production',
+    explanation:
+      'A Bolt.new or StackBlitz project URL is referenced from production HTML or JavaScript. These URLs are public by design — they identify a shared sandbox or edit session. Surfacing them in production is a fingerprinting signal, not a security issue.',
+    impact:
+      'No security impact. Informational fingerprint indicating the site was built with Bolt / StackBlitz and that the source sandbox is reachable.',
+    fixManual: [
+      'No fix required if the link is intentional (e.g. a "view source" deeplink).',
+      'If the link is unintentional, remove it from production HTML or JS to reduce attack-surface fingerprinting.',
+    ],
+    fixAiPrompt:
+      'My production site references a bolt.new or stackblitz.com URL. Decide whether the link is intentional; if not, remove it from the production build.',
+  },
+  {
+    name: 'v0.dev generation URL',
+    category: 'AI-Builder Artifact Exposure',
+    pattern: /https:\/\/v0\.dev\/(?:chat|r|build)\/[a-zA-Z0-9_-]{6,}/gi,
+    severity: 'INFO',
+    redact: (m) => `${m.slice(0, 24)}****`,
+    title: () => 'v0.dev generation/share URL referenced in production',
+    explanation:
+      'A v0.dev share URL (chat, r, or build artefact) is referenced from production HTML or JavaScript. v0 share URLs are public by design and do not grant account access. This finding is informational — it flags that the site was built or prototyped with v0 and the upstream artefact is reachable.',
+    impact:
+      'No security impact. Informational fingerprint indicating the site was built with v0.',
+    fixManual: [
+      'No fix required if the link is intentional.',
+      'If the link is unintentional, remove it from production HTML or JS.',
+    ],
+    fixAiPrompt:
+      'My production site references a v0.dev share URL. Decide whether the link is intentional; if not, remove it from the production build.',
   },
 ];
 
@@ -144,18 +230,24 @@ export async function runSecretsModule(crawl: CrawlResult): Promise<RawFinding[]
           moduleId: 'P1-01',
           severity: pattern.severity,
           category: pattern.category,
-          title: `${pattern.name} exposed in JavaScript`,
+          title: pattern.title ? pattern.title(raw) : `${pattern.name} exposed in JavaScript`,
           location: label,
           evidence: redacted,
-          explanation: `A ${pattern.name} was found in client-side JavaScript. Anyone with browser devtools can read it.`,
-          impact: 'Attackers can authenticate as your application and access external APIs or services with full permissions.',
-          fixManual: [
+          explanation:
+            pattern.explanation ??
+            `A ${pattern.name} was found in client-side JavaScript. Anyone with browser devtools can read it.`,
+          impact:
+            pattern.impact ??
+            'Attackers can authenticate as your application and access external APIs or services with full permissions.',
+          fixManual: pattern.fixManual ?? [
             'Remove the secret from client-side code immediately.',
             'Move API calls that require this key to a server-side route.',
             'Rotate the compromised credential now — assume it has been read.',
             'Store secrets only in server-side environment variables (e.g., Vercel → Settings → Environment Variables).',
           ],
-          fixAiPrompt: `I have a ${pattern.name} exposed in my client-side JavaScript bundle. Move the API call that uses it to a Next.js server route (/api/...) so the key is never sent to the browser.`,
+          fixAiPrompt:
+            pattern.fixAiPrompt ??
+            `I have a ${pattern.name} exposed in my client-side JavaScript bundle. Move the API call that uses it to a Next.js server route (/api/...) so the key is never sent to the browser.`,
         });
         break; // one finding per pattern per source file
       }
