@@ -1,0 +1,6 @@
+{
+  "finalUrl": "https://example.com/app/dashboard",
+  "serviceWorkerRegistrations": [
+    { "url": "https://example.com/sw.js", "scope": "/" }
+  ]
+}

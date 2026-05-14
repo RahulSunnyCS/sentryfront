@@ -73,4 +73,17 @@ export interface CrawlResult {
   // real production markup). Sourced from renderedHtml when present, else html.
   // Modules that opt in read this instead of `html` to suppress docs/blog FPs.
   cleanedHtml?: string;
+
+  // Phase 3.8.4: PWA surface (service workers + web-app manifest). Populated
+  // when `features.pwaSurfaceChecks === true`. Modules P1-17 / P1-18 are no-ops
+  // when these fields are absent so flag-off output stays byte-identical to pre-3.8.4.
+  serviceWorkerRegistrations?: SwRegistrationRecord[];
+  serviceWorkerScripts?: Record<string, string>; // SW script URL -> body (capped)
+  manifestUrl?: string;                          // resolved href from <link rel="manifest">
+  manifestJson?: string;                         // raw manifest body (capped); JSON-parse at the module level
+}
+
+export interface SwRegistrationRecord {
+  url: string;     // absolute SW script URL
+  scope: string;   // declared registration scope (resolved against finalUrl)
 }

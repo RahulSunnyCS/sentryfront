@@ -1,0 +1,9 @@
+{
+  "finalUrl": "https://example.com/",
+  "serviceWorkerRegistrations": [
+    { "url": "https://example.com/sw.js", "scope": "/" }
+  ],
+  "serviceWorkerScripts": {
+    "https://example.com/sw.js": "importScripts('https://cdn.example.net/sw-lib.js'); self.addEventListener('install', () => {});"
+  }
+}

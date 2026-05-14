@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-17",
+      "severity": "LOW",
+      "titleIncludes": "cross-origin script",
+      "evidenceIncludes": "cdn.example.net"
+    }
+  ]
+}
