@@ -4,6 +4,7 @@ import { ReportView } from './report-view';
 import { prisma } from '@/lib/prisma';
 import { BAD_SCAN } from '@/lib/data';
 import { getCurrentUser, isAuthEnabled } from '@/lib/auth/helpers';
+import { canViewScan } from '@/lib/report-access';
 import type { ScanData, ScanSummary, Finding, Grade, ScanStatus } from '@/types';
 
 interface Props {
@@ -20,6 +21,11 @@ async function getReportData(id: string): Promise<ScanData> {
   });
 
   if (!scan) throw new Error('Report not found.');
+
+  const user = await getCurrentUser();
+  if (!canViewScan(scan, user)) {
+    throw new Error('Report not found.');
+  }
 
   const findings: Finding[] = scan.findings.map((f) => ({
     id: f.id,

@@ -2,7 +2,7 @@
 
 **Complete Web Quality Platform: Security, Performance, Accessibility & SEO**
 
-Scan any website for security vulnerabilities, performance bottlenecks, WCAG 2.2 compliance, and SEO optimization with AI-enhanced remediation.
+Scan any website for security vulnerabilities, performance bottlenecks, accessibility issues (WCAG 2.2 AA criteria via Lighthouse), and SEO problems — with AI-enhanced remediation.
 
 ---
 
@@ -18,7 +18,7 @@ Scan any website for security vulnerabilities, performance bottlenecks, WCAG 2.2
 - 💡 **AI Optimization** - File-specific improvement suggestions
 
 ### **Accessibility Scanning** ✅
-- ♿ **WCAG 2.2 Level AA** - Legal compliance checking
+- ♿ **WCAG 2.2 AA criteria** - Subset evaluated via Lighthouse's accessibility audit
 - 🎨 **Color Contrast** - Text and UI component analysis
 - 🎯 **Screen Reader Support** - Alt text, ARIA, semantic HTML
 
@@ -27,7 +27,7 @@ Scan any website for security vulnerabilities, performance bottlenecks, WCAG 2.2
 - 📱 **Social Media** - Open Graph & Twitter Cards
 - 📊 **Structured Data** - Schema.org JSON-LD validation
 - 🤖 **Crawlability** - robots.txt, sitemap, indexing
-- 📲 **Mobile SEO** - Mobile-first indexing compliance
+- 📲 **Mobile SEO** - Mobile-first indexing checks
 
 ### **Reporting & Export**
 - 📄 **PDF Export** - Download professional reports

@@ -18,7 +18,6 @@ const NAV_LINKS = [
   { href: '/pricing', label: 'Pricing' },
   { href: '/#features', label: 'Features' },
   { href: '/#faq', label: 'FAQ' },
-  { href: '/report/demo', label: 'Demo' },
 ];
 
 export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {

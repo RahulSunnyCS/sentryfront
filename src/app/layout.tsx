@@ -4,7 +4,7 @@ import { Providers } from '@/components/providers';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://vibesafe.app';
 const SITE_NAME = 'VibeSafe';
-const DEFAULT_TITLE = 'VibeSafe — Security, performance & compliance scanner for AI-built sites';
+const DEFAULT_TITLE = 'VibeSafe — Security, performance & quality scanner for AI-built sites';
 const DEFAULT_DESC =
   'Paste a URL and get an enterprise-grade security, performance, accessibility, and SEO report in 90 seconds. Every finding ships with a ready-to-paste AI fix prompt for Cursor, Lovable, Bolt, v0, and Replit.';
 
@@ -25,7 +25,6 @@ export const metadata: Metadata = {
     'Lovable security',
     'Bolt security',
     'v0 security',
-    'GDPR compliance scan',
     'WCAG accessibility check',
     'Core Web Vitals',
     'Lighthouse',

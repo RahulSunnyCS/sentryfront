@@ -4,12 +4,36 @@ import { validateAndNormalize, ValidationError } from '@/lib/url-validator';
 import { runScan } from '@/lib/scan-worker';
 import { getCurrentUser } from '@/lib/auth/helpers';
 import { checkRateLimit, checkWeeklyScanQuota, getRateLimitHeaders } from '@/lib/rate-limiter';
+import { listUserScans } from '@/lib/dashboard-queries';
 import { logger } from '@/lib/logger';
 
 function describeWait(ms: number): string {
   const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
   if (days <= 1) return 'less than a day';
   return `${days} days`;
+}
+
+export async function GET(req: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  }
+
+  const url = req.nextUrl;
+  const cursor = url.searchParams.get('cursor');
+  const limitRaw = url.searchParams.get('limit');
+  const parsedLimit = limitRaw ? Number.parseInt(limitRaw, 10) : undefined;
+  const limit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
+
+  try {
+    const result = await listUserScans(user.id, { cursor, limit });
+    return NextResponse.json(result, {
+      headers: { 'Cache-Control': 'private, max-age=15' },
+    });
+  } catch (err) {
+    logger.error('Scan list failed', { userId: user.id }, err as Error);
+    return NextResponse.json({ error: 'Failed to load scans.' }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {

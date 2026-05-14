@@ -9,7 +9,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth/helpers';
+import { canViewScan } from '@/lib/report-access';
 import { generatePdfBuffer, isDirectPdfAvailable } from '@/lib/pdf/export';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -26,6 +29,7 @@ export async function GET(
   }
 
   const { id } = params;
+  logger.setScanScope(id);
 
   // Fetch scan to verify it exists and is completed
   const scan = await prisma.scan.findUnique({
@@ -46,6 +50,11 @@ export async function GET(
   });
 
   if (!scan) {
+    return NextResponse.json({ error: 'Scan not found.' }, { status: 404 });
+  }
+
+  const requester = await getCurrentUser();
+  if (!canViewScan(scan, requester)) {
     return NextResponse.json({ error: 'Scan not found.' }, { status: 404 });
   }
 

@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { IconShield, IconGlobe, IconArrowRight } from '@/components/icons';
 import { createScan } from '@/lib/api';
+
+function formatCount(n: number | null): string {
+  if (n === null) return '—';
+  return n.toLocaleString('en-US');
+}
 
 /* ─────────────────────────────────────────────────────────────
    Data
@@ -19,13 +24,12 @@ const TRUST_ITEMS = [
 
 const HERO_FINDINGS = [
   { status: 'Protected', title: 'Stripe account secured', sub: 'Secret key removed from JS bundle' },
-  { status: 'Protected', title: 'Security headers hardened', sub: 'Enterprise-grade protection enabled' },
-  { status: 'Confirmed', title: 'GDPR compliance verified', sub: "Your users' data is protected" },
+  { status: 'Protected', title: 'Security headers hardened', sub: 'CSP, HSTS, and X-Frame-Options in place' },
+  { status: 'Verified', title: 'TLS configuration solid', sub: 'Modern cipher suites, no mixed content' },
 ];
 
 const CATEGORIES: Array<{ label: string; color?: string; bg?: string }> = [
   { label: '🛡️ Security' },
-  { label: '⚖️ Compliance' },
   { label: '⚡ Performance' },
   { label: '♿ Accessibility' },
   { label: '🔍 SEO' },
@@ -42,7 +46,7 @@ const STEPS = [
   {
     n: '02',
     title: 'We scan 31 checks in parallel',
-    desc: 'Security headers, secrets in JS bundles, TLS configuration, GDPR & WCAG compliance, Core Web Vitals, SEO meta — all under 90 seconds.',
+    desc: 'Security headers, secrets in JS bundles, TLS configuration, accessibility (WCAG 2.2 AA criteria via Lighthouse), Core Web Vitals, SEO meta — all under 90 seconds.',
   },
   {
     n: '03',
@@ -51,12 +55,20 @@ const STEPS = [
   },
 ];
 
-const STATS = [
-  { value: '4,247', label: 'sites scanned this week', tone: 'accent' as const },
-  { value: '700+',  label: 'secret patterns detected' },
-  { value: '90s',   label: 'average scan time' },
-  { value: '$3,200', label: 'audit cost replaced per scan' },
-];
+interface Stat {
+  value: string;
+  label: string;
+  tone?: 'accent';
+}
+
+function buildStats(weeklyCount: number | null): Stat[] {
+  return [
+    { value: formatCount(weeklyCount), label: 'sites scanned this week', tone: 'accent' as const },
+    { value: '700+', label: 'secret patterns detected' },
+    { value: '90s', label: 'average scan time' },
+    { value: '$3,200', label: 'audit cost replaced per scan' },
+  ];
+}
 
 const FEATURE_CARDS = [
   {
@@ -70,12 +82,6 @@ const FEATURE_CARDS = [
     title: 'Code Scanning (CI/CD)',
     desc: 'Catch secrets before deployment with GitHub Actions, GitLab CI, or Bitbucket Pipelines integration.',
     tags: '✓ GitHub  ✓ GitLab  ✓ Bitbucket  ✓ PR comments',
-  },
-  {
-    emoji: '⚖️',
-    title: 'Compliance Checks',
-    desc: 'GDPR, WCAG 2.2 Level AA, cookie consent, privacy policy detection — stay legally compliant.',
-    tags: '✓ GDPR  ✓ WCAG 2.2 AA  ✓ Cookie consent',
   },
   {
     emoji: '⚡',
@@ -143,7 +149,7 @@ const FAQS = [
   },
   {
     q: 'How is this different from Lighthouse or Snyk?',
-    a: 'Lighthouse only measures performance and surface-level SEO. Snyk needs your source code and focuses on dependencies. VibeSafe runs against your live URL, covers security + compliance + performance + a11y + SEO in one report, and writes the fix for you. Think of it as Lighthouse + OWASP ZAP + Gitleaks + a developer-grade AI assistant, in a 90-second pass.',
+    a: 'Lighthouse only measures performance and surface-level SEO. Snyk needs your source code and focuses on dependencies. VibeSafe runs against your live URL, covers security + performance + accessibility + SEO in one report, and writes the fix for you. Think of it as Lighthouse + OWASP ZAP + Gitleaks + a developer-grade AI assistant, in a 90-second pass.',
   },
   {
     q: 'Do credits expire?',
@@ -158,12 +164,31 @@ const TOOLS = ['Lovable', 'Bolt', 'v0', 'Cursor', 'Replit'];
    ───────────────────────────────────────────────────────────── */
 
 export function LandingHero() {
+  const [weeklyCount, setWeeklyCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/v1/stats/scan-count')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((data: { count?: number }) => {
+        if (!cancelled && typeof data.count === 'number') {
+          setWeeklyCount(data.count);
+        }
+      })
+      .catch(() => {
+        /* Leave as null → renders an em-dash; no marketing claim is made on failure. */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <main id="main" style={{ display: 'flex', flexDirection: 'column' }}>
-      <HeroSection />
+      <HeroSection weeklyCount={weeklyCount} />
       <ToolsStrip />
       <HowItWorksSection />
-      <StatsSection />
+      <StatsSection weeklyCount={weeklyCount} />
       <FeaturesSection />
       <ComparisonSection />
       <TestimonialsSection />
@@ -194,7 +219,7 @@ export function LandingHero() {
    Hero
    ───────────────────────────────────────────────────────────── */
 
-function HeroSection() {
+function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -305,10 +330,8 @@ function HeroSection() {
             style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }}
           />
           <span>
-            <strong style={{ color: 'var(--text-secondary)' }}>4,247</strong>{' '}
-            sites scanned this week ·{' '}
-            <strong style={{ color: 'var(--text-secondary)' }}>2,847</strong>{' '}
-            developers upgraded
+            <strong style={{ color: 'var(--text-secondary)' }}>{formatCount(weeklyCount)}</strong>{' '}
+            site{weeklyCount === 1 ? '' : 's'} scanned this week
           </span>
         </p>
 
@@ -541,7 +564,8 @@ function HowItWorksSection() {
    Stats
    ───────────────────────────────────────────────────────────── */
 
-function StatsSection() {
+function StatsSection({ weeklyCount }: { weeklyCount: number | null }) {
+  const stats = buildStats(weeklyCount);
   return (
     <section aria-labelledby="stats-heading" className="section-sm" style={{ borderTop: '1px solid var(--border-light)' }}>
       <div className="container">
@@ -557,7 +581,7 @@ function StatsSection() {
             margin: 0,
           }}
         >
-          {STATS.map((s) => (
+          {stats.map((s) => (
             <div key={s.label}>
               <dt className="sr-only">{s.label}</dt>
               <dd

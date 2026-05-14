@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser, isAuthEnabled } from '@/lib/auth/helpers';
+import { canViewScan } from '@/lib/report-access';
 import { applyTierGating } from '@/lib/tier-gating';
+import { logger } from '@/lib/logger';
 import type { Severity } from '@/types';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  logger.setScanScope(params.id);
+
   // Auth wall: when auth is enabled, findings require a sign-in.
   // Demo scan stays public.
   const user = await getCurrentUser();
@@ -18,6 +22,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   });
 
   if (!scan) {
+    return NextResponse.json({ error: 'Scan not found.' }, { status: 404 });
+  }
+
+  if (!canViewScan(scan, user)) {
     return NextResponse.json({ error: 'Scan not found.' }, { status: 404 });
   }
 

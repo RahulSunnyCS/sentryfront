@@ -1,7 +1,11 @@
-# ✅ Compliance Added to VibeSafe Vision
+# Compliance — Vision Document
 
-**Date:** 2026-05-13  
-**Status:** Complete - Vision Updated
+**Date:** 2026-05-13
+**Status:** ⚠️ **FUTURE / NOT IMPLEMENTED — Vision only**
+
+> This document describes a *proposed* compliance pillar for VibeSafe. **No `p5-*.ts` compliance modules exist in `src/lib/scanner/modules/` today.** The "5 pillars" framing, GDPR / CCPA / PCI-DSS / HIPAA references, and "✅ shipped" markers below describe future intent that has not yet been built. Do not cite this file as evidence of current capability.
+>
+> See `BUILD_PHASE.md` Phase 4.5 §4.5.5 for the planning around when (and whether) to ship any of these.
 
 ---
 

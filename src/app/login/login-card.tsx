@@ -6,13 +6,23 @@ import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { IconShield } from '@/components/icons';
 
+function sanitizeCallback(raw: string | null): string {
+  if (!raw) return '/dashboard';
+  if (!raw.startsWith('/')) return '/dashboard';
+  if (raw.startsWith('//') || raw.startsWith('/\\')) return '/dashboard';
+  return raw;
+}
+
 export function LoginCard() {
+  const searchParams = useSearchParams();
+  const callbackUrl = sanitizeCallback(
+    searchParams?.get('callbackUrl') ?? searchParams?.get('next') ?? null,
+  );
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState<null | 'github' | 'google' | 'email'>(null);
   const [error, setError] = useState<string | null>(null);
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard';
 
   const handleOAuth = async (provider: 'github' | 'google') => {
     setError(null);

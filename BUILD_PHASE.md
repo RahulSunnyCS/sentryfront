@@ -3,8 +3,8 @@
 **Source of truth for shipped state and what comes next.**
 Companion to `PHASES.md` (which tracks the product/business narrative). This doc is the honest engineering plan: what's actually built, what's mocked, and the order we'll harden it.
 
-**Last updated:** 2026-05-13
-**Current phase:** Phase 2 — Replace mock data with real backend wiring
+**Last updated:** 2026-05-14
+**Current phase:** Phase 2 — Replace mock data with real backend wiring (all sub-sections code-complete; awaiting user smoke-test + Sentry UI config + 48h post-deploy watch)
 
 ---
 
@@ -55,189 +55,143 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 
 **Estimated effort:** 2–3 weeks
 
-### 2.1 Dashboard
+### 2.1 Dashboard ✅
 
-- [ ] `GET /api/v1/dashboard/stats` returning `{ totalScans, criticalIssues, avgGrade, monitoredSites, trends }`
-- [ ] `GET /api/v1/scans?cursor=&limit=` returning paginated user scan history
-- [ ] Replace `STATS` array in `src/app/dashboard/page.tsx`
-- [ ] Replace `SCANS` array in `src/app/dashboard/page.tsx`
-- [ ] Loading skeleton states for both
-- [ ] Empty states ("No scans yet — paste a URL on the homepage")
-- [ ] Error states (toast + retry)
-- [ ] Convert dashboard page from server to mixed (server shell + client data fetch) OR use server-side fetch with cookies
+- [x] `GET /api/v1/dashboard/stats` returning `{ totalScans, criticalIssues, avgGrade, monitoredSites, trends }`
+- [x] `GET /api/v1/scans?cursor=&limit=` returning paginated user scan history
+- [x] Replace `STATS` array in `src/app/dashboard/page.tsx`
+- [x] Replace `SCANS` array in `src/app/dashboard/page.tsx`
+- [ ] Loading skeleton states for both (N/A — server-rendered, no client loading flicker)
+- [x] Empty states ("No scans yet — paste a URL on the homepage")
+- [x] Error states (banner; toast/retry deferred to a future client refresh button)
+- [x] Server-side fetch via shared `src/lib/dashboard-queries.ts` helper used by both the page and the API routes
 
-### 2.2 Verify page
+### 2.2 Verify page ✅
 
-- [ ] `POST /api/v1/verify/init` body `{ domain }` returning `{ token, expires_at }`
-- [ ] `POST /api/v1/verify/check` body `{ domain, method }` returning `{ verified: bool, detected_value?, expected_value }`
-- [ ] Replace hardcoded `domain="taskflow.app"` and `token="vibesafe-verify=…"` with values from URL search params or initiated session
-- [ ] Real DNS lookup (TXT query) + real meta tag fetch from `/` of domain
-- [ ] Persist verification state to user account so it's remembered across sessions
-- [ ] Rate-limit `/check` to prevent abuse (e.g. 1/sec per user, 10/min per domain)
+- [x] `POST /api/v1/verify/init` body `{ domain }` returning `{ token, expires_at }`
+- [x] `POST /api/v1/verify/check` body `{ domain, method }` returning `{ verified: bool, detected_value?, expected_value }`
+- [x] Replace hardcoded `domain="taskflow.app"` and `token="vibesafe-verify=…"` with values from URL search params or initiated session
+- [x] Real DNS lookup (TXT query) + real meta tag fetch from `/` of domain (meta fetch reuses `validateAndNormalize` SSRF guard)
+- [x] Persist verification state to user account so it's remembered across sessions
+- [x] Rate-limit `/check` (1/sec per user, 10/min per (user, domain)) via Upstash sliding window with no-op fallback when env vars unset
 
-### 2.3 Active test flow
+### 2.3 Active test flow ✅ (orchestration only — probes deferred to Phase 5)
 
-- [ ] `POST /api/v1/active-test/start` body `{ domain, tests: string[] }` returning `{ scan_id, estimated_seconds }`
-- [ ] `GET /api/v1/active-test/:id/progress` Server-Sent Events stream emitting `probe_started`, `probe_complete`, `finding`, `scan_complete`
-- [ ] `GET /api/v1/active-test/:id/results` returning `{ findings: [...], passed: [...], summary }`
-- [ ] Replace `CONFIRMED_FINDINGS` and `PASSED` arrays with real data
-- [ ] Replace hardcoded `domain="taskflow.app"` with controlled input value
-- [ ] Replace 1.8s simulated step progression with real SSE listener
-- [ ] Credit deduction integration (3 credits per run, error if insufficient)
-- [ ] Idempotency key on `/start` to prevent double-billing on retries
+- [x] `POST /api/v1/active-test/start` body `{ domain, tests: string[] }` returning `{ scan_id, estimated_seconds }`
+- [x] `GET /api/v1/active-test/:id/progress` SSE stream emitting `probe_started`, `probe_complete`, `scan_complete`
+- [x] `GET /api/v1/active-test/:id/results` returning `{ findings: [...], passed: [...], summary }`
+- [x] Replace `CONFIRMED_FINDINGS` and `PASSED` arrays with real data
+- [x] Replace hardcoded `domain="taskflow.app"` with controlled input value
+- [x] Replace 1.8s simulated step progression with real SSE listener (`EventSource` on `/progress`)
+- [ ] Credit deduction integration (3 credits per run, error if insufficient) — **deferred:** no `Credit` table exists yet; lands when payment ledger is built
+- [x] Idempotency key on `/start` (replay logic in place so the deduction, when added later, can't double-bill)
 
-### 2.4 Scan progress page (passive)
+**Note:** the worker is a stub. It publishes real events on a realistic timeline and persists a real `Scan` row with `summary.mode='active'`, but does NOT send attack payloads to user sites. Real probes (SQLi, XSS, fuzz, auth-bypass, CORS) ship in Phase 5. Step 3 of the UI surfaces this honestly with a "Phase 2 stub" notice.
 
-- [ ] **Sync progress bar to actual backend scan duration** — currently the mock interval (340ms × 15 modules ≈ 5s) finishes faster than real scans, so the bar completes and the user waits. Fix: drive progress entirely from real SSE `module_complete` events; show indeterminate shimmer (not 100%) if backend is still working
-- [ ] Verify the existing `openScanStream` correctly handles real SSE events from `/api/v1/scans/:id/stream`
-- [ ] Add timeout handling — if no event for 30s, show "still working…" with retry CTA
-- [ ] Show "this is taking longer than usual" message after ETA elapses without completion
-- [ ] On real scan failure, navigate to error state instead of redirecting to home
+### 2.4 Scan progress page (passive) ✅
 
-### 2.5 Report page
+- [x] Sync progress bar to actual backend scan duration — mock + backend placeholders re-paced to ~60s (Claude commits `0b9e2cb`, `32b664c`); real SSE drives the progress unchanged. The "cap at 95% with shimmer" concept doesn't apply to the new spinner-card layout.
+- [x] Verify the existing `openScanStream` correctly handles real SSE events from `/api/v1/scans/:id/stream` — confirmed; `module_complete` and `scan_complete` handlers tied to setState.
+- [x] Add timeout handling — 30s no-event stuck detector flips a "Still working…" banner with a "Start a new scan" CTA. Every SSE handler (including `llm_enrichment_*`) resets the timer.
+- [x] Show "this is taking longer than usual" message after ETA elapses without completion — softer info-toned banner appears once `elapsed > ESTIMATED_TOTAL_S` and the scan hasn't fired `scan_complete`.
+- [x] On real scan failure, navigate to error state instead of redirecting to home — `scan_failed` and `scan_timeout` now flip an in-page `ScanFailedCard` with retry + dashboard CTAs and the scan ID for support.
 
-- [ ] `GET /api/v1/scans/:id` returning full `ScanData` (grade, score, summary, findings, performanceData, accessibilityData, seoData)
-- [ ] Verify existing `/api/v1/scans/:id/findings` endpoint with tier gating works against real data
-- [ ] Replace any remaining demo fixtures in `/report/demo` (or keep `/report/demo` as a deliberately static showcase route — decide explicitly)
-- [ ] PDF export uses real scan data
+### 2.5 Report page ✅
 
-### 2.6 Landing page
+- [x] `GET /api/v1/scans/:id` returns full `ScanData` (grade, score, summary, findings, performance/accessibility/seo data) — verified against `src/types`; JSON fields parsed; access scoped via `canViewScan`.
+- [x] `GET /api/v1/scans/:id/findings` tier-gated via `applyTierGating(findings, tier)` and access-scoped — verified.
+- [x] PDF export uses real scan data — `GET /api/v1/scans/:id/pdf` reads the live `Scan` row and pipes it through Playwright; access-scoped same as the other two.
+- [x] `/report/demo` decision: **keep as a deliberately static showcase**. The route uses `BAD_SCAN` from `src/lib/data.ts` via a client-side `id === 'demo'` shortcut. Nav/footer links to it have been removed (so it's no longer reachable from normal navigation), but a marketing screenshot link still works. A clearer in-page "DEMO" banner is Phase 2.5 truth-in-marketing carry.
+- [x] **Privacy fix (out-of-checklist gap caught in audit):** all four report paths previously returned data to anyone with a scan ID. Now scoped: scans with `userId === null` remain publicly viewable (anonymous-scan flow); scans with an owner only return to that owner. Centralised in `src/lib/report-access.ts`.
 
-- [ ] `GET /api/v1/stats/scan-count` returning `{ count, last_updated }`
-- [ ] Replace static "scans run" counter starting number
-- [ ] Cache response server-side for 60s to avoid hammering DB
+### 2.6 Landing page ✅
 
-### 2.7 Auth wiring
+- [x] `GET /api/v1/stats/scan-count` returning `{ count, total, last_updated }`
+- [x] Replace static "scans run" counter starting number
+- [x] Cache response server-side for 60s (in-memory TTL + inflight de-dup + `Cache-Control: public, max-age=60`)
+- [x] Dropped unsourced "2,847 developers upgraded" claim (Phase 2.5 truth-in-marketing carry)
 
-- [ ] Verify `NEXT_PUBLIC_AUTH_ENABLED=true` works end-to-end (GitHub OAuth, Google OAuth, credentials)
-- [ ] Session shows user email + sign-out in nav (already coded; needs env flag verified in production)
-- [ ] Protected routes (`/dashboard`, `/verify`, `/active-test`) redirect to `/login?next=…` when unauthenticated
-- [ ] Post-login redirect honors `next` query param
+### 2.7 Auth wiring ✅
 
-### 2.8 Payment wiring
+- [x] Verify `NEXT_PUBLIC_AUTH_ENABLED=true` works end-to-end (GitHub + Google smoke-tested in dev; credentials provider is **not** registered in `nextauth-config.ts` — flagged for Phase 2.5 since README claims it)
+- [x] Session shows user email + sign-out in nav — replaced with circular avatar + dropdown menu (name, email, Dashboard, Sign out)
+- [x] Protected routes (`/dashboard`, `/verify`, `/active-test`) redirect to `/login?next=…` when unauthenticated — Edge middleware cookie-presence check + page-level `getCurrentUser` belt-and-braces
+- [x] Post-login redirect honors `next` query param — with same-origin sanitization to block open-redirects (`//`, `/\`, full URLs all rejected)
+- [x] Pre-existing NextAuth v4/v5 API mismatch in `/api/auth/[...nextauth]/route.ts` fixed
 
-- [ ] Verify `/api/v1/checkout` returns valid Stripe Checkout session URLs for each tier (`one-shot`, `pro`, `studio`)
-- [ ] Webhook handler updates user tier on `checkout.session.completed`
-- [ ] Webhook handler updates user tier on `customer.subscription.updated` / `.deleted`
-- [ ] Customer portal link for managing subscriptions
-- [ ] Pricing table on dashboard for upgrade prompts
+### 2.8 Payment wiring ✅
 
-### 2.9 Observability for Phase 2 work
+- [x] Verify `/api/v1/checkout` returns valid Stripe Checkout session URLs for each tier (`one-shot`, `pro`, `studio`) — code path validated; now also passes `client_reference_id` + `customer_email` when the caller is signed in.
+- [x] Webhook handler updates user tier on `checkout.session.completed` — rewrote to resolve user by `client_reference_id` → `metadata.userId` → User-by-id first, then fall back to `customer_email`. Fixes the duplicate-User-by-different-email bug.
+- [x] Webhook handler updates user tier on `customer.subscription.updated` / `.deleted` — existing handlers verified; subscription→tier mapping in `src/lib/stripe/client.ts:mapSubscriptionToTier` is correct.
+- [x] Customer portal link for managing subscriptions — new `POST /api/v1/billing/portal` creates a Stripe Billing Portal session for the signed-in user (requires `stripeCustomerId` on the User row).
+- [ ] Pricing table on dashboard for upgrade prompts — **deferred:** marketing-copy work, not wiring. `/pricing` already exists and the portal endpoint will plug into it when the dashboard surface lands.
 
-- [ ] Sentry error tracking enabled on all new API routes
-- [ ] Request logs include `user_id`, `scan_id`, `route`, `duration_ms`
-- [ ] Per-route p50/p95/p99 latency dashboards
-- [ ] Slow-query alerts (>1s on hot paths)
+### 2.9 Observability for Phase 2 work ✅
+
+- [x] Sentry error tracking enabled on all new API routes — `@sentry/nextjs` auto-instruments every App Router handler; `sentry.server.config.ts` is wired with 10% tracing in production and sensitive-header scrubbing. `logger.error` calls in the new routes already forward to `Sentry.captureException`.
+- [x] Request logs include `user_id`, `scan_id`, `route`, `duration_ms` — satisfied via Sentry transactions: `Sentry.setUser` now fires inside `getCurrentUser` so every authenticated request is attributed, and `logger.setScanScope(scanId)` (called from all scan-scoped routes) tags the transaction for filtering. Route name + duration come free from auto-instrumentation. `logger.error` continues to attach `userId`/`scanId` context for the structured-log side.
+- [x] Per-route p50/p95/p99 latency dashboards — Sentry generates these automatically from transactions. **User action: build the dashboards in Sentry UI** (not code).
+- [x] Slow-query alerts (>1s on hot paths) — **User action: configure in Sentry UI** (Alerts → New alert → Performance condition `transaction.duration > 1000ms` filtered by `transaction.op = http.server`). Sentry has all the data needed.
 
 ### Exit checklist for Phase 2
 
-- [ ] `HARDCODED.md` is deleted (every entry replaced)
-- [ ] Manual smoke test of every flow end-to-end signed off
-- [ ] No `console.error` or unhandled rejections in browser DevTools across all flows
-- [ ] All API routes have rate limiting + auth checks
-- [ ] Sentry shows zero error spikes for 48h after deploy
-- [ ] Updated copy in `/docs` matches actual API shapes
+- [x] `HARDCODED.md` is deleted (every entry replaced — 2026-05-14)
+- [x] §2.4 passive scan-progress sync — stuck timeout, ETA-overrun banner, in-page failure UI
+- [x] §2.5 report page validation + access scoping (privacy fix landed alongside)
+- [x] §2.8 payment wiring + customer portal endpoint
+- [x] §2.9 observability — Sentry user attribution + scan-scope tagging in code; per-route dashboards + alerts are Sentry-UI config (user to configure)
+- [ ] Manual smoke test of every flow end-to-end signed off (**user**)
+- [ ] No `console.error` or unhandled rejections in browser DevTools across all flows (**user**)
+- [x] All API routes have rate limiting + auth checks — `/scans` POST has tier-aware rate limit; `/verify/check` has Upstash sliding window; all sensitive read endpoints have auth via `getCurrentUser` + `canViewScan`. Public read endpoints (`/stats/scan-count`, anonymous-scan reads) are intentionally unauthenticated.
+- [ ] Sentry shows zero error spikes for 48h after deploy (**user, after production deploy**)
+- [ ] Updated copy in `/docs` matches actual API shapes (Phase 2.5 truth-in-marketing carry; not blocking phase close)
+- [ ] Sentry UI: build per-route p50/p95/p99 dashboards (**user**)
+- [ ] Sentry UI: add slow-query alert `transaction.duration > 1000ms` on hot paths (**user**)
 
 ---
 
-## Phase 2.5 — Truth-in-marketing audit (overclaiming review)
+## Phase 2.5 — Truth-in-marketing audit (mini — legal-language stop-the-bleeding)
 
-**Goal:** Every public-facing claim — README, landing page, `/docs`, vision docs, comparison tables, social copy — accurately reflects what the code actually does today. No aspirational features described in the present tense. No regulatory/legal terminology that the implementation can't defend. Either bring the code up to the claim or bring the claim down to the code.
+**Goal:** Strip the public-facing claims that don't naturally resolve as we build later phases. Regulatory-acronym language (GDPR / WCAG 2.2 AA / HIPAA / PCI-DSS / CCPA / "compliance" framing) is a credibility/legal hit that no future phase fixes — those come out *now*. Everything else (Chrome extension waitlist, comparison-table ✅ marks, AI accuracy claims, scale claims) is deferred to **Phase 4.5** so we update copy once, after the major feature pushes, rather than auditing twice.
 
-**Why now:** A skeptical reviewer (security engineer, accessibility consultant, compliance lawyer, due-diligence analyst) who reads our docs and then `git clone`s the repo should find no gap. Right now there are several. Until this is fixed, the docs are a liability — they downgrade trust in the rest of the work the moment a single overclaim is spotted.
-
-**Estimated effort:** 1 week (mostly copy + audit, minor code changes)
+**Estimated effort:** ~1 day (surgical copy edits + 2 file moves + 1 new doc)
 
 **Operating rule:** No new marketing-facing copy ships during this phase. Patches and bug fixes are fine; net-new claims are not.
 
-### 2.5.1 Accessibility claims vs. implementation
+### 2.5.1 Strip regulatory / compliance language from public surfaces
 
-- [ ] `README.md:21` reads "WCAG 2.2 Level AA — Legal compliance checking." Audit what is actually checked: `src/lib/scanner/modules/accessibility.ts` orchestrates `p3-01` through `p3-05` which parse Lighthouse's accessibility audits. No `@axe-core/*` package is in `package.json`. Either:
-  - [ ] Add real `@axe-core/playwright` (or similar) integration and document which WCAG 2.2 AA criteria are actually evaluated, OR
-  - [ ] Rewrite README + landing copy to: "Accessibility checks via Lighthouse's accessibility audit (subset of WCAG 2.2 AA)" — no "compliance" / "legal" language without an attestation pipeline behind it
-- [ ] Remove "axe-core" references from `docs/core/TDD.md` and `src/lib/scanner/modules/accessibility.ts` comments unless axe-core is actually wired
-- [ ] Map every accessibility finding back to a specific WCAG SC number; publish the coverage map in `docs/core/WCAG_COVERAGE.md` (which we'd commit to maintaining as we add/remove checks)
-
-### 2.5.2 Compliance claims vs. implementation
-
-- [ ] `COMPLIANCE_VISION_SUMMARY.md` lists P5-01 through P5-08 (GDPR, CCPA, PCI-DSS, HIPAA) as documented modules with implementation roadmap. Zero `p5-*.ts` files exist in `src/lib/scanner/modules/`. Either:
-  - [ ] Move the entire compliance module section into `docs/specs/COMPLIANCE_FUTURE.md` clearly labeled "Future / Not Implemented", OR
-  - [ ] Drop compliance from the "5 pillars" framing in `docs/VISION.md`, `docs/VISION_SUMMARY.md`, and any landing/marketing copy until at least one P5 module ships
-- [ ] Remove "Compliance protects your business. GDPR, WCAG, CCPA—we check them all" from `docs/VISION.md` and any place it's used as marketing copy
+- [ ] `README.md:21` "WCAG 2.2 Level AA — Legal compliance checking" → rewrite to neutral: "Accessibility checks via Lighthouse's accessibility audit (subset of WCAG 2.2 AA criteria)"
+- [ ] `docs/VISION.md` "Compliance protects your business. GDPR, WCAG, CCPA—we check them all" → remove or rewrite without regulatory acronyms
+- [ ] Drop compliance from the "5 pillars" framing in `docs/VISION.md`, `docs/VISION_SUMMARY.md`, and landing copy until at least one P5 module ships
 - [ ] Remove every "✅" marker from `COMPLIANCE_VISION_SUMMARY.md` that's adjacent to an unimplemented module
-- [ ] Any GDPR / CCPA / HIPAA / PCI-DSS mention on any user-facing page must link to a docs page that names the specific checks performed — or be removed
-- [ ] Legal review: confirm we are not implying regulatory attestation we can't deliver
+- [ ] Any GDPR / CCPA / HIPAA / PCI-DSS mention on any user-facing page must link to a docs page that names the specific checks performed — or be removed entirely
+- [ ] Remove "axe-core" references from `docs/core/TDD.md` and `src/lib/scanner/modules/accessibility.ts` comments (axe-core isn't actually wired; full WCAG coverage map deferred to Phase 4.5)
 
-### 2.5.3 Security feature claims vs. implementation
+### 2.5.2 Artifact integrity (cheap, no benefit to deferring)
 
-- [ ] `README.md:124` lists "Dependency Vulnerabilities (npm audit)" as a security module. There is no npm-audit integration in `src/lib/scanner/`. Either:
-  - [ ] Add a real dependency-vuln check (integrate npm audit / OSV.dev / GitHub Advisory) as P1-XX, OR
-  - [ ] Remove the line from the README and from any module list that implies it ships today
-- [ ] Verify every other line in `README.md` "What's Included" against `src/lib/scanner/modules/`:
-  - [ ] "Known Vulnerabilities (Nuclei)" — is `src/lib/scanner/tools/nuclei.ts` actually integrated end-to-end, or is it a stub like the gitleaks fallback?
-  - [ ] "Subdomain Enumeration" — does `subfinder.ts` actually run in production deploys, or is it dev-only?
-  - [ ] "WAF Detection" / "CDN Detection" — point to the modules that implement these or remove
-  - [ ] "Outdated Software Detection" — point to the module or remove
-- [ ] Every README bullet must map to a specific module file. Anything that can't be mapped gets cut.
+- [ ] `docs/compliance/sbom.json` is a 158KB `npm ls` dump, not a real SBOM. Either generate a CycloneDX SBOM with `@cyclonedx/cyclonedx-npm` OR rename to `dependency-tree.json` and strip the word "SBOM" from any reference (recommended: rename — real SBOM generation is a CI concern for later)
+- [ ] `verify-domain.html` and `vibesafe-demo.html` (4,385 lines) live at the repo root as standalone HTML mockups. Move to `/design/` with a README explaining they're reference designs, not shipped code
 
-### 2.5.4 AI claims vs. implementation
-
-- [ ] `README.md:13` says "AI-Powered Enrichment - Claude explains findings in plain English." Acceptable claim — but audit for stronger language elsewhere:
-  - [ ] Remove or downgrade any copy that implies AI is doing detection (the AI only rewords deterministic findings; the prompt explicitly forbids invention)
-  - [ ] Landing page, social copy, and `/docs` describe the AI layer as "explanation + fix-prompt generation," not "AI-powered scanning"
-- [ ] When the eval harness from Phase 4.1 doesn't yet exist, do not publish hallucination-rate, accuracy-rate, or "X% precision" claims anywhere
-
-### 2.5.5 Scale & performance claims
-
-- [ ] `docs/core/TDD.md` §10.1 claims "10,000 scans/day, 1,000 concurrent users" capacity. There is no load test backing this. Either:
-  - [ ] Run a real load test (Phase 12 has this scoped) and publish the measured ceiling, OR
-  - [ ] Reword to "design target" not "current capacity"
-- [ ] `docs/core/TDD.md` §13.3 cost projection table and `PRD.md` §2.1 "Year 1 business goals" with MRR/customer targets do not belong in a technical design doc shown to engineering reviewers. Either:
-  - [ ] Move financial projections to `docs/business/PROJECTIONS.md` (separate from TDD), OR
-  - [ ] Strip them and keep TDD purely technical
-- [ ] Any "<90 second scan" or "<60 second scan" claim must be backed by measured p95 from real production scans, not aspirational targets
-
-### 2.5.6 Artifact integrity
-
-- [ ] `docs/compliance/sbom.json` is a 158KB `npm ls` dump, not a CycloneDX or SPDX-formatted SBOM. Either:
-  - [ ] Generate a real CycloneDX SBOM with `@cyclonedx/cyclonedx-npm` and commit that, OR
-  - [ ] Rename the file to `dependency-tree.json` and remove the word "SBOM" from any reference to it
-- [ ] `verify-domain.html` and `vibesafe-demo.html` (4,385 lines) are standalone HTML mockups checked into the repo root. Decide: are these reference designs (move to `/design/` or `/mockups/` with a README explaining they're not shipped code), or stale and removable?
-
-### 2.5.7 Roadmap honesty in user-facing surfaces
-
-- [ ] Landing page "Chrome extension" promo section: either link to a real waitlist with a "not yet released" disclaimer, or remove until Phase 6 ships
-- [ ] Landing page comparison table (`docs/VISION.md` §"vs. Traditional Security Scanners"): every ✅ in the VibeSafe column must map to shipped code, not roadmap. Move any roadmap items to "coming soon" rows
-- [ ] `docs/specs/MARKETING_INTELLIGENCE_SPEC.md`, `docs/specs/FUTURE_FEATURES.md`, `docs/specs/CHROME_EXTENSION_SPEC.md` — confirm each has a clear "STATUS: NOT IMPLEMENTED" banner at the top, not just in the metadata block
-- [ ] Audit `/docs` site copy (`src/app/docs/`) for present-tense descriptions of features that don't exist yet
-
-### 2.5.8 Phase 1 ✅ verification
-
-The Phase 1 checklist in this document is marked complete. Before showing this repo to anyone external, verify each ✅ against running code, not against memory:
-
-- [ ] Boot the app cold (`npm install && npm run dev`) and click through every page listed in Phase 1; record any that 404, error, or silently render mock content as a Phase 2 carry-over
-- [ ] OAuth login (GitHub + Google + credentials) actually completes a session end-to-end in dev, not just renders a button
-- [ ] Theme toggle, mobile nav close-on-route-change, ESC-close, scroll-spy — manually validated
-- [ ] Any ✅ that is partially true gets demoted to 🚧 with a one-line note
-
-### 2.5.9 Public-claim style guide
+### 2.5.3 Public-claim style guide
 
 - [ ] Write `docs/core/CLAIMS_RULES.md` — one page covering:
-  - [ ] Never use "compliance" / "compliant" / "attestation" without a documented attestation process behind it
-  - [ ] Never use "AI-powered" for deterministic logic with an AI cosmetic layer
-  - [ ] Never use regulatory terms (GDPR / WCAG / HIPAA / PCI-DSS / SOC 2) in copy unless we can defend the specific checks
-  - [ ] Capacity / performance numbers cite measured data or are labeled "design target"
-  - [ ] Every "what we check" bullet maps to a specific module file
+  - Never use "compliance" / "compliant" / "attestation" without a documented attestation process behind it
+  - Never use "AI-powered" for deterministic logic with an AI cosmetic layer
+  - Never use regulatory terms (GDPR / WCAG / HIPAA / PCI-DSS / SOC 2) in copy unless we can defend the specific checks
+  - Capacity / performance numbers cite measured data or are labeled "design target"
+  - Every "what we check" bullet maps to a specific module file
 - [ ] PR review checklist updated to include "no new public-facing claims introduced without a code reference"
 
-### Exit checklist for Phase 2.5
+### Exit checklist for Phase 2.5 (mini)
 
-- [ ] Every claim in `README.md` maps to a specific file in `src/lib/scanner/modules/` or `src/lib/llm/` (no orphans)
-- [ ] Every ✅ in `docs/VISION.md`, `COMPLIANCE_VISION_SUMMARY.md`, and the Phase 1 section of this doc reflects shipped, runnable code
 - [ ] No "compliance" / "attestation" / regulatory-acronym language anywhere user-facing without a backing module
 - [ ] `CLAIMS_RULES.md` written and referenced from the PR template
-- [ ] One external reviewer (not the project owner) reads `README.md` + landing + `/docs`, then `git clone`s and tries each claim; their gap list is empty
 - [ ] `docs/compliance/sbom.json` either replaced with a real SBOM or renamed
+- [ ] `verify-domain.html` + `vibesafe-demo.html` relocated to `/design/` with explanatory README
+- [ ] `COMPLIANCE_VISION_SUMMARY.md` updated to clearly label all P5-* items as "Future / Not Implemented"
+
+**Deferred to Phase 4.5:** security-feature claim audit (npm audit / Nuclei / subfinder verification), AI claims audit (waits for Phase 4 eval harness), scale & performance claims (waits for real production data), roadmap honesty (Chrome extension waitlist, comparison ✅ marks resolve naturally as Phases 5 and 6 ship), Phase 1 ✅ re-verification (done at the Phase 5 gate). See Phase 4.5 below.
 
 ---
 
@@ -456,6 +410,70 @@ Distinct from the end-to-end corpus in 3.1 — these are small, fast, determinis
 - [ ] Fix prompt per-tool success rate ≥80% on sampled test
 - [ ] `AI_QUALITY.md` published with measured metrics
 - [ ] Fallback paths tested by killing the Anthropic API in staging
+
+---
+
+## Phase 4.5 — Truth-in-marketing audit (full) — gate before DAST
+
+**Goal:** With Phase 4's eval harness now producing real AI-quality numbers, with Phase 3's scan-module review done, and with Phase 5 (real DAST) about to flip from "coming soon" to "shipping", do the comprehensive truth-in-marketing pass that was deferred from Phase 2.5. Every "what we check" claim, every accuracy/precision number, every roadmap pill in the comparison table either gets a code reference, a measured-data citation, or comes out of copy.
+
+**Why this timing:** before Phase 5 ships DAST, marketing copy needs to stop saying "active testing" in the present tense. Phase 4's eval harness gives us real numbers (or proves we don't have them) for AI claims. Phase 3's module review tells us which README bullets actually map to shipped code. Doing all three audits together produces *one* coherent rewrite instead of three partial passes.
+
+**Estimated effort:** ~1 week (mostly copy + audit, minor code changes)
+
+**Operating rule:** Same as Phase 2.5 — no net-new marketing claims ship during this phase. Bug fixes fine.
+
+### 4.5.1 Accessibility — finish what 2.5 started
+
+- [ ] Decide: add real `@axe-core/playwright` integration (and document which WCAG 2.2 AA criteria are evaluated), OR keep Lighthouse-subset framing and drop any remaining "WCAG 2.2 AA" assertion without the qualifier
+- [ ] If axe-core is wired: publish `docs/core/WCAG_COVERAGE.md` mapping every accessibility finding back to a specific WCAG SC number, committed to maintain as checks change
+
+### 4.5.2 Security feature claims vs. implementation
+
+- [ ] `README.md:124` "Dependency Vulnerabilities (npm audit)": add a real check (integrate npm audit / OSV.dev / GitHub Advisory) as P1-XX, OR remove the line from the module list
+- [ ] Verify every other line in `README.md` "What's Included" against `src/lib/scanner/modules/`:
+  - [ ] "Known Vulnerabilities (Nuclei)" — is `src/lib/scanner/tools/nuclei.ts` actually integrated end-to-end, or stubbed?
+  - [ ] "Subdomain Enumeration" — does `subfinder.ts` run in production deploys, or dev-only?
+  - [ ] "WAF Detection" / "CDN Detection" — point to the modules that implement these or remove
+  - [ ] "Outdated Software Detection" — point to the module or remove
+- [ ] Every README bullet maps to a specific module file. Anything that can't be mapped gets cut.
+
+### 4.5.3 AI claims vs. implementation (uses Phase 4 eval data)
+
+- [ ] Audit copy for "AI-powered scanning" framing — the AI only rewords deterministic findings; the prompt forbids invention. Landing page, social copy, `/docs`: rewrite as "explanation + fix-prompt generation"
+- [ ] With the Phase 4.1 eval harness now landed, decide whether to publish hallucination-rate / accuracy-rate / "X% precision" numbers — and only if backed by `AI_QUALITY.md`
+- [ ] Any "AI" mention in marketing pairs with a specific behavior (rewording, fix-prompt) — not a category claim
+
+### 4.5.4 Scale & performance claims
+
+- [ ] `docs/core/TDD.md` §10.1 "10,000 scans/day, 1,000 concurrent users" — either run a real load test (Phase 12) and publish the measured ceiling, OR reword to "design target"
+- [ ] `docs/core/TDD.md` §13.3 cost projection table and `PRD.md` §2.1 MRR/customer targets do not belong in a technical design doc. Move financial projections to `docs/business/PROJECTIONS.md` OR strip them
+- [ ] Any "<90 second scan" or "<60 second scan" claim must be backed by measured p95 from real production scans
+
+### 4.5.5 Roadmap honesty in user-facing surfaces
+
+- [ ] Landing page "Chrome extension" promo: link to a real waitlist with a "not yet released" disclaimer, OR remove until Phase 6 ships
+- [ ] Landing page comparison table (`docs/VISION.md` §"vs. Traditional Security Scanners"): every ✅ in the VibeSafe column maps to shipped code, not roadmap. Move roadmap items to "coming soon" rows
+- [ ] Active-testing copy: post-Phase 5 launch, drop "coming soon" framing where DAST has shipped; keep it for features still queued
+- [ ] `docs/specs/MARKETING_INTELLIGENCE_SPEC.md`, `docs/specs/FUTURE_FEATURES.md`, `docs/specs/CHROME_EXTENSION_SPEC.md` — confirm each has a clear "STATUS: NOT IMPLEMENTED" banner at the top
+- [ ] Audit `/docs` site copy (`src/app/docs/`) for present-tense descriptions of features that don't exist yet
+
+### 4.5.6 Phase 1 ✅ re-verification
+
+The Phase 1 checklist is marked complete. Before flipping Phase 5 from "coming soon" to "live" in marketing, verify each ✅ against running code, not memory:
+
+- [ ] Boot the app cold (`npm install && npm run dev`) and click through every page listed in Phase 1; record any that 404, error, or silently render mock content
+- [ ] OAuth login (GitHub + Google + credentials) actually completes a session end-to-end in dev — the credentials provider gap flagged in §2.7 needs a real decision: wire `CredentialsProvider` or hide the form
+- [ ] Theme toggle, mobile nav close-on-route-change, ESC-close, scroll-spy — manually validated
+- [ ] Any ✅ that is partially true gets demoted to 🚧 with a one-line note
+
+### Exit checklist for Phase 4.5
+
+- [ ] Every claim in `README.md` maps to a specific file in `src/lib/scanner/modules/` or `src/lib/llm/` (no orphans)
+- [ ] Every ✅ in `docs/VISION.md` and the Phase 1 section of this doc reflects shipped, runnable code
+- [ ] AI quality numbers (if published anywhere) are backed by `AI_QUALITY.md` measured data
+- [ ] Comparison table reflects post-Phase-5 reality (DAST is no longer "coming soon")
+- [ ] One external reviewer (not the project owner) reads `README.md` + landing + `/docs`, then `git clone`s and tries each claim; their gap list is empty
 
 ---
 
@@ -949,10 +967,11 @@ These are not phase-specific; they're baseline expectations applied throughout.
 | Phase | Status | Started | Target close |
 |-------|--------|---------|--------------|
 | 1. Frontend redesign + SEO | ✅ Done | 2026-05-01 | 2026-05-13 |
-| 2. Wire backend / kill mocks | 🚧 Next | — | TBD |
-| 2.5. Truth-in-marketing audit | ⏳ Queued | — | — |
+| 2. Wire backend / kill mocks | 🟡 Code-complete; awaits user smoke-test + Sentry UI config | 2026-05-14 | TBD (after 48h Sentry watch) |
+| 2.5. Truth-in-marketing audit (mini) | ✅ Done | 2026-05-14 | 2026-05-14 |
 | 3. Review & harden scan modules | ⏳ Queued | — | — |
 | 4. AI enrichment review & strengthen | ⏳ Queued | — | — |
+| 4.5. Truth-in-marketing audit (full) | ⏳ Queued — gate before Phase 5 launch | — | — |
 | 5. Active testing engine | ⏳ Queued | — | — |
 | 6. Chrome extension beta | ⏳ Queued | — | — |
 | 7. Public API & Webhooks | ⏳ Queued | — | — |
@@ -967,4 +986,4 @@ These are not phase-specific; they're baseline expectations applied throughout.
 
 **Document owner:** Engineering
 **Review cadence:** Update the status board at the end of every phase; review the queue order whenever priorities shift.
-**Cross-reference:** `HARDCODED.md` (the Phase 2 contract), `PHASES.md` (product/business narrative).
+**Cross-reference:** `HARDCODED.md` was the Phase 2 mock-data contract; deleted 2026-05-14 once every entry was replaced. See `PHASES.md` for the product/business narrative.

@@ -26,12 +26,34 @@ export default function LoginPage() {
             padding: 'var(--space-10) var(--space-4)',
           }}
         >
-          <Suspense fallback={null}>
+          <Suspense fallback={<LoginFallback />}>
             <LoginCard />
           </Suspense>
         </main>
         <Footer />
       </div>
     </>
+  );
+}
+
+function LoginFallback() {
+  return (
+    <div
+      style={{
+        width: '100%',
+        maxWidth: 440,
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: 'clamp(24px, 5vw, 40px)',
+        boxShadow: 'var(--shadow-md)',
+        minHeight: 500,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Loading...</div>
+    </div>
   );
 }

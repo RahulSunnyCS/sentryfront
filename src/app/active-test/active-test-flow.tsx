@@ -1,101 +1,323 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { IconArrowRight, IconCheckCircle, IconAlertCircle, IconSpinner } from '@/components/icons';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 type Target = 'web' | 'code';
-type Severity = 'critical' | 'high' | 'medium';
+type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 interface TestType {
   key: string;
   name: string;
-  severity: Severity;
+  severity: Exclude<Severity, 'low' | 'info'>;
   default: boolean;
   desc: string;
 }
 
 const TEST_TYPES: TestType[] = [
-  { key: 'sqli',  name: 'SQL & NoSQL Injection',       severity: 'critical', default: true,  desc: 'Probe query parameters and form inputs with classic + blind payloads.' },
-  { key: 'xss',   name: 'Cross-Site Scripting (XSS)',  severity: 'critical', default: true,  desc: 'Reflected, stored, and DOM-based payloads, including framework-specific bypasses.' },
-  { key: 'fuzz',  name: 'API Endpoint Fuzzing',        severity: 'high',     default: true,  desc: 'Discover hidden routes and test for unauthenticated data access.' },
-  { key: 'auth',  name: 'Authentication Bypass',       severity: 'high',     default: false, desc: 'Try common bypass techniques on protected routes (token tampering, parameter pollution).' },
-  { key: 'cors',  name: 'CORS Misconfiguration',       severity: 'medium',   default: false, desc: 'Look for wildcard or reflected origins that let third-party sites read your data.' },
+  { key: 'sqli', name: 'SQL & NoSQL Injection', severity: 'critical', default: true, desc: 'Probe query parameters and form inputs with classic + blind payloads.' },
+  { key: 'xss', name: 'Cross-Site Scripting (XSS)', severity: 'critical', default: true, desc: 'Reflected, stored, and DOM-based payloads, including framework-specific bypasses.' },
+  { key: 'fuzz', name: 'API Endpoint Fuzzing', severity: 'high', default: true, desc: 'Discover hidden routes and test for unauthenticated data access.' },
+  { key: 'auth', name: 'Authentication Bypass', severity: 'high', default: false, desc: 'Try common bypass techniques on protected routes (token tampering, parameter pollution).' },
+  { key: 'cors', name: 'CORS Misconfiguration', severity: 'medium', default: false, desc: 'Look for wildcard or reflected origins that let third-party sites read your data.' },
 ];
 
 const SEVERITY_TONE: Record<Severity, { color: string; bg: string }> = {
   critical: { color: '#DC2626', bg: 'rgba(220,38,38,0.12)' },
-  high:     { color: '#F59E0B', bg: 'rgba(245,158,11,0.14)' },
-  medium:   { color: '#CA8A04', bg: 'rgba(202,138,4,0.12)' },
+  high: { color: '#F59E0B', bg: 'rgba(245,158,11,0.14)' },
+  medium: { color: '#CA8A04', bg: 'rgba(202,138,4,0.12)' },
+  low: { color: '#6B7280', bg: 'rgba(107,114,128,0.12)' },
+  info: { color: '#0891B2', bg: 'rgba(8,145,178,0.12)' },
 };
 
-const PROGRESS_STEPS = [
-  'Discovering endpoints and form inputs…',
-  'Sending SQL injection probes…',
-  'Testing 12 XSS payloads…',
-  'API endpoint fuzzing…',
-  'Generating CONFIRMED finding report…',
-];
+interface ProgressState {
+  probe: string;
+  label: string;
+  index: number;
+  total: number;
+  state: 'running' | 'complete';
+}
 
-const CONFIRMED_FINDINGS = [
-  {
-    title: 'SQL Injection — /api/users?id=',
-    severity: 'critical' as const,
-    sent:    `GET /api/users?id=1' OR '1'='1`,
-    received: '200 OK · [{id:1,…},{id:2,…},…] (returned 14,302 rows)',
-    impact:  'Attacker can dump the entire users table — emails, password hashes, session tokens.',
-    prompt:  `Sanitize the id parameter in /api/users. Use a parameterized query (e.g. \`SELECT * FROM users WHERE id = $1\` with a numeric cast) and reject non-numeric inputs at the route boundary. Add a regression test that POSTs OR '1'='1 and expects a 400.`,
-  },
-  {
-    title: 'Reflected XSS — /search?q=',
-    severity: 'critical' as const,
-    sent:    `GET /search?q=<script>alert(document.cookie)</script>`,
-    received: '200 OK · payload reflected un-escaped inside <h1>',
-    impact:  'Attacker can steal session cookies or hijack accounts by sending a malicious link.',
-    prompt:  `Escape the q query parameter before rendering. If using React, render it through {q} (default JSX escaping); for server-side templates, use the framework's HTML-escape helper. Add a CSP that forbids inline scripts.`,
-  },
-];
+interface FindingPayload {
+  id: string;
+  probe: string;
+  title: string;
+  severity: Severity;
+  sent: string;
+  received: string;
+  impact: string;
+  prompt: string;
+}
 
-const PASSED = ['CORS: properly configured', 'Auth bypass: not vulnerable', 'API fuzzing: no unauthorized endpoints'];
+interface ResultsPayload {
+  scan_id: string;
+  domain: string;
+  tests: string[];
+  findings: FindingPayload[];
+  passed: string[];
+  status: string;
+}
 
-export function ActiveTestFlow() {
+interface Props {
+  initialDomain?: string;
+}
+
+export function ActiveTestFlow({ initialDomain = '' }: Props) {
   const [step, setStep] = useState<Step>(1);
   const [target, setTarget] = useState<Target>('web');
+  const [domain, setDomain] = useState(initialDomain);
+  const [domainError, setDomainError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(
     new Set(TEST_TYPES.filter((t) => t.default).map((t) => t.key)),
   );
 
+  const [verificationStatus, setVerificationStatus] = useState<'idle' | 'checking' | 'verified' | 'unverified' | 'error'>('idle');
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
+
+  const [scanId, setScanId] = useState<string | null>(null);
+  const [estimatedSeconds, setEstimatedSeconds] = useState<number | null>(null);
+  const [progressByProbe, setProgressByProbe] = useState<Record<string, ProgressState>>({});
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [results, setResults] = useState<ResultsPayload | null>(null);
+  const [resultsError, setResultsError] = useState<string | null>(null);
+
+  const submittedDomain = useRef<string | null>(null);
+
+  const toggleTest = useCallback((key: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const reset = useCallback(() => {
+    setStep(1);
+    setScanId(null);
+    setProgressByProbe({});
+    setScanError(null);
+    setResults(null);
+    setResultsError(null);
+    setVerificationStatus('idle');
+    setVerificationMessage(null);
+    submittedDomain.current = null;
+  }, []);
+
+  const checkVerification = useCallback(async () => {
+    setVerificationStatus('checking');
+    setVerificationMessage(null);
+    try {
+      const response = await fetch('/api/v1/verify/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        verified_at?: string | null;
+        error?: string;
+      };
+      if (!response.ok) {
+        setVerificationStatus('error');
+        setVerificationMessage(data.error ?? 'Verification check failed.');
+        return false;
+      }
+      if (data.verified_at) {
+        setVerificationStatus('verified');
+        return true;
+      }
+      setVerificationStatus('unverified');
+      return false;
+    } catch (err) {
+      setVerificationStatus('error');
+      setVerificationMessage(err instanceof Error ? err.message : 'Network error.');
+      return false;
+    }
+  }, [domain]);
+
+  const startTest = useCallback(async () => {
+    setScanError(null);
+    setProgressByProbe({});
+    setResults(null);
+    submittedDomain.current = domain;
+
+    const tests = Array.from(selected);
+    const idempotencyKey = `${domain}-${tests.sort().join(',')}-${Date.now()}`;
+
+    try {
+      const response = await fetch('/api/v1/active-test/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify({ domain, tests }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        scan_id?: string;
+        estimated_seconds?: number;
+        code?: string;
+        error?: string;
+      };
+
+      if (response.status === 403 && data.code === 'DOMAIN_NOT_VERIFIED') {
+        setScanError(null);
+        setVerificationStatus('unverified');
+        setStep(2);
+        return;
+      }
+      if (!response.ok || !data.scan_id) {
+        setScanError(data.error ?? 'Failed to start the active test.');
+        return;
+      }
+
+      setScanId(data.scan_id);
+      setEstimatedSeconds(data.estimated_seconds ?? null);
+      setStep(4);
+    } catch (err) {
+      setScanError(err instanceof Error ? err.message : 'Network error.');
+    }
+  }, [domain, selected]);
+
+  // SSE listener for /progress
+  useEffect(() => {
+    if (step !== 4 || !scanId) return;
+
+    const source = new EventSource(`/api/v1/active-test/${scanId}/progress`);
+
+    const onProbeStarted = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as ProgressState;
+        setProgressByProbe((prev) => ({ ...prev, [data.probe]: { ...data, state: 'running' } }));
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const onProbeComplete = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as ProgressState;
+        setProgressByProbe((prev) => ({ ...prev, [data.probe]: { ...data, state: 'complete' } }));
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const onScanComplete = () => {
+      source.close();
+      setStep(5);
+    };
+
+    const onScanFailed = () => {
+      source.close();
+      setScanError('The active test failed unexpectedly. Please try again.');
+    };
+
+    source.addEventListener('probe_started', onProbeStarted as EventListener);
+    source.addEventListener('probe_complete', onProbeComplete as EventListener);
+    source.addEventListener('scan_complete', onScanComplete);
+    source.addEventListener('scan_failed', onScanFailed);
+    source.onerror = () => {
+      // EventSource auto-reconnects; we only break out on explicit terminal events.
+    };
+
+    return () => {
+      source.removeEventListener('probe_started', onProbeStarted as EventListener);
+      source.removeEventListener('probe_complete', onProbeComplete as EventListener);
+      source.removeEventListener('scan_complete', onScanComplete);
+      source.removeEventListener('scan_failed', onScanFailed);
+      source.close();
+    };
+  }, [step, scanId]);
+
+  // Fetch /results when entering Step 5
+  useEffect(() => {
+    if (step !== 5 || !scanId) return;
+    let cancelled = false;
+    (async () => {
+      setResultsError(null);
+      try {
+        const response = await fetch(`/api/v1/active-test/${scanId}/results`);
+        const data = (await response.json().catch(() => ({}))) as ResultsPayload & { error?: string };
+        if (cancelled) return;
+        if (!response.ok) {
+          setResultsError(data.error ?? 'Failed to load results.');
+          return;
+        }
+        setResults(data);
+      } catch (err) {
+        if (cancelled) return;
+        setResultsError(err instanceof Error ? err.message : 'Network error.');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [step, scanId]);
+
+  const selectedTests = useMemo(() => Array.from(selected), [selected]);
+
   return (
     <div style={{ maxWidth: 920, margin: '0 auto' }}>
       <StepRail step={step} />
-      {step === 1 && <Step1 target={target} setTarget={setTarget} onNext={() => setStep(2)} />}
-      {step === 2 && <Step2 onBack={() => setStep(1)} onNext={() => setStep(3)} />}
-      {step === 3 && (
-        <Step3
-          selected={selected}
-          toggle={(k) =>
-            setSelected((prev) => {
-              const next = new Set(prev);
-              if (next.has(k)) next.delete(k);
-              else next.add(k);
-              return next;
-            })
-          }
-          onBack={() => setStep(2)}
-          onNext={() => setStep(4)}
+
+      {step === 1 && (
+        <Step1
+          target={target}
+          setTarget={setTarget}
+          domain={domain}
+          setDomain={setDomain}
+          domainError={domainError}
+          setDomainError={setDomainError}
+          onNext={() => setStep(2)}
         />
       )}
-      {step === 4 && <Step4 onSkip={() => setStep(5)} />}
-      {step === 5 && <Step5 onBack={() => setStep(1)} />}
+
+      {step === 2 && (
+        <Step2
+          domain={domain}
+          status={verificationStatus}
+          message={verificationMessage}
+          onCheck={async () => {
+            const ok = await checkVerification();
+            if (ok) setStep(3);
+          }}
+          onBack={() => setStep(1)}
+        />
+      )}
+
+      {step === 3 && (
+        <Step3
+          domain={domain}
+          selected={selected}
+          toggle={toggleTest}
+          onBack={() => setStep(2)}
+          onStart={startTest}
+          error={scanError}
+        />
+      )}
+
+      {step === 4 && (
+        <Step4
+          domain={domain}
+          tests={selectedTests}
+          progressByProbe={progressByProbe}
+          estimatedSeconds={estimatedSeconds}
+          error={scanError}
+          onCancel={reset}
+        />
+      )}
+
+      {step === 5 && (
+        <Step5 results={results} error={resultsError} onRestart={reset} />
+      )}
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Step rail
-   ───────────────────────────────────────────────────────────── */
-
+/* ───── Step rail ───── */
 function StepRail({ step }: { step: Step }) {
   const labels = ['Target', 'Verify', 'Tests', 'Run', 'Results'];
   return (
@@ -118,8 +340,7 @@ function StepRail({ step }: { step: Step }) {
             <div
               style={{
                 height: 4,
-                background:
-                  state === 'todo' ? 'var(--border)' : state === 'now' ? 'var(--accent)' : 'var(--success)',
+                background: state === 'todo' ? 'var(--border)' : state === 'now' ? 'var(--accent)' : 'var(--success)',
                 borderRadius: 2,
                 marginBottom: 8,
               }}
@@ -128,8 +349,7 @@ function StepRail({ step }: { step: Step }) {
               style={{
                 fontSize: 'var(--fs-xs)',
                 fontWeight: 600,
-                color:
-                  state === 'todo' ? 'var(--text-tertiary)' : state === 'now' ? 'var(--accent)' : 'var(--text-secondary)',
+                color: state === 'todo' ? 'var(--text-tertiary)' : state === 'now' ? 'var(--accent)' : 'var(--text-secondary)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
               }}
@@ -143,11 +363,34 @@ function StepRail({ step }: { step: Step }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Step 1 — choose target
-   ───────────────────────────────────────────────────────────── */
+/* ───── Step 1 ───── */
+function Step1({
+  target,
+  setTarget,
+  domain,
+  setDomain,
+  domainError,
+  setDomainError,
+  onNext,
+}: {
+  target: Target;
+  setTarget: (t: Target) => void;
+  domain: string;
+  setDomain: (v: string) => void;
+  domainError: string | null;
+  setDomainError: (m: string | null) => void;
+  onNext: () => void;
+}) {
+  const handleNext = () => {
+    const trimmed = domain.trim();
+    if (!trimmed) {
+      setDomainError('Enter a domain to continue.');
+      return;
+    }
+    setDomainError(null);
+    onNext();
+  };
 
-function Step1({ target, setTarget, onNext }: { target: Target; setTarget: (t: Target) => void; onNext: () => void }) {
   return (
     <section aria-label="Choose target" className="card screen-enter" style={{ padding: 'clamp(24px, 4vw, 40px)' }}>
       <h2 className="text-h3" style={{ marginBottom: 'var(--space-3)' }}>What should we attack?</h2>
@@ -173,14 +416,44 @@ function Step1({ target, setTarget, onNext }: { target: Target; setTarget: (t: T
         <TargetCard
           emoji="📋"
           title="GitHub repository"
-          desc="Scan the codebase for secrets, vulnerable deps, and anti-patterns."
-          active={target === 'code'}
+          desc="Coming soon — codebase scanning for secrets, vulnerable deps, and anti-patterns."
+          active={false}
+          disabled
           color="#7C3AED"
-          onClick={() => setTarget('code')}
+          onClick={() => {}}
         />
       </div>
+
+      {target === 'web' && (
+        <div style={{ marginBottom: 'var(--space-5)' }}>
+          <label htmlFor="active-test-domain" style={{ display: 'block', fontSize: 'var(--fs-sm)', fontWeight: 600, marginBottom: 'var(--space-2)' }}>
+            Domain to test
+          </label>
+          <input
+            id="active-test-domain"
+            type="text"
+            inputMode="url"
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            value={domain}
+            onChange={(e) => {
+              setDomain(e.target.value);
+              setDomainError(null);
+            }}
+            placeholder="example.com"
+            className="field"
+          />
+          {domainError && (
+            <p role="alert" style={{ fontSize: 'var(--fs-sm)', color: '#E11D48', marginTop: 'var(--space-2)' }}>
+              {domainError}
+            </p>
+          )}
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button" className="btn-primary" onClick={onNext}>
+        <button type="button" className="btn-primary" onClick={handleNext} disabled={target !== 'web'}>
           Continue
           <IconArrowRight size={16} color="#fff" />
         </button>
@@ -194,6 +467,7 @@ function TargetCard({
   title,
   desc,
   active,
+  disabled = false,
   color,
   onClick,
 }: {
@@ -201,6 +475,7 @@ function TargetCard({
   title: string;
   desc: string;
   active: boolean;
+  disabled?: boolean;
   color: string;
   onClick: () => void;
 }) {
@@ -208,13 +483,15 @@ function TargetCard({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       style={{
         textAlign: 'left',
         background: active ? `${color}10` : 'var(--surface-secondary)',
         border: `2px solid ${active ? color : 'var(--border)'}`,
         borderRadius: 'var(--radius-lg)',
         padding: 'var(--space-5)',
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
         transition: 'all 0.15s ease',
       }}
     >
@@ -225,18 +502,29 @@ function TargetCard({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Step 2 — verify (intro + link)
-   ───────────────────────────────────────────────────────────── */
-
-function Step2({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+/* ───── Step 2 ───── */
+function Step2({
+  domain,
+  status,
+  message,
+  onCheck,
+  onBack,
+}: {
+  domain: string;
+  status: 'idle' | 'checking' | 'verified' | 'unverified' | 'error';
+  message: string | null;
+  onCheck: () => void | Promise<void>;
+  onBack: () => void;
+}) {
   return (
     <section aria-label="Verify domain" className="card screen-enter" style={{ padding: 'clamp(24px, 4vw, 40px)' }}>
       <h2 className="text-h3" style={{ marginBottom: 'var(--space-3)' }}>Verify domain ownership</h2>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-5)' }}>
-        Active scans only run against domains you can prove you control. Pick DNS or meta tag — most people are done in
-        under 60 seconds.
+        Active scans only run against domains you can prove you control.{' '}
+        <strong style={{ color: 'var(--text)' }}>{domain || 'this domain'}</strong>{' '}
+        — we&apos;ll check below.
       </p>
+
       <div
         style={{
           background: 'linear-gradient(135deg, rgba(245,158,11,0.10), rgba(220,38,38,0.06))',
@@ -253,12 +541,31 @@ function Step2({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
         unauthorized active testing is a felony under the US Computer Fraud and Abuse Act (and its global equivalents).
         Verification is your authorization on record.
       </div>
+
+      {status === 'unverified' && (
+        <div role="alert" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', color: '#DC2626', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-5)' }}>
+          We couldn&apos;t confirm ownership of <strong>{domain}</strong>. Run the verify wizard, then come back.
+        </div>
+      )}
+      {status === 'error' && message && (
+        <div role="alert" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', color: '#DC2626', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-5)' }}>
+          {message}
+        </div>
+      )}
+      {status === 'verified' && (
+        <div role="status" style={{ background: 'rgba(5,150,105,0.10)', border: '1px solid rgba(5,150,105,0.30)', color: 'var(--success)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-5)' }}>
+          ✓ Verified — you&apos;re authorized to run tests against {domain}.
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <button type="button" className="btn-secondary" onClick={onBack}>← Back</button>
         <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-          <Link href="/verify" className="btn-secondary">Open verify wizard</Link>
-          <button type="button" className="btn-primary" onClick={onNext}>
-            I&apos;ve verified — continue
+          <Link href={`/verify?domain=${encodeURIComponent(domain)}`} className="btn-secondary">
+            Open verify wizard
+          </Link>
+          <button type="button" className="btn-primary" onClick={onCheck} disabled={status === 'checking'}>
+            {status === 'checking' ? 'Checking…' : 'Check verification'}
             <IconArrowRight size={16} color="#fff" />
           </button>
         </div>
@@ -267,27 +574,28 @@ function Step2({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Step 3 — select tests
-   ───────────────────────────────────────────────────────────── */
-
+/* ───── Step 3 ───── */
 function Step3({
+  domain,
   selected,
   toggle,
   onBack,
-  onNext,
+  onStart,
+  error,
 }: {
+  domain: string;
   selected: Set<string>;
   toggle: (k: string) => void;
   onBack: () => void;
-  onNext: () => void;
+  onStart: () => void;
+  error: string | null;
 }) {
   const count = selected.size;
   return (
     <section aria-label="Choose tests" className="card screen-enter" style={{ padding: 'clamp(24px, 4vw, 40px)' }}>
       <h2 className="text-h3" style={{ marginBottom: 'var(--space-3)' }}>What should we try?</h2>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
-        <strong style={{ color: 'var(--text)' }}>taskflow.app</strong>{' '}
+        <strong style={{ color: 'var(--text)' }}>{domain}</strong>{' '}
         <span style={{ color: 'var(--success)', fontWeight: 600 }}>✓ Verified</span>{' '}
         — you&apos;re authorized to run these tests.
       </p>
@@ -320,24 +628,11 @@ function Step3({
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 4 }}>
                     <strong style={{ fontSize: 'var(--fs-md)' }}>{t.name}</strong>
-                    <span
-                      style={{
-                        fontSize: 'var(--fs-xs)',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.06em',
-                        color: tone.color,
-                        background: tone.bg,
-                        padding: '2px 8px',
-                        borderRadius: 'var(--radius-sm)',
-                      }}
-                    >
+                    <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: tone.color, background: tone.bg, padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
                       {t.severity}
                     </span>
                   </div>
-                  <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                    {t.desc}
-                  </p>
+                  <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{t.desc}</p>
                 </div>
               </label>
             </li>
@@ -345,11 +640,10 @@ function Step3({
         })}
       </ul>
 
-      {/* Safety guarantees */}
       <aside
         style={{
-          background: 'rgba(5,150,105,0.07)',
-          border: '1px solid rgba(5,150,105,0.30)',
+          background: 'rgba(245,158,11,0.07)',
+          border: '1px solid rgba(245,158,11,0.30)',
           borderRadius: 'var(--radius-md)',
           padding: 'var(--space-4) var(--space-5)',
           marginBottom: 'var(--space-6)',
@@ -358,31 +652,25 @@ function Step3({
         }}
       >
         <strong style={{ color: 'var(--text)', display: 'block', marginBottom: 'var(--space-2)' }}>
-          Safety guarantees
+          Heads up — Phase 2 stub
         </strong>
-        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
-          <li>✓ Rate limited (1 req/sec)</li>
-          <li>✓ No destructive payloads</li>
-          <li>✓ X-Scanner: VibeSafe-DAST header</li>
-          <li>✓ Scope locked to verified domain</li>
-        </ul>
+        Real attack probes ship in Phase 5. Today this runs the orchestration end-to-end (rate-limit, gating, progress
+        streaming, results) but does not send any payloads to your site.
       </aside>
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 'var(--space-3)',
-          flexWrap: 'wrap',
-        }}
-      >
+      {error && (
+        <div role="alert" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', color: '#DC2626', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-5)' }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <button type="button" className="btn-secondary" onClick={onBack}>← Back</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
           <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
-            <strong style={{ color: 'var(--text)' }}>3 credits</strong> · ~8 minutes
+            <strong style={{ color: 'var(--text)' }}>{count} test{count === 1 ? '' : 's'}</strong>
           </span>
-          <button type="button" className="btn-primary" onClick={onNext} disabled={count === 0}>
+          <button type="button" className="btn-primary" onClick={onStart} disabled={count === 0}>
             Start active test
             <IconArrowRight size={16} color="#fff" />
           </button>
@@ -392,41 +680,41 @@ function Step3({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Step 4 — live progress
-   ───────────────────────────────────────────────────────────── */
-
-function Step4({ onSkip }: { onSkip: () => void }) {
-  const [idx, setIdx] = useState(0);
-
-  useEffect(() => {
-    if (idx >= PROGRESS_STEPS.length) return;
-    const handle = window.setTimeout(() => setIdx((i) => i + 1), 1800);
-    return () => window.clearTimeout(handle);
-  }, [idx]);
-
-  useEffect(() => {
-    if (idx >= PROGRESS_STEPS.length) {
-      const handle = window.setTimeout(onSkip, 800);
-      return () => window.clearTimeout(handle);
-    }
-  }, [idx, onSkip]);
-
+/* ───── Step 4 ───── */
+function Step4({
+  domain,
+  tests,
+  progressByProbe,
+  estimatedSeconds,
+  error,
+  onCancel,
+}: {
+  domain: string;
+  tests: string[];
+  progressByProbe: Record<string, ProgressState>;
+  estimatedSeconds: number | null;
+  error: string | null;
+  onCancel: () => void;
+}) {
   return (
     <section aria-label="Active test in progress" className="card screen-enter" style={{ padding: 'clamp(24px, 4vw, 40px)' }}>
       <h2 className="text-h3" style={{ marginBottom: 'var(--space-2)' }}>
-        Active testing in progress — <span style={{ color: 'var(--accent)' }}>taskflow.app</span>
+        Active testing in progress — <span style={{ color: 'var(--accent)' }}>{domain}</span>
       </h2>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
-        Sending real attack probes — this is what attackers do.
+        {estimatedSeconds
+          ? `Estimated ~${estimatedSeconds} seconds. Streaming progress live.`
+          : 'Streaming progress live.'}
       </p>
 
       <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-        {PROGRESS_STEPS.map((step, i) => {
-          const state = i < idx ? 'done' : i === idx ? 'now' : 'todo';
+        {tests.map((probe) => {
+          const entry = progressByProbe[probe];
+          const state: 'todo' | 'now' | 'done' = !entry ? 'todo' : entry.state === 'complete' ? 'done' : 'now';
+          const label = entry?.label ?? probe;
           return (
             <li
-              key={step}
+              key={probe}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -446,35 +734,73 @@ function Step4({ onSkip }: { onSkip: () => void }) {
                   <span style={{ width: 8, height: 8, background: 'var(--border)', borderRadius: 8 }} />
                 )}
               </span>
-              <span style={{ flex: 1, fontSize: 'var(--fs-base)', fontWeight: state === 'todo' ? 400 : 500 }}>{step}</span>
+              <span style={{ flex: 1, fontSize: 'var(--fs-base)', fontWeight: state === 'todo' ? 400 : 500 }}>
+                {label}
+              </span>
             </li>
           );
         })}
       </ol>
 
+      {error && (
+        <div role="alert" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', color: '#DC2626', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', marginTop: 'var(--space-5)' }}>
+          {error}
+        </div>
+      )}
+
       <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-6)', textAlign: 'center' }}>
-        All requests include <code style={{ fontFamily: 'var(--mono)' }}>X-Scanner: VibeSafe-DAST</code> · Rate limited to 1 req/sec
+        All requests would include <code style={{ fontFamily: 'var(--mono)' }}>X-Scanner: VibeSafe-DAST</code> when probes are wired in Phase 5.
       </p>
       <div style={{ textAlign: 'center', marginTop: 'var(--space-4)' }}>
-        <button type="button" className="btn-secondary" onClick={onSkip} style={{ fontSize: 'var(--fs-sm)' }}>
-          Skip to results (demo)
+        <button type="button" className="btn-secondary" onClick={onCancel} style={{ fontSize: 'var(--fs-sm)' }}>
+          Cancel and start over
         </button>
       </div>
     </section>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Step 5 — results
-   ───────────────────────────────────────────────────────────── */
+/* ───── Step 5 ───── */
+function Step5({
+  results,
+  error,
+  onRestart,
+}: {
+  results: ResultsPayload | null;
+  error: string | null;
+  onRestart: () => void;
+}) {
+  if (error) {
+    return (
+      <section className="card" style={{ padding: 'clamp(24px, 4vw, 40px)' }}>
+        <h2 className="text-h3" style={{ marginBottom: 'var(--space-3)' }}>Couldn&apos;t load results</h2>
+        <p role="alert" style={{ color: '#DC2626', marginBottom: 'var(--space-5)' }}>{error}</p>
+        <button type="button" className="btn-secondary" onClick={onRestart}>← Run another test</button>
+      </section>
+    );
+  }
 
-function Step5({ onBack }: { onBack: () => void }) {
+  if (!results) {
+    return (
+      <section className="card" style={{ padding: 'clamp(24px, 4vw, 40px)' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Loading results…</p>
+      </section>
+    );
+  }
+
+  const findingCount = results.findings.length;
+  const headerTone = findingCount > 0 ? 'rgba(220,38,38,0.30)' : 'rgba(5,150,105,0.30)';
+  const headerGradient = findingCount > 0
+    ? 'linear-gradient(135deg, rgba(220,38,38,0.10), rgba(124,58,237,0.06))'
+    : 'linear-gradient(135deg, rgba(5,150,105,0.10), rgba(13,148,136,0.06))';
+  const headerLabelColor = findingCount > 0 ? '#DC2626' : 'var(--success)';
+
   return (
     <section aria-label="Active test results" className="screen-enter" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <header
         style={{
-          background: 'linear-gradient(135deg, rgba(220,38,38,0.10), rgba(124,58,237,0.06))',
-          border: '1px solid rgba(220,38,38,0.30)',
+          background: headerGradient,
+          border: `1px solid ${headerTone}`,
           borderRadius: 'var(--radius-lg)',
           padding: 'clamp(20px, 4vw, 28px) clamp(20px, 4vw, 32px)',
           display: 'flex',
@@ -485,17 +811,19 @@ function Step5({ onBack }: { onBack: () => void }) {
         }}
       >
         <div>
-          <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+          <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: headerLabelColor, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
             Active test complete
           </div>
           <h2 className="text-h3" style={{ margin: 0 }}>
-            2 CONFIRMED exploitable vulnerabilities found on{' '}
-            <span style={{ color: 'var(--accent)' }}>taskflow.app</span>
+            {findingCount > 0
+              ? `${findingCount} CONFIRMED finding${findingCount === 1 ? '' : 's'} on `
+              : `No findings — `}
+            <span style={{ color: 'var(--accent)' }}>{results.domain}</span>
           </h2>
         </div>
         <span
           style={{
-            background: '#DC2626',
+            background: findingCount > 0 ? '#DC2626' : 'var(--success)',
             color: '#fff',
             padding: '6px 14px',
             borderRadius: 'var(--radius-xl)',
@@ -504,15 +832,14 @@ function Step5({ onBack }: { onBack: () => void }) {
             whiteSpace: 'nowrap',
           }}
         >
-          2 CONFIRMED
+          {findingCount} CONFIRMED
         </span>
       </header>
 
-      {CONFIRMED_FINDINGS.map((f) => (
-        <ConfirmedCard key={f.title} {...f} />
+      {results.findings.map((f) => (
+        <ConfirmedCard key={f.id} finding={f} />
       ))}
 
-      {/* Passed checks */}
       <aside
         style={{
           background: 'rgba(5,150,105,0.07)',
@@ -522,19 +849,19 @@ function Step5({ onBack }: { onBack: () => void }) {
         }}
       >
         <strong style={{ color: 'var(--success)', display: 'block', marginBottom: 'var(--space-2)' }}>
-          ✓ {PASSED.length} tests passed (no confirmed vulnerabilities)
+          ✓ {results.passed.length} test{results.passed.length === 1 ? '' : 's'} passed
         </strong>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {PASSED.map((p) => (
-            <li key={p}>✓ {p}</li>
+          {results.passed.map((p) => (
+            <li key={p}>✓ {labelForProbe(p)}</li>
           ))}
         </ul>
       </aside>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-        <button type="button" className="btn-secondary" onClick={onBack}>← Run another test</button>
-        <Link href="/report/demo" className="btn-primary">
-          Back to passive report
+        <button type="button" className="btn-secondary" onClick={onRestart}>← Run another test</button>
+        <Link href="/dashboard" className="btn-primary">
+          Back to dashboard
           <IconArrowRight size={16} color="#fff" />
         </Link>
       </div>
@@ -542,27 +869,20 @@ function Step5({ onBack }: { onBack: () => void }) {
   );
 }
 
-function ConfirmedCard({
-  title,
-  severity,
-  sent,
-  received,
-  impact,
-  prompt,
-}: {
-  title: string;
-  severity: Severity;
-  sent: string;
-  received: string;
-  impact: string;
-  prompt: string;
-}) {
+function labelForProbe(key: string): string {
+  return TEST_TYPES.find((t) => t.key === key)?.name ?? key;
+}
+
+function ConfirmedCard({ finding }: { finding: FindingPayload }) {
   const [copied, setCopied] = useState(false);
-  const tone = SEVERITY_TONE[severity];
+  const tone = SEVERITY_TONE[finding.severity] ?? SEVERITY_TONE.info;
 
   const copy = () => {
-    navigator.clipboard?.writeText(prompt).then(
-      () => { setCopied(true); window.setTimeout(() => setCopied(false), 1800); },
+    navigator.clipboard?.writeText(finding.prompt).then(
+      () => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1800);
+      },
       () => {},
     );
   };
@@ -572,7 +892,7 @@ function ConfirmedCard({
       <header style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
         <IconAlertCircle size={22} color={tone.color} aria-hidden="true" />
         <div style={{ flex: 1 }}>
-          <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, marginBottom: 4 }}>{title}</h3>
+          <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, marginBottom: 4 }}>{finding.title}</h3>
           <span
             style={{
               fontSize: 'var(--fs-xs)',
@@ -585,17 +905,17 @@ function ConfirmedCard({
               borderRadius: 'var(--radius-sm)',
             }}
           >
-            Confirmed exploit · {severity}
+            Confirmed exploit · {finding.severity}
           </span>
         </div>
       </header>
 
-      <DetailRow label="Probe sent" value={sent} mono />
-      <DetailRow label="Response received" value={received} mono />
+      <DetailRow label="Probe sent" value={finding.sent} mono />
+      <DetailRow label="Response received" value={finding.received} mono />
 
       <div style={{ marginBottom: 'var(--space-4)' }}>
         <div style={detailLabelCss}>Impact</div>
-        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>{impact}</p>
+        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>{finding.impact}</p>
       </div>
 
       <div
@@ -625,17 +945,8 @@ function ConfirmedCard({
             {copied ? '✓ Copied' : 'Copy'}
           </button>
         </div>
-        <pre
-          style={{
-            fontFamily: 'var(--mono)',
-            fontSize: 'var(--fs-sm)',
-            color: 'var(--text-secondary)',
-            lineHeight: 1.7,
-            whiteSpace: 'pre-wrap',
-            margin: 0,
-          }}
-        >
-          {prompt}
+        <pre style={{ fontFamily: 'var(--mono)', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
+          {finding.prompt}
         </pre>
       </div>
     </article>

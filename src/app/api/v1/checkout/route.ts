@@ -117,6 +117,8 @@ export async function POST(req: NextRequest) {
     const host = req.headers.get('host') || 'localhost:3000';
     const baseUrl = `${protocol}://${host}`;
 
+    const user = await getCurrentUser();
+
     const session = await stripe.checkout.sessions.create({
       mode,
       line_items: [
@@ -129,7 +131,9 @@ export async function POST(req: NextRequest) {
       cancel_url: cancelUrl || `${baseUrl}/checkout/cancel`,
       metadata: {
         tier,
+        ...(user ? { userId: user.id } : {}),
       },
+      ...(user ? { client_reference_id: user.id, customer_email: user.email } : {}),
     });
 
     return NextResponse.json({

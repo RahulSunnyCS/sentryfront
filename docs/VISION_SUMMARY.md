@@ -2,6 +2,10 @@
 
 > **TL;DR:** Security-first web quality platform for AI-built sites
 
+> ⚠️ **VISION SUMMARY — describes long-term direction, not what ships today.**
+>
+> Same caveat as `VISION.md`: compliance / regulatory framing in this file describes future intent, not shipped behavior. See `docs/core/CLAIMS_RULES.md` and `BUILD_PHASE.md` for the gap between vision and ship.
+
 ---
 
 ## 🎯 One-Sentence Vision
