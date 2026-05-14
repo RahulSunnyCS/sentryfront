@@ -4,7 +4,7 @@
 Companion to `PHASES.md` (which tracks the product/business narrative). This doc is the honest engineering plan: what's actually built, what's mocked, and the order we'll harden it.
 
 **Last updated:** 2026-05-14
-**Current phase:** Phase 3 — Improve detection quality (3.1 headless crawl, 3.2 client-side dep vulns, 3.3 KEV+EPSS severity all shipped; **3.4 DOM-aware regex preprocessing is next**)
+**Current phase:** Phase 3 — Improve detection quality (3.1 headless crawl, 3.2 client-side dep vulns, 3.3 KEV+EPSS severity, 3.4 DOM-aware regex preprocessing all shipped; **3.5 targeted FP fixes is next**)
 
 ---
 
@@ -251,19 +251,22 @@ Phase 7.5 line-items these feeds anyway. Stand them up in Phase 3 so client-side
 - [x] Wire into 3.2's new client-side dep module (P1-16 behind `exploitIntelSeverity` feature flag for kill-switch); legacy modules adopt incrementally
 - [x] Telemetry: `kevMatch` + `epssPercentile` stamped on every `RawFinding` for later analysis
 
-### 3.4 DOM-aware context for regex modules
+### 3.4 DOM-aware context for regex modules ✅
 
 Five of the nine audited FP traps share a root cause: regex modules match against raw HTML, including comments, `<script>` bodies, and code examples in docs pages.
 
-- [ ] Add a preprocessing layer that produces a `cleanedHtml` field on `CrawlResult`
-  - [ ] Strip HTML comments
-  - [ ] Strip `<script>` and `<style>` bodies (URLs in src/href still extracted separately)
-  - [ ] Strip `<pre>`, `<code>`, `<samp>` blocks (code examples in docs)
-  - [ ] Preserve attribute-vs-text distinction so modules can opt-in to one or the other
-- [ ] Migrate P1-08 (mixed content) to match against `cleanedHtml`
-- [ ] Migrate P1-12 (error disclosure) to match against `cleanedHtml`
-- [ ] Migrate P1-13 (dev interfaces — Swagger/GraphiQL substring match) to match against `cleanedHtml`
-- [ ] Add fixtures proving each migration closes its FP trap (docs-page false-positive case for each)
+- [x] Add a preprocessing layer that produces a `cleanedHtml` field on `CrawlResult` (`src/lib/scanner/tools/html-clean.ts`)
+  - [x] Strip HTML comments
+  - [x] Strip `<script>` and `<style>` bodies (opening tag + attributes preserved so `src`/`href` regexes still match)
+  - [x] Strip `<pre>`, `<code>`, `<samp>` blocks (code examples in docs)
+  - [x] Preserve attribute-vs-text distinction — opening tags + attributes survive; only the body text between tag pairs is zeroed
+- [x] Migrate P1-08 (mixed content) to match against `cleanedHtml`
+- [x] Migrate P1-12 (error disclosure) — clean each probe response body before regex matching
+- [x] Migrate P1-13 (dev interfaces — Swagger/GraphiQL substring match) — clean each probe body before `detect()`
+- [x] Fixtures proving each migration closes its FP trap (`p1-08`/`p1-12`/`p1-13` test files + `Phase 3.4` describe blocks)
+- [x] FP closures documented in `docs/core/MODULE_QUALITY.md` (new ledger)
+
+**Carry from 3.1 Strategy C:** Nuxt `/_payload.js`, SvelteKit `/_app/version.json`, Remix build manifest probes still not implemented — picked up in 3.5 or later.
 
 ### 3.5 Targeted FP fixes from the audit
 
