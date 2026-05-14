@@ -180,3 +180,51 @@ model DomainVerification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// Phase 3.7.1 — runtime feature-flag overrides. Layer on top of env-driven
+// defaults in src/lib/features.ts; the helper in src/lib/feature-flags.ts
+// reads through a 30s cache. value stores JSON as String for cross-db parity
+// with sqlite (dev) — same pattern as Scan.summary / ScanEvent.payload.
+model FeatureFlag {
+  key       String   @id
+  enabled   Boolean  @default(false)
+  value     String?
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
+
+// Append-only audit log for every FeatureFlag flip. Also reused with
+// synthetic keys like "quota:<userId>" for admin quota overrides so we
+// don't have to maintain two audit tables.
+model FeatureFlagAudit {
+  id        String   @id @default(cuid())
+  key       String
+  enabled   Boolean
+  value     String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
+// Phase 3.7.1 — daily snapshot of aggregated FP rates per (moduleId, confidence).
+// Written by the existing aggregate-fp-rates cron and consumed by the
+// /internal/fp-rates admin page so sparklines don't require a full scan
+// of FindingDisposition on every page view.
+model FpRateSnapshot {
+  id                String   @id @default(cuid())
+  snapshotAt        DateTime @default(now())
+  moduleId          String
+  confidence        String?
+  total             Int
+  fpCount           Int
+  helpfulCount      Int
+  dismissedCount    Int
+  fixDidntHelpCount Int
+  missedOtherCount  Int
+  fpRate            Float
+  helpfulRate       Float
+
+  @@index([moduleId, confidence, snapshotAt])
+  @@index([snapshotAt])
+}

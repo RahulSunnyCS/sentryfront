@@ -5,6 +5,8 @@
  */
 
 import { getServerSession } from 'next-auth';
+import { notFound } from 'next/navigation';
+import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { nextAuthConfig } from './nextauth-config';
 import { authConfig, isFeatureReady } from '@/lib/features';
@@ -107,6 +109,43 @@ export function hasTier(user: AuthUser | null, requiredTier: string): boolean {
 export async function getUserTier(): Promise<string> {
   const user = await getCurrentUser();
   return user?.tier || 'free';
+}
+
+// ── Admin Gate (Phase 3.7.1) ─────────────────────────────────────────────────
+
+// Admin status is derived from the ADMIN_EMAILS env var (comma-separated).
+// Pages call requireAdminOrNotFound() and API routes call assertAdminApi();
+// both surface a 404 for non-admins so admin route existence isn't leaked.
+
+export function isAdminUser(user: AuthUser | null): boolean {
+  if (!user?.email) return false;
+  const list = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  if (list.length === 0) return false;
+  return list.includes(user.email.toLowerCase());
+}
+
+export async function requireAdminOrNotFound(): Promise<AuthUser> {
+  const user = await getCurrentUser();
+  if (!isAdminUser(user)) {
+    notFound();
+  }
+  return user!;
+}
+
+export async function assertAdminApi(): Promise<
+  { ok: true; user: AuthUser } | { ok: false; response: NextResponse }
+> {
+  const user = await getCurrentUser();
+  if (!isAdminUser(user)) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Not found' }, { status: 404 }),
+    };
+  }
+  return { ok: true, user: user! };
 }
 
 // ── Client-Side Auth Status ──────────────────────────────────────────────────

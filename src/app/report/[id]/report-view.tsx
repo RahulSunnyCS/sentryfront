@@ -7,6 +7,10 @@ import type { ScanData, Finding } from '@/types';
 import { GradeDisplay } from '@/components/grade-display';
 import { SeveritySummary } from '@/components/severity-summary';
 import { FindingCard } from '@/components/finding-card';
+import {
+  ScanLevelMissedButton,
+  ModuleMissedLink,
+} from '@/components/scan-report/missed-issue-button';
 import { IconGlobe, IconClock } from '@/components/icons';
 import { PerformanceSection } from '@/components/performance-section';
 import { AccessibilitySection } from '@/components/accessibility-section';
@@ -270,6 +274,8 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
           <div role="tabpanel" style={{ padding: 24 }}>
             {activeTab === 'security' && (
               <SecurityTabBody
+                scanId={scanData.id ?? ''}
+                authed={authed}
                 view={view}
                 setView={setView}
                 criticalCount={criticalCount}
@@ -374,9 +380,11 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
 }
 
 function SecurityTabBody({
-  view, setView, criticalCount, totalFindings, passedModules,
+  scanId, authed, view, setView, criticalCount, totalFindings, passedModules,
   criticalFindings, findingsByCategory, expandedId, setExpandedId,
 }: {
+  scanId: string;
+  authed: boolean;
   view: View;
   setView: (v: View) => void;
   criticalCount: number;
@@ -389,6 +397,9 @@ function SecurityTabBody({
 }) {
   return (
     <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <ScanLevelMissedButton scanId={scanId} authed={authed} />
+      </div>
       <div role="tablist" aria-label="Filter findings" style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         <FilterButton
           active={view === 'critical'}
@@ -431,7 +442,7 @@ function SecurityTabBody({
                 isExpanded={expandedId === finding.id}
                 onToggle={() => setExpandedId(expandedId === finding.id ? null : finding.id)}
                 cardStyle="elevated"
-                scanId={scanData.id}
+                scanId={scanId}
                 authed={authed}
               />
             ))}
@@ -451,11 +462,20 @@ function SecurityTabBody({
           ) : findingsByCategory.map(([category, list]) => (
             <div key={category} style={{ marginBottom: 24 }}>
               <div style={{
-                fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.08em', color: 'var(--text-tertiary)',
+                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
                 margin: '20px 0 10px',
               }}>
-                {category}
+                <div style={{
+                  fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+                  letterSpacing: '0.08em', color: 'var(--text-tertiary)',
+                }}>
+                  {category}
+                </div>
+                <ModuleMissedLink
+                  scanId={scanId}
+                  moduleId={list[0]?.module ?? 'unknown'}
+                  authed={authed}
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {list.map((finding) => (
