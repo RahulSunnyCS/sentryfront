@@ -3,9 +3,15 @@ import { prisma } from '@/lib/prisma';
 import { validateAndNormalize, ValidationError } from '@/lib/url-validator';
 import { runScan } from '@/lib/scan-worker';
 import { getCurrentUser } from '@/lib/auth/helpers';
-import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limiter';
+import { checkRateLimit, checkWeeklyScanQuota, getRateLimitHeaders } from '@/lib/rate-limiter';
 import { listUserScans } from '@/lib/dashboard-queries';
 import { logger } from '@/lib/logger';
+
+function describeWait(ms: number): string {
+  const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
+  if (days <= 1) return 'less than a day';
+  return `${days} days`;
+}
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser();
@@ -85,6 +91,25 @@ export async function POST(req: NextRequest) {
     }
     logger.error('URL validation error', { url: rawUrl, ip }, err as Error);
     return NextResponse.json({ error: 'URL validation failed.' }, { status: 422 });
+  }
+
+  // Weekly quota: enforced per signed-in user. Anon scans rely on the
+  // IP-based hourly rate-limit above.
+  if (user) {
+    const quota = await checkWeeklyScanQuota(user.id, tier as 'free' | 'one-shot' | 'pro' | 'studio');
+    if (!quota.allowed) {
+      const waitMs = quota.nextScanAt ? Math.max(0, quota.nextScanAt - Date.now()) : 0;
+      logger.info('Weekly quota exhausted', { userId: user.id, tier, nextScanAt: quota.nextScanAt });
+      return NextResponse.json(
+        {
+          error: `You've used your free scan this week. Next available in ${describeWait(waitMs)}, or upgrade for unlimited.`,
+          reason: 'weekly_quota_exhausted',
+          nextScanAt: quota.nextScanAt,
+          upgradeUrl: '/pricing',
+        },
+        { status: 402 },
+      );
+    }
   }
 
   const scan = await prisma.scan.create({

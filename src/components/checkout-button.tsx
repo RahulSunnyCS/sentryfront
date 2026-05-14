@@ -19,39 +19,36 @@ interface TierDetail {
 
 const TIER_DETAILS: Record<Tier, TierDetail> = {
   'one-shot': {
-    name: 'One-shot',
+    name: 'Verify',
     price: '$9',
     cadence: 'one-time',
     features: [
-      'One full passive scan',
-      'All findings unlocked (no top-5 cap)',
-      'Paste-ready AI fix prompts',
-      'PDF export',
+      '1 active DAST scan on a verified domain',
+      'Real SQLi / XSS / auth-bypass probes',
+      'Scan history retention',
       'No subscription, no card on file after',
     ],
   },
   pro: {
-    name: 'Pro',
+    name: 'Active Pack',
     price: '$29',
-    cadence: 'per month',
+    cadence: 'one-time',
     features: [
-      'Unlimited passive scans',
-      '10 active test credits / month',
-      'Webhooks + CI integration',
-      'Scan history + diffing',
-      'Email support within 24h',
+      '5 active DAST scans',
+      'Credits never expire',
+      'Priority scan queue',
+      'Scan history + PDF export',
     ],
   },
   studio: {
-    name: 'Studio',
-    price: '$99',
-    cadence: 'per month',
+    name: 'Monitor',
+    price: '$15',
+    cadence: 'per month, per domain',
     features: [
-      'Unlimited passive scans',
-      '50 active test credits / month',
-      'Up to 10 team members',
-      'Priority support (4h response)',
-      'Custom scan policies',
+      'Unlimited passive scans on the domain',
+      'Daily auto-scan with regression alerts',
+      'Scan diff + email/Slack notifications',
+      'Cancel anytime',
     ],
   },
 };
@@ -180,7 +177,7 @@ export function CheckoutButton({ tier, label, featured = false }: Props) {
             >
               <span style={{ fontSize: 'var(--fs-3xl)', fontWeight: 800, color: 'var(--text)' }}>{detail.price}</span>
               <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>{detail.cadence}</span>
-              {tier !== 'one-shot' && (
+              {tier === 'studio' && (
                 <span
                   style={{
                     marginLeft: 'auto',

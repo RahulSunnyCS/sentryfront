@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { IconShield } from '@/components/icons';
 
-function sanitizeNext(raw: string | null): string {
+function sanitizeCallback(raw: string | null): string {
   if (!raw) return '/dashboard';
   if (!raw.startsWith('/')) return '/dashboard';
   if (raw.startsWith('//') || raw.startsWith('/\\')) return '/dashboard';
@@ -15,7 +15,9 @@ function sanitizeNext(raw: string | null): string {
 
 export function LoginCard() {
   const searchParams = useSearchParams();
-  const callbackUrl = sanitizeNext(searchParams?.get('next') ?? null);
+  const callbackUrl = sanitizeCallback(
+    searchParams?.get('callbackUrl') ?? searchParams?.get('next') ?? null,
+  );
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth/helpers';
+import { getCurrentUser, isAuthEnabled } from '@/lib/auth/helpers';
 import { canViewScan } from '@/lib/report-access';
 import { applyTierGating } from '@/lib/tier-gating';
 import { logger } from '@/lib/logger';
@@ -8,6 +8,14 @@ import type { Severity } from '@/types';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   logger.setScanScope(params.id);
+
+  // Auth wall: when auth is enabled, findings require a sign-in.
+  // Demo scan stays public.
+  const user = await getCurrentUser();
+  if (isAuthEnabled() && params.id !== 'demo' && !user) {
+    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  }
+
   const scan = await prisma.scan.findUnique({
     where: { id: params.id },
     include: { findings: true },
@@ -17,7 +25,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Scan not found.' }, { status: 404 });
   }
 
-  const user = await getCurrentUser();
   if (!canViewScan(scan, user)) {
     return NextResponse.json({ error: 'Scan not found.' }, { status: 404 });
   }
@@ -41,7 +48,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     fixAiPrompt: f.fixAiPrompt,
   }));
 
-  // Use already-loaded user from the access check above.
   const tier = user?.tier || scan.tier || 'free';
 
   // Apply tier-based gating
