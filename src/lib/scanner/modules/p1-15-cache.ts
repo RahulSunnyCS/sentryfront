@@ -1,4 +1,5 @@
 import type { CrawlResult, RawFinding } from '../types';
+import { looksLikeSessionCookie } from '../tools/cookies';
 
 // Patterns that suggest a page or API response is likely authenticated / user-specific
 const AUTH_INDICATORS = [
@@ -10,8 +11,11 @@ const AUTH_INDICATORS = [
 ];
 
 function looksAuthenticated(headers: Record<string, string>, cookies: CrawlResult['cookies']): boolean {
-  // Has session cookies
-  if (cookies.length > 0) return true;
+  // Phase 3.5: distinguish session cookies from tracking cookies. Pre-3.5
+  // any cookie at all (including _ga, _gid, _fbp) triggered the "must be
+  // no-store" finding on otherwise-static marketing pages. Now only
+  // genuine session-identity cookies gate it.
+  if (cookies.some(looksLikeSessionCookie)) return true;
   // Response has auth-related headers
   for (const [key] of Object.entries(headers)) {
     if (AUTH_INDICATORS.some((re) => re.test(key))) return true;

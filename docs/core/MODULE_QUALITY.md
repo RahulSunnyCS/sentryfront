@@ -34,9 +34,50 @@ Living record of FP closures, regression nets, and measured FP rates per scanner
 - *Fix:* probe response bodies pass through `cleanHtml()` before `probe.detect()`. JSON-bodied true positives (Spring `_links`, GraphQL `__schema`, OpenAPI JSON) are unaffected since `cleanHtml` only touches HTML structures.
 - *Regression fixtures:* `src/__tests__/lib/scanner/modules/p1-13-dev-interfaces.test.ts` (FP cases for Swagger-in-docs and PHPInfo-in-comment, plus positives proving real Swagger UI and real phpinfo still fire).
 
+## P1-14 — robots.txt & Sitemap
+
+**Phase 3.5 closure:** unanchored `/api/v\d` regex matching legitimate public subpaths.
+
+- *Trigger:* `SENSITIVE_PATH_PATTERNS` contained `/\/api\/v\d/i` (no anchor). A robots.txt listing `Disallow: /api/v2/docs` or `Disallow: /api/v1/health` was flagged as a sensitive-path leak even though those subpaths are legitimately public.
+- *Fix:* anchor to `/\/api\/v\d+\/?$/i` so only `/api/v2`, `/api/v3/`, etc. (the bare API root — the actual disclosure concern) match.
+- *Regression fixtures:* `src/__tests__/lib/scanner/modules/p1-14-robots-sitemap.test.ts` (Disallow `/api/v2/docs` and `/api/v1/health` produce no findings; Disallow `/api/v2` and `/api/v3/` still flag).
+
+## P1-05 — Cookie Security Attributes
+
+**Phase 3.5 closure:** `auth_*` flow-state cookies being misclassified as session cookies.
+
+- *Trigger:* `looksLikeSessionCookie` used `/^auth/i`, which fired on any cookie name beginning with "auth" — including `auth_timeout`, `auth_context`, `auth_redirect`, `auth_url`, `auth_callback`. None of these are session identifiers; they're transient values for login flow state. The old heuristic produced HIGH "missing Secure flag" / MEDIUM "missing SameSite" findings on cookies that don't carry session identity.
+- *Fix:* heuristic extracted to shared `src/lib/scanner/tools/cookies.ts` and tightened to `/^auth(?:[._-]?(?:token|session|id))?$/i`. Matches `auth`, `auth_token`, `auth-token`, `auth.token`, `authtoken`, `auth_session`, `authsession`, `auth_id`, `authid`. Does **not** match `auth_timeout`, `auth_context`, `auth_redirect`, etc.
+- *Regression fixtures:* `src/__tests__/lib/scanner/tools/cookies.test.ts` (heuristic-level negatives + positives) and `src/__tests__/lib/scanner/modules/p1-05-cookies.test.ts` (integration: flow-state cookies produce zero findings; `auth_token` missing Secure still flags HIGH).
+
+## P1-15 — Cache Configuration
+
+**Phase 3.5 closure:** tracking cookies (`_ga`, `_gid`, `_fbp`) being treated as session cookies for the no-store gate.
+
+- *Trigger:* `looksAuthenticated` returned `true` whenever `cookies.length > 0`. A static marketing page that sets only Google Analytics (`_ga`, `_gid`) cookies was flagged with MEDIUM "missing Cache-Control: no-store" findings even though no session identity exists on the response.
+- *Fix:* `looksAuthenticated` now calls `cookies.some(looksLikeSessionCookie)` (shared util from `tools/cookies.ts`). Tracking cookies no longer gate the cache check. Real session cookies (`connect.sid`, `next-auth.session-token`, etc) still do, and `Authorization` / `X-Auth-*` header checks remain.
+- *Regression fixtures:* `src/__tests__/lib/scanner/modules/p1-15-cache.test.ts` — `_ga`/`_gid`, `_fbp`/`_gcl_au`, `intercom-id`/`mp_mixpanel` produce zero findings; `session` / `connect.sid` still gate the no-store check; `Authorization` header gates independently of cookies.
+
+## P1-06 — Sensitive Path Exposure
+
+**Phase 3.5 closure:** properly-gated admin pages returning 200 with a login form being flagged as exposed.
+
+- *Trigger:* a 200 response on `/admin`, `/dashboard`, `/wp-admin` etc. that differed sufficiently from the baseline body counted as a "non-404 hit" — even when the body was a sign-in challenge form. Authentication walls aren't exposure.
+- *Fix:* `probeOne` now sniffs the first 30 KB of any 200 body for login-form indicators (`<input type="password">`, `<input name="password">`, `<form action="…login/signin/signon/auth…">`). When any pattern matches, the probe is suppressed entirely — a login challenge is the gate working, not a finding.
+- *Decision:* the sniff applies to all SUSPICIOUS_CODES paths, not just admin-like ones. A `.env` request rendering a login form means the site routes everything to the auth page; suppressing is safer than flagging.
+- *Regression fixtures:* `src/__tests__/lib/scanner/modules/p1-06-sensitive-paths.test.ts` — `/admin` with login form produces zero findings; `/admin` with a real dashboard body still flags HIGH; `/.env` with credential-looking content still flags CRITICAL.
+
+## P1-11 — Subdomain Takeover
+
+**Phase 3.5 closure:** CNAME-suffix matches being flagged without body confirmation.
+
+- *Trigger:* `checkSubdomainTakeover` had a fallback that returned a finding whenever the CNAME suffix matched a known service (`github.io`, `netlify.app`, etc.), even when the body fetch failed *or* succeeded with normal content. Every live `username.github.io` page tripped a HIGH "subdomain may be vulnerable to takeover" finding.
+- *Fix:* require the HTTP response body to contain the service-specific dangling-evidence string ("There isn't a GitHub Pages site here.", "NoSuchBucket", "The deployment could not be found", etc). DNS or connection failure → no finding. The conservative tradeoff (some real takeovers where the target is unreachable get missed) was made deliberately to eliminate the live-page FP class.
+- *Regression fixtures:* `src/__tests__/lib/scanner/modules/p1-11-subdomain-takeover.test.ts` — dangling GitHub Pages + S3 still flag; live GitHub Pages + connection refused + no-CNAME all produce zero findings.
+
 ---
 
 ## Carry-overs
 
-- Phase 3.5 will add closure entries here for P1-14 (robots/sitemap regex anchoring), P1-05 (cookie heuristics), P1-15 (tracking vs session cookies), P1-06 (login-form 200 downgrade), P1-11 (subdomain takeover body confirmation).
+- Nuxt / SvelteKit / Remix manifest probes (carry from Phase 3.1 Strategy C) remain unimplemented.
 - Phase 3.7 will append measured per-module FP rates from production telemetry once `finding_disposition` ships.

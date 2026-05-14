@@ -149,6 +149,44 @@ describe('P1-05: Cookies & Storage Module', () => {
     });
   });
 
+  describe('Phase 3.5: tightened auth* heuristic', () => {
+    it.each(['auth_timeout', 'auth_context', 'auth_redirect', 'auth_callback'])(
+      'does not raise findings on flow-state cookie %s (was an FP)',
+      (name) => {
+        const cookies: ParsedCookie[] = [
+          {
+            name,
+            value: 'some-flow-value',
+            domain: 'example.com',
+            path: '/',
+            secure: false,
+            httpOnly: false,
+            sameSite: undefined,
+          },
+        ];
+        const crawlResult = createCrawlResult(cookies);
+        const findings = runCookiesModule(crawlResult);
+        expect(findings).toHaveLength(0);
+      },
+    );
+
+    it('still flags real auth_token cookies missing Secure', () => {
+      const cookies: ParsedCookie[] = [
+        {
+          name: 'auth_token',
+          value: 'abc123',
+          domain: 'example.com',
+          path: '/',
+          secure: false,
+          httpOnly: true,
+          sameSite: 'Lax',
+        },
+      ];
+      const findings = runCookiesModule(createCrawlResult(cookies));
+      expect(findings.find((f) => f.title.includes('Secure flag'))).toBeDefined();
+    });
+  });
+
   describe('Non-session Cookies', () => {
     it('should not flag non-session cookies', () => {
       const cookies: ParsedCookie[] = [

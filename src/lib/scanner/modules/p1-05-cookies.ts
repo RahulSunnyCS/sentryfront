@@ -1,23 +1,5 @@
-import type { CrawlResult, RawFinding, ParsedCookie } from '../types';
-
-const SESSION_COOKIE_PATTERNS = [
-  /^sess(ion)?$/i,
-  /^auth/i,
-  /^token/i,
-  /^jwt/i,
-  /^supabase/i,
-  /^next.?auth/i,
-  /^__session/i,
-  /^connect\.sid/i,
-  /^PHPSESSID/i,
-  /^JSESSIONID/i,
-  /^_csrf/i,
-  /^remember/i,
-];
-
-function looksLikeSessionCookie(cookie: ParsedCookie): boolean {
-  return SESSION_COOKIE_PATTERNS.some((re) => re.test(cookie.name));
-}
+import type { CrawlResult, RawFinding } from '../types';
+import { looksLikeSessionCookie } from '../tools/cookies';
 
 function looksLikeJWT(value: string): boolean {
   const parts = value.split('.');

@@ -3,7 +3,11 @@ import type { CrawlResult, RawFinding } from '../types';
 const SENSITIVE_PATH_PATTERNS = [
   /\/admin/i, /\/internal/i, /\/private/i, /\/secret/i, /\/backup/i,
   /\/debug/i, /\/test/i, /\/staging/i, /\/dev\b/i, /\/config/i,
-  /\/api\/v\d/i, /\/api\/internal/i, /\/graphql/i, /\/dashboard/i,
+  // Phase 3.5: anchor /api/v\d to the API root itself so `/api/v2/docs`,
+  // `/api/v1/health`, etc. (legitimately public subpaths) stop matching.
+  // Only `/api/v2`, `/api/v2/` (i.e. the root of a versioned API) is the
+  // robots.txt-disclosure concern.
+  /\/api\/v\d+\/?$/i, /\/api\/internal/i, /\/graphql/i, /\/dashboard/i,
   /\/\.env/i, /\/wp-admin/i, /\/phpmyadmin/i, /\/cgi-bin/i,
 ];
 

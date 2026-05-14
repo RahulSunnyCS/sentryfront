@@ -4,7 +4,7 @@
 Companion to `PHASES.md` (which tracks the product/business narrative). This doc is the honest engineering plan: what's actually built, what's mocked, and the order we'll harden it.
 
 **Last updated:** 2026-05-14
-**Current phase:** Phase 3 — Improve detection quality (3.1 headless crawl, 3.2 client-side dep vulns, 3.3 KEV+EPSS severity, 3.4 DOM-aware regex preprocessing all shipped; **3.5 targeted FP fixes is next**)
+**Current phase:** Phase 3 — Improve detection quality (3.1 headless crawl, 3.2 client-side dep vulns, 3.3 KEV+EPSS severity, 3.4 DOM-aware regex preprocessing, 3.5 targeted FP fixes all shipped; **3.6 scan-quality corpus is next**)
 
 ---
 
@@ -268,17 +268,17 @@ Five of the nine audited FP traps share a root cause: regex modules match agains
 
 **Carry from 3.1 Strategy C:** Nuxt `/_payload.js`, SvelteKit `/_app/version.json`, Remix build manifest probes still not implemented — picked up in 3.5 or later.
 
-### 3.5 Targeted FP fixes from the audit
+### 3.5 Targeted FP fixes from the audit ✅
 
 Concrete fixes for FPs identified by reading the module code, not theoretical. Each lands with a regression fixture.
 
-- [ ] **P1-14 (robots/sitemap)**: anchor `/admin`, `/api/v\d/` regexes so `/api/v2/docs` doesn't match
-- [ ] **P1-05 (cookies)**: tighten `looksLikeSessionCookie` — exclude `auth_timeout`, `auth_context`, `auth_redirect`, etc. (substring match for `auth_*` over-fires)
-- [ ] **P1-15 (cache)**: distinguish session cookies from tracking cookies (`_ga`, `_gid`, `fbp`) — only the former gate the "must be no-store" requirement
-- [ ] **P1-06 (sensitive paths)**: suppress 200-with-auth-prompt false positive — if `/admin` returns 200 but body contains a login form, downgrade to INFO not CRITICAL
-- [ ] **P1-11 (subdomain takeover)**: require body-confirmed dead-host signal, not just CNAME suffix match — a live `.github.io` page is fine
-- [ ] Each fix gets a fixture in the 3.10 harness before merging
-- [ ] Document each FP closure in `MODULE_QUALITY.md` with before/after corpus FP-rate numbers
+- [x] **P1-14 (robots/sitemap)**: anchored `/api/v\d` regex to `/\/api\/v\d+\/?$/i` so `/api/v2/docs` no longer matches. `/admin` regex left alone — `/admin/login` is still a genuine leak via robots.txt.
+- [x] **P1-05 (cookies)**: tightened `auth*` pattern to `/^auth(?:[._-]?(?:token|session|id))?$/i` — `auth_timeout`, `auth_context`, `auth_redirect`, `auth_callback` no longer FP. Heuristic extracted to shared `src/lib/scanner/tools/cookies.ts`.
+- [x] **P1-15 (cache)**: `looksAuthenticated` now uses the shared `looksLikeSessionCookie` — `_ga`/`_gid`/`_fbp`/intercom/mixpanel tracking cookies no longer gate the no-store finding.
+- [x] **P1-06 (sensitive paths)**: 200 responses whose body contains a login-form fingerprint are now suppressed entirely (per AskUserQuestion decision — properly-gated admin login challenge is not a finding). Login-form sniff scans first 30 KB only.
+- [x] **P1-11 (subdomain takeover)**: requires body-confirmed dead-host signal (matching the per-service evidence string like "There isn't a GitHub Pages site here"). DNS/connection failure → no finding. Live `username.github.io` pages no longer FP.
+- [x] Each fix lands with regression fixtures in the per-module `*.test.ts` file (the inline-fixture pattern from Phase 3.4 is retained; the directory-based fixture migration is a separate 3.10 backfill task).
+- [x] FP closures documented in `docs/core/MODULE_QUALITY.md` (five new entries — qualitative; numeric FP rates wait for 3.7 telemetry).
 
 ### 3.6 Scan-quality corpus (integration signal)
 
