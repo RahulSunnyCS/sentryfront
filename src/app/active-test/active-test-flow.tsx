@@ -394,9 +394,32 @@ function Step1({
   return (
     <section aria-label="Choose target" className="card screen-enter" style={{ padding: 'clamp(24px, 4vw, 40px)' }}>
       <h2 className="text-h3" style={{ marginBottom: 'var(--space-3)' }}>What should we attack?</h2>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
+      <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
         We&apos;ll send real probes — choose where they should land.
       </p>
+      <div
+        style={{
+          background: 'linear-gradient(135deg, rgba(13,148,136,0.07), rgba(124,58,237,0.05))',
+          border: '1px solid rgba(13,148,136,0.25)',
+          borderRadius: 12,
+          padding: '14px 16px',
+          marginBottom: 'var(--space-6)',
+          display: 'flex',
+          gap: 12,
+          alignItems: 'flex-start',
+        }}
+      >
+        <span style={{ fontSize: 18, lineHeight: 1.2 }} aria-hidden="true">🔓</span>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+            Why this is different from your passive scan
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+            Passive scans only see what an anonymous visitor sees. Active testing logs in (when you provide credentials),
+            follows real flows, and confirms whether vulnerabilities are actually exploitable — not just present in HTTP responses.
+          </p>
+        </div>
+      </div>
       <div
         style={{
           display: 'grid',
