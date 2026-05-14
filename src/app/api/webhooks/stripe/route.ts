@@ -82,39 +82,47 @@ export async function POST(req: NextRequest) {
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log(`[Stripe] Checkout completed: ${session.id}`);
 
-  // Extract user information
-  const customerEmail = session.customer_email;
   const stripeCustomerId = session.customer as string;
   const tier = session.metadata?.tier || 'free';
+  // Prefer client_reference_id (set on signed-in checkouts); fall back to
+  // customer_email for anonymous purchases.
+  const userIdFromRef = session.client_reference_id || session.metadata?.userId || null;
+  const customerEmail = session.customer_email || session.customer_details?.email || null;
 
+  // 1) Try by user ID first — most reliable, handles users who pay with a
+  // different email than they signed up with.
+  if (userIdFromRef) {
+    const existing = await prisma.user.findUnique({ where: { id: userIdFromRef } });
+    if (existing) {
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { tier, stripeCustomerId },
+      });
+      console.log(`[Stripe] Updated user (by ref): ${existing.id} → ${tier}`);
+      return;
+    }
+    console.warn(`[Stripe] client_reference_id ${userIdFromRef} not found; falling back to email`);
+  }
+
+  // 2) Fall back to email match — anonymous-checkout flow.
   if (!customerEmail) {
-    console.error('[Stripe] No customer email in checkout session');
+    console.error('[Stripe] No customer email and no resolvable user ref in session');
     return;
   }
 
-  // TODO: When auth is enabled, use client_reference_id to find user
-  // For now, find or create user by email
+  const existingByEmail = await prisma.user.findUnique({ where: { email: customerEmail } });
 
-  let user = await prisma.user.findUnique({ where: { email: customerEmail } });
-
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: customerEmail,
-        tier,
-        stripeCustomerId,
-      } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (!existingByEmail) {
+    const user = await prisma.user.create({
+      data: { email: customerEmail, tier, stripeCustomerId },
     });
-    console.log(`[Stripe] Created new user: ${user.id}`);
+    console.log(`[Stripe] Created new user (by email): ${user.id}`);
   } else {
     await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        tier,
-        stripeCustomerId,
-      },
+      where: { id: existingByEmail.id },
+      data: { tier, stripeCustomerId },
     });
-    console.log(`[Stripe] Updated user tier: ${user.id} → ${tier}`);
+    console.log(`[Stripe] Updated user (by email): ${existingByEmail.id} → ${tier}`);
   }
 }
 
