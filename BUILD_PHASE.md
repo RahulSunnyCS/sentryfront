@@ -583,6 +583,11 @@ The Phase 1 checklist is marked complete. Before flipping Phase 5 from "coming s
 
 **Estimated effort:** 4–6 weeks
 
+### 5.0 User data handling & compliance (think-through — TBD)
+
+- [ ] Think through how we manage user data (source code, scan artifacts, exploit payloads, credentials) to avoid compliance issues and give users the confidence to hand us their code — define retention, encryption, access controls, jurisdiction, deletion guarantees, and any required certifications (SOC 2, GDPR, etc.) *before* Phase 5 active testing kicks off. Details to be worked out later.
+- [ ] Enterprise option: ship an API-only mode where VibeSafe provides the scanning/analysis API and everything else (source code, artifacts, findings storage, orchestration) stays inside the customer's own infrastructure — nothing sensitive leaves their perimeter. Figure out the boundary (what data the API actually needs vs. what can stay on-prem), auth/key model, and deployment shape (self-hosted runner, BYOC, or pure API) when we get to this.
+
 ### 5.1 Engine foundation
 
 - [ ] Headless browser pool (Playwright) on isolated workers
