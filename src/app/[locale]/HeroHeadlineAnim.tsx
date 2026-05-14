@@ -13,27 +13,28 @@ const VARIANTS: Variant[] = ['alpha', 'beta', 'gamma'];
 const COOKIE_KEY = 'sentry:lastHeroAnim';
 
 // Split initial/final into shared prefix + diverging swap word + shared suffix.
-// Works across locales where "no/not/nicht/नहीं/അല്ല" sits at various positions.
+// Word-aware diff: a character-level diff would over-match shared letters
+// (e.g. "no" inside "not" and "now") and leave only single letters as the
+// swap — that's invisible. Splitting on whitespace yields the whole word.
+// Works for en/de/es/hi/ml (all space-separated scripts in this project).
 function diffWord(initial: string, final: string) {
+  const iTokens = initial.split(/(\s+)/);
+  const fTokens = final.split(/(\s+)/);
   let start = 0;
-  while (
-    start < initial.length &&
-    start < final.length &&
-    initial[start] === final[start]
-  ) {
+  while (start < iTokens.length && start < fTokens.length && iTokens[start] === fTokens[start]) {
     start++;
   }
-  let endI = initial.length;
-  let endF = final.length;
-  while (endI > start && endF > start && initial[endI - 1] === final[endF - 1]) {
+  let endI = iTokens.length;
+  let endF = fTokens.length;
+  while (endI > start && endF > start && iTokens[endI - 1] === fTokens[endF - 1]) {
     endI--;
     endF--;
   }
   return {
-    prefix: initial.slice(0, start),
-    suffix: initial.slice(endI),
-    before: initial.slice(start, endI),
-    after: final.slice(start, endF),
+    prefix: iTokens.slice(0, start).join(''),
+    suffix: iTokens.slice(endI).join(''),
+    before: iTokens.slice(start, endI).join(''),
+    after: fTokens.slice(start, endF).join(''),
   };
 }
 
