@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/navigation';
 import { IconShield, IconGlobe, IconArrowRight } from '@/components/icons';
 import { createScan } from '@/lib/api';
+import { HeroHeadlineAnim } from './HeroHeadlineAnim';
 
 function formatCount(n: number | null, locale: string): string {
   if (n === null) return '—';
@@ -123,11 +124,11 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
           {t('pill')}
         </span>
 
-        <h1 id="hero-heading" className="text-hero" style={{ marginBottom: 'var(--space-4)' }}>
-          {t('heroTitleLine1')}
-          <br />
-          {t('heroTitleLine2')}
-        </h1>
+        <HeroHeadlineAnim
+          initial={t('heroTitleInitialLine1')}
+          final={t('heroTitleLine1')}
+          line2={t('heroTitleLine2')}
+        />
 
         <p
           className="text-lead"

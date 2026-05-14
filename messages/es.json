@@ -64,6 +64,7 @@
   "landing": {
     "pill": "Seguridad de nivel empresarial · Desde $9",
     "heroTitleLine1": "Tu sitio creado con IA ahora es",
+    "heroTitleInitialLine1": "Tu sitio creado con IA no es",
     "heroTitleLine2": "técnicamente sólido",
     "heroLead": "Pega una URL. Sabe en 90 segundos si tu sitio está listo para empresas. Cada hallazgo viene con el prompt de IA exacto para corregirlo en Cursor, v0 o Lovable.",
     "urlPlaceholder": "example.com",

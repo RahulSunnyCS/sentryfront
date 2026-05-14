@@ -64,6 +64,7 @@
   "landing": {
     "pill": "एंटरप्राइज़-ग्रेड सुरक्षा · $9 से शुरू",
     "heroTitleLine1": "आपकी AI-निर्मित साइट अब",
+    "heroTitleInitialLine1": "आपकी AI-निर्मित साइट नहीं",
     "heroTitleLine2": "तकनीकी रूप से मज़बूत है",
     "heroLead": "एक URL पेस्ट करें। 90 सेकंड में जानें कि आपकी साइट एंटरप्राइज़-रेडी है या नहीं। हर खोज के साथ Cursor, v0, या Lovable में ठीक करने के लिए सटीक AI प्रॉम्प्ट आता है।",
     "urlPlaceholder": "example.com",
