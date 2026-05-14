@@ -57,19 +57,25 @@ async function checkSubdomainTakeover(subdomain: string): Promise<{ subdomain: s
   if (!cname) return null;
 
   for (const fp of DANGLING_FINGERPRINTS) {
-    if (cname.includes(fp.pattern)) {
-      // Verify the CNAME target actually responds with a takeover indicator
-      try {
-        const url = `https://${subdomain}`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(8_000) });
-        const body = await res.text();
-        if (body.includes(fp.evidence)) {
-          return { subdomain, service: fp.service, cname };
-        }
-      } catch { /* subdomain may not resolve — still suspicious */ }
-      // Even without body confirmation, a CNAME to a known service with no record is suspicious
-      return { subdomain, service: fp.service, cname };
-    }
+    if (!cname.includes(fp.pattern)) continue;
+
+    // Phase 3.5: require body confirmation. Pre-3.5 a CNAME-suffix match
+    // alone (or a CNAME suffix match + a body fetch that failed)
+    // returned a finding — that FP'd on every live username.github.io /
+    // org.netlify.app page. Now we only flag when the HTTP response
+    // actually carries the dangling-evidence string ("There isn't a
+    // GitHub Pages site here", "NoSuchBucket", etc).
+    try {
+      const url = `https://${subdomain}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+      const body = await res.text();
+      if (body.includes(fp.evidence)) {
+        return { subdomain, service: fp.service, cname };
+      }
+    } catch { /* unreachable or timeout → not confirmed, do not flag */ }
+    // CNAME-suffix match without body confirmation is no longer a
+    // finding; stop scanning the rest of the fingerprint list.
+    return null;
   }
   return null;
 }

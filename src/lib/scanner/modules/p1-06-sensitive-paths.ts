@@ -47,6 +47,22 @@ function simpleHash(s: string): number {
   return h;
 }
 
+// Phase 3.5: a 200 response whose body is a login challenge means the
+// path is properly gated, not exposed. Detect any of:
+//   - a password input field
+//   - a form posting to /login, /signin, /signon, or /auth
+// Scan only the first 30 KB — login forms live above the fold.
+const LOGIN_FORM_PATTERNS: RegExp[] = [
+  /<input[^>]*type=["']?password\b/i,
+  /<input[^>]*name=["']?password\b/i,
+  /<form[^>]*action=["'][^"']*(?:login|signin|signon|auth)\b/i,
+];
+
+function looksLikeLoginChallenge(body: string): boolean {
+  const head = body.slice(0, 30_000);
+  return LOGIN_FORM_PATTERNS.some((re) => re.test(head));
+}
+
 async function getBaseline(baseUrl: string): Promise<Baseline> {
   try {
     const url = new URL('/vibesafe-probe-nonexistent-path-check', baseUrl).href;
@@ -87,6 +103,10 @@ async function probeOne(baseUrl: string, path: string, baseline: Baseline): Prom
         return null;
       }
     }
+
+    // Phase 3.5: a properly-gated admin page returns 200 with a login
+    // form. That's not exposure — suppress.
+    if (status === 200 && looksLikeLoginChallenge(body)) return null;
 
     return { path, status };
   } catch {

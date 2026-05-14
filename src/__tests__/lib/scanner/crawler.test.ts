@@ -101,6 +101,13 @@ describe('crawler — fetch-only fallback path', () => {
     expect(result.consoleErrors).toBeUndefined();
     expect(result.networkRequests).toBeUndefined();
     expect(result.loadedChunkContents).toBeUndefined();
+
+    // Phase 3.4: cleanedHtml is populated on both crawl paths. The
+    // inline <script>console.log('inline payload')</script> body should
+    // be stripped, while the static <body> text remains.
+    expect(result.cleanedHtml).toBeDefined();
+    expect(result.cleanedHtml).not.toContain('inline payload');
+    expect(result.cleanedHtml).toContain('data-reactroot');
   });
 
   it('resolves <script src> relative URLs against the final URL', async () => {

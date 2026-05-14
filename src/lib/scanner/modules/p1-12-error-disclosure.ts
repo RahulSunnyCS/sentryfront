@@ -1,4 +1,5 @@
 import type { CrawlResult, RawFinding } from '../types';
+import { cleanHtml } from '../tools/html-clean';
 
 const ERROR_PATHS = [
   '/this-path-does-not-exist-vibesafe',
@@ -50,13 +51,23 @@ export async function runErrorDisclosureModule(crawl: CrawlResult): Promise<RawF
   for (const resp of responses) {
     if (!resp || resp.body.length < 20) continue;
 
+    // Phase 3.4: many sites route 404s to a marketing or docs page whose
+    // <pre>/<code> blocks legitimately contain example stack traces or
+    // framework banners. Match the cleaned body so documented examples
+    // don't masquerade as real error disclosure.
+    const body = cleanHtml(resp.body);
+
     for (const pattern of DISCLOSURE_PATTERNS) {
       if (seen.has(pattern.name)) continue;
-      const match = pattern.re.exec(resp.body);
+      const match = pattern.re.exec(body);
       if (!match) continue;
 
       seen.add(pattern.name);
-      const snippet = resp.body.slice(
+      // Snippet sourced from the cleaned body so the match.index it
+      // came from stays valid; this also keeps docs-example text out
+      // of evidence on the off chance a future pattern straddles the
+      // cleaned region.
+      const snippet = body.slice(
         Math.max(0, match.index - 60),
         match.index + match[0].length + 120,
       ).replace(/\s+/g, ' ').trim().slice(0, 300);

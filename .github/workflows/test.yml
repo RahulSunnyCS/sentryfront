@@ -27,6 +27,9 @@ jobs:
       - name: Run tests
         run: npm run test
 
+      - name: Run scan-quality corpus (Phase 3.6 replay)
+        run: npm run test:corpus
+
       - name: Run tests with coverage
         run: npm run test:coverage
 

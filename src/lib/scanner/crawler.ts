@@ -3,6 +3,7 @@ import { chromium, type Browser, type Response as PlaywrightResponse } from 'pla
 import type { CrawlResult, NetworkRequest, ParsedCookie, TLSCertInfo } from './types';
 import { features } from '@/lib/features';
 import { logger } from '@/lib/logger';
+import { cleanHtml } from './tools/html-clean';
 
 const FETCH_TIMEOUT_MS = 20_000;
 const NAV_TIMEOUT_MS = 30_000;
@@ -274,6 +275,7 @@ async function crawlWithFetch(targetUrl: string): Promise<CrawlResult> {
     html,
     tls: tlsInfo,
     stack,
+    cleanedHtml: cleanHtml(html),
     renderMode: 'fetch-only',
   };
 }
@@ -425,6 +427,7 @@ async function crawlWithPlaywright(targetUrl: string): Promise<CrawlResult> {
       consoleErrors,
       networkRequests,
       loadedChunkContents,
+      cleanedHtml: cleanHtml(renderedHtml || initialHtml),
       renderMode: 'headless',
     };
   } finally {

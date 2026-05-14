@@ -4,7 +4,7 @@
 Companion to `PHASES.md` (which tracks the product/business narrative). This doc is the honest engineering plan: what's actually built, what's mocked, and the order we'll harden it.
 
 **Last updated:** 2026-05-14
-**Current phase:** Phase 2 — Replace mock data with real backend wiring (all sub-sections code-complete; awaiting user smoke-test + Sentry UI config + 48h post-deploy watch)
+**Current phase:** Phase 3 — Improve detection quality (3.1 headless crawl, 3.2 client-side dep vulns, 3.3 KEV+EPSS severity, 3.4 DOM-aware regex preprocessing, 3.5 targeted FP fixes all shipped; 3.6 scan-quality corpus infrastructure shipped at 10-site seed — expansion to 30+ sites and AI-built coverage are now open backlog items)
 
 ---
 
@@ -205,89 +205,95 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 
 **Estimated effort:** 3–4 weeks
 
-### 3.1 Headless-rendered crawl + JS-chunk coverage
+### 3.1 Headless-rendered crawl + JS-chunk coverage ✅
 
 The single biggest detection-quality gap: today `crawler.ts` does a static `fetch()` and never executes JS. On a Lovable / Bolt / v0 / Cursor SPA — almost every site we're built to scan — the scanner sees an empty shell and downloads zero JS chunks. `playwright` is already a dependency but unused.
 
-- [ ] Swap `fetch()` in `src/lib/scanner/crawler.ts:119` for Playwright `page.goto()` + wait for network idle
-- [ ] Capture every URL the browser requests via `page.on('request')`; download `application/javascript` responses
-- [ ] Extend `CrawlResult` in `src/lib/scanner/types.ts` with: `renderedHtml`, `consoleErrors`, `networkRequests`, `loadedChunkContents` (Map<url, string>)
-- [ ] Keep all existing fields working — new fields are additive so existing modules keep passing
-- [ ] Preserve the TLS probe (`getTLSInfo`) and cookie/JWT parsing — those stay
-- [ ] Strategy A: render entry route, scan every JS chunk the browser loads
-- [ ] Strategy C (framework manifest scan): probe well-known manifest paths and fetch listed chunks:
-  - [ ] Next.js: `/_next/static/chunks/_buildManifest.js`, `/_next/static/chunks/_app-build-manifest.json`
-  - [ ] Vite: `/manifest.json` (or asset-manifest fingerprint)
-  - [ ] Nuxt: `/_payload.js`
-  - [ ] SvelteKit: `/_app/version.json`
-  - [ ] Remix: build manifest path
-- [ ] Strategy B (multi-route render) is **deferred to Phase 5** — natural fit with authenticated/interactive scanning
-- [ ] Document the coverage envelope in `docs/core/SCAN_COVERAGE.md` — what we see, what we don't (post-login chunks, interaction-triggered chunks, custom bundlers)
-- [ ] Measure per-scan cost change: today ≈1 fetch, target ≤(1 render + 40 chunk fetches) at p95. Baseline + report in commit message.
+- [x] Swap `fetch()` in `src/lib/scanner/crawler.ts:119` for Playwright `page.goto()` + wait for network idle (fetch-only path retained as fallback behind `FEATURES.headlessCrawl`)
+- [x] Capture every URL the browser requests via `page.on('request')`; download `application/javascript` responses
+- [x] Extend `CrawlResult` in `src/lib/scanner/types.ts` with: `renderedHtml`, `consoleErrors`, `networkRequests`, `loadedChunkContents` (Map<url, string>) + `renderMode` discriminator
+- [x] Keep all existing fields working — new fields are additive so existing modules keep passing
+- [x] Preserve the TLS probe (`getTLSInfo`) and cookie/JWT parsing — those stay
+- [x] Strategy A: render entry route, scan every JS chunk the browser loads
+- [x] Strategy C (framework manifest scan): probe well-known manifest paths and fetch listed chunks:
+  - [x] Next.js: `/_next/static/chunks/_buildManifest.js`, `/_next/static/chunks/_app-build-manifest.json`
+  - [x] Vite: `/manifest.json` (or asset-manifest fingerprint)
+  - [ ] Nuxt: `/_payload.js` — **carry to 3.4 follow-up**; not shipped in the 3.1 commit
+  - [ ] SvelteKit: `/_app/version.json` — **carry to 3.4 follow-up**
+  - [ ] Remix: build manifest path — **carry to 3.4 follow-up**
+- [x] Strategy B (multi-route render) is **deferred to Phase 5** — natural fit with authenticated/interactive scanning
+- [x] Document the coverage envelope in `docs/core/SCAN_COVERAGE.md` — what we see, what we don't (post-login chunks, interaction-triggered chunks, custom bundlers)
+- [x] Measure per-scan cost change: today ≈1 fetch, target ≤(1 render + 40 chunk fetches) at p95. Baseline + report in commit message.
 
-### 3.2 Client-side dependency vulnerability detection
+### 3.2 Client-side dependency vulnerability detection ✅
 
 We extract `jsBundleUrls` but never fingerprint them. Phase 7.5 already plans the same data feeds (OSV) for server-side scanning — stand them up here first, reuse in 7.5.
 
-- [ ] Add `retire.js` (FreeBSD, npm package) — fingerprints vulnerable jQuery, Bootstrap, AngularJS, lodash, etc. by URL/hash
-- [ ] Run `retire.js` against every chunk captured in 3.1 (not just entry HTML)
-- [ ] Call `OSV.dev` (CC-BY-4.0, free API) for each fingerprinted `(ecosystem, name, version)` triple; cache responses for 24h
-- [ ] Produce a new scanner module (next P1 ID — `P1-16` if naming continues)
-- [ ] Module output fields: `library`, `version`, `chunkUrl`, `cves[]`, `severity` (set by 3.3 rubric, not raw CVSS)
-- [ ] Fixture coverage per 3.10 standard (≥3 positive, ≥3 negative, ≥1 edge case)
+- [x] Add `retire.js` (FreeBSD, vendored signature DB in `tools/retire.ts`) — fingerprints vulnerable jQuery, Bootstrap, AngularJS, lodash, etc. by URL/filename/content-regex/SHA-1
+- [x] Run `retire.js` against every chunk captured in 3.1 (top-10 `jsBundleUrls` refetch when `renderMode='fetch-only'`)
+- [x] Call `OSV.dev` (CC-BY-4.0, free API) for each fingerprinted `(ecosystem, name, version)` triple; cache responses for 24h (Upstash Redis when configured, in-memory Map fallback)
+- [x] Produce a new scanner module — `P1-16` (`src/lib/scanner/modules/p1-16-client-deps.ts`)
+- [x] Module output fields: `library`, `version`, `chunkUrl`, `cves[]`, `severity` (set by 3.3 rubric, not raw CVSS)
+- [x] Fixture coverage per 3.10 standard (≥3 positive, ≥3 negative, ≥1 edge case)
 
-### 3.3 Exploit-intel severity tiering (KEV + EPSS)
+### 3.3 Exploit-intel severity tiering (KEV + EPSS) ✅
 
 Phase 7.5 line-items these feeds anyway. Stand them up in Phase 3 so client-side CVE findings from 3.2 ship with real severity, not raw CVSS.
 
-- [ ] Daily job: fetch CISA KEV JSON (public-domain) — load into a `kev_entries` table keyed by CVE
-- [ ] Daily job: fetch FIRST.org EPSS snapshot — `epss_score` + `epss_percentile` per CVE
-- [ ] Implement rubric: `severity = adjust(cvssBase, kevBonus, epssPercentile)`
+- [x] CISA KEV JSON fetch (public-domain) — 24h cached client in `src/lib/scanner/tools/kev.ts`, fail-quiet on outage (preserves CVSS bucket rather than surprise-downgrading)
+- [x] FIRST.org EPSS snapshot fetch — `epss_score` + `epss_percentile` per CVE, 24h cached in `src/lib/scanner/tools/epss.ts`
+- [x] Implement rubric: `severity = adjust(cvssBase, kevBonus, epssPercentile)` in `src/lib/scanner/tools/severity-rubric.ts`
   - Critical: in KEV, or (CVSS ≥ 9 AND EPSS percentile ≥ 90)
   - High: CVSS ≥ 7 AND EPSS percentile ≥ 50
   - Medium: CVSS ≥ 4
   - Low: everything else
-- [ ] Publish rubric in `docs/core/SEVERITY_RUBRIC.md` — referenced by Phase 7.5
-- [ ] Wire into 3.2's new client-side dep module; legacy modules adopt incrementally
-- [ ] Telemetry: stamp `kev_match` + `epss_percentile` on every finding for later analysis
+- [x] Publish rubric in `docs/core/SEVERITY_RUBRIC.md` — referenced by Phase 7.5
+- [x] Wire into 3.2's new client-side dep module (P1-16 behind `exploitIntelSeverity` feature flag for kill-switch); legacy modules adopt incrementally
+- [x] Telemetry: `kevMatch` + `epssPercentile` stamped on every `RawFinding` for later analysis
 
-### 3.4 DOM-aware context for regex modules
+### 3.4 DOM-aware context for regex modules ✅
 
 Five of the nine audited FP traps share a root cause: regex modules match against raw HTML, including comments, `<script>` bodies, and code examples in docs pages.
 
-- [ ] Add a preprocessing layer that produces a `cleanedHtml` field on `CrawlResult`
-  - [ ] Strip HTML comments
-  - [ ] Strip `<script>` and `<style>` bodies (URLs in src/href still extracted separately)
-  - [ ] Strip `<pre>`, `<code>`, `<samp>` blocks (code examples in docs)
-  - [ ] Preserve attribute-vs-text distinction so modules can opt-in to one or the other
-- [ ] Migrate P1-08 (mixed content) to match against `cleanedHtml`
-- [ ] Migrate P1-12 (error disclosure) to match against `cleanedHtml`
-- [ ] Migrate P1-13 (dev interfaces — Swagger/GraphiQL substring match) to match against `cleanedHtml`
-- [ ] Add fixtures proving each migration closes its FP trap (docs-page false-positive case for each)
+- [x] Add a preprocessing layer that produces a `cleanedHtml` field on `CrawlResult` (`src/lib/scanner/tools/html-clean.ts`)
+  - [x] Strip HTML comments
+  - [x] Strip `<script>` and `<style>` bodies (opening tag + attributes preserved so `src`/`href` regexes still match)
+  - [x] Strip `<pre>`, `<code>`, `<samp>` blocks (code examples in docs)
+  - [x] Preserve attribute-vs-text distinction — opening tags + attributes survive; only the body text between tag pairs is zeroed
+- [x] Migrate P1-08 (mixed content) to match against `cleanedHtml`
+- [x] Migrate P1-12 (error disclosure) — clean each probe response body before regex matching
+- [x] Migrate P1-13 (dev interfaces — Swagger/GraphiQL substring match) — clean each probe body before `detect()`
+- [x] Fixtures proving each migration closes its FP trap (`p1-08`/`p1-12`/`p1-13` test files + `Phase 3.4` describe blocks)
+- [x] FP closures documented in `docs/core/MODULE_QUALITY.md` (new ledger)
 
-### 3.5 Targeted FP fixes from the audit
+**Carry from 3.1 Strategy C:** Nuxt `/_payload.js`, SvelteKit `/_app/version.json`, Remix build manifest probes still not implemented — picked up in 3.5 or later.
+
+### 3.5 Targeted FP fixes from the audit ✅
 
 Concrete fixes for FPs identified by reading the module code, not theoretical. Each lands with a regression fixture.
 
-- [ ] **P1-14 (robots/sitemap)**: anchor `/admin`, `/api/v\d/` regexes so `/api/v2/docs` doesn't match
-- [ ] **P1-05 (cookies)**: tighten `looksLikeSessionCookie` — exclude `auth_timeout`, `auth_context`, `auth_redirect`, etc. (substring match for `auth_*` over-fires)
-- [ ] **P1-15 (cache)**: distinguish session cookies from tracking cookies (`_ga`, `_gid`, `fbp`) — only the former gate the "must be no-store" requirement
-- [ ] **P1-06 (sensitive paths)**: suppress 200-with-auth-prompt false positive — if `/admin` returns 200 but body contains a login form, downgrade to INFO not CRITICAL
-- [ ] **P1-11 (subdomain takeover)**: require body-confirmed dead-host signal, not just CNAME suffix match — a live `.github.io` page is fine
-- [ ] Each fix gets a fixture in the 3.10 harness before merging
-- [ ] Document each FP closure in `MODULE_QUALITY.md` with before/after corpus FP-rate numbers
+- [x] **P1-14 (robots/sitemap)**: anchored `/api/v\d` regex to `/\/api\/v\d+\/?$/i` so `/api/v2/docs` no longer matches. `/admin` regex left alone — `/admin/login` is still a genuine leak via robots.txt.
+- [x] **P1-05 (cookies)**: tightened `auth*` pattern to `/^auth(?:[._-]?(?:token|session|id))?$/i` — `auth_timeout`, `auth_context`, `auth_redirect`, `auth_callback` no longer FP. Heuristic extracted to shared `src/lib/scanner/tools/cookies.ts`.
+- [x] **P1-15 (cache)**: `looksAuthenticated` now uses the shared `looksLikeSessionCookie` — `_ga`/`_gid`/`_fbp`/intercom/mixpanel tracking cookies no longer gate the no-store finding.
+- [x] **P1-06 (sensitive paths)**: 200 responses whose body contains a login-form fingerprint are now suppressed entirely (per AskUserQuestion decision — properly-gated admin login challenge is not a finding). Login-form sniff scans first 30 KB only.
+- [x] **P1-11 (subdomain takeover)**: requires body-confirmed dead-host signal (matching the per-service evidence string like "There isn't a GitHub Pages site here"). DNS/connection failure → no finding. Live `username.github.io` pages no longer FP.
+- [x] Each fix lands with regression fixtures in the per-module `*.test.ts` file (the inline-fixture pattern from Phase 3.4 is retained; the directory-based fixture migration is a separate 3.10 backfill task).
+- [x] FP closures documented in `docs/core/MODULE_QUALITY.md` (five new entries — qualitative; numeric FP rates wait for 3.7 telemetry).
 
 ### 3.6 Scan-quality corpus (integration signal)
 
 Was 3.1 in the old plan. Now an *integration test* that 3.5 fixes don't regress real-world scans.
 
-- [ ] Curate 30+ real sites covering A/B/C/D/F grade distribution
-- [ ] Include AI-built sites (Lovable, Bolt, v0, Replit, Cursor outputs)
-- [ ] Include known-bad fixtures (deliberately broken `.env.example` exposure, missing headers)
-- [ ] Include known-good fixtures (security-hardened reference sites)
-- [ ] Lock baseline expected output per fixture; track drift over time
-- [ ] CI job that runs the corpus on every backend PR
-- [ ] Corpus scans run with `INTERNAL_SCAN=true` so they get full LLM enrichment (per 3.14) for free
+Initial infrastructure shipped: replay-only test harness (`yarn test:corpus`), recorder CLI (`yarn corpus record --site <slug>`), 10 seed slugs across A/B/C/D/F. CI runs the replay on every backend PR. See `docs/core/CORPUS_GUIDE.md`.
+
+- [x] Initial 10-site corpus covering A/B/C/D/F grade distribution (seed slugs registered; baselines lock on first `yarn corpus record`)
+- [ ] Expand to 30+ real sites covering A/B/C/D/F grade distribution
+- [ ] Include AI-built sites (Lovable, Bolt, v0, Replit, Cursor outputs) — deferred until project-owned reference apps exist
+- [ ] Include known-bad fixtures (deliberately broken `.env.example` exposure, missing headers) — covered by per-module fixture tests today; add to corpus when project-owned sites land
+- [x] Include known-good fixtures (security-hardened reference sites — github.com, anthropic.com, stripe.com)
+- [x] Lock baseline expected output per fixture; track drift over time (strict drift: exact grade, ±1 score, exact `moduleFindingCounts`, exact finding set on `(moduleId, severity, title)`)
+- [x] CI job that runs the corpus on every backend PR (`.github/workflows/test.yml` step `Run scan-quality corpus (Phase 3.6 replay)`)
+- [ ] Corpus scans run with `INTERNAL_SCAN=true` so they get full LLM enrichment (per 3.14) for free — deferred; LLM output is non-deterministic so baseline pinning needs a separate snapshot layer
 
 ### 3.7 Production telemetry for FP measurement
 

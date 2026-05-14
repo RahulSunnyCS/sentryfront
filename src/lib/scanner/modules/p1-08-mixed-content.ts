@@ -29,7 +29,12 @@ export function runMixedContentModule(crawl: CrawlResult): RawFinding[] {
   // Only flag if the page itself is HTTPS
   if (parsed.protocol !== 'https:') return findings;
 
-  const mixed = extractMixedContent(crawl.html);
+  // Phase 3.4: prefer the DOM-cleaned HTML so docs/blog pages that
+  // display example markup inside <pre>/<code>/<!-- comments --> don't
+  // trigger mixed-content findings. Falls back to raw html for older
+  // CrawlResult shapes (tests that build minimal fixtures).
+  const source = crawl.cleanedHtml ?? crawl.html;
+  const mixed = extractMixedContent(source);
   if (mixed.length === 0) return findings;
 
   const scriptsMixed = mixed.filter((i) => i.tag === 'script');

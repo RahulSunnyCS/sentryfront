@@ -62,4 +62,11 @@ export interface CrawlResult {
   networkRequests?: NetworkRequest[]; // every request the browser made during render
   loadedChunkContents?: Record<string, string>; // url -> JS body, both browser-loaded and manifest-discovered
   renderMode?: 'headless' | 'fetch-only'; // which path actually ran
+
+  // Phase 3.4: DOM-aware preprocessing for regex modules. cleanedHtml
+  // strips HTML comments and the bodies of <script>/<style>/<pre>/<code>/<samp>
+  // (opening + closing tags kept so attribute-scanning regexes still match
+  // real production markup). Sourced from renderedHtml when present, else html.
+  // Modules that opt in read this instead of `html` to suppress docs/blog FPs.
+  cleanedHtml?: string;
 }

@@ -1,10 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { runMixedContentModule } from '@/lib/scanner/modules/p1-08-mixed-content';
+import { cleanHtml } from '@/lib/scanner/tools/html-clean';
 import type { CrawlResult } from '@/lib/scanner/types';
 
 const createCrawlResult = (finalUrl: string, html: string): CrawlResult => ({
   finalUrl,
   html,
+  // Phase 3.4: tests opt in to DOM-aware matching via cleanedHtml. We
+  // populate it the same way crawler.ts does so module behavior matches
+  // production. Tests that want to verify the "raw HTML" legacy path can
+  // override cleanedHtml after construction.
+  cleanedHtml: cleanHtml(html),
   headers: {},
   cookies: [],
   localStorage: {},
@@ -15,6 +21,8 @@ const createCrawlResult = (finalUrl: string, html: string): CrawlResult => ({
   statusCode: 200,
   inlineScriptContent: '',
   jsBundleUrls: [],
+  stack: '',
+  tls: null,
 });
 
 describe('P1-08: Mixed Content Module', () => {
@@ -130,6 +138,60 @@ describe('P1-08: Mixed Content Module', () => {
       const findings = runMixedContentModule(crawlResult);
 
       expect(findings).toHaveLength(0);
+    });
+  });
+
+  describe('Phase 3.4: DOM-aware FP suppression', () => {
+    it('does not flag mixed content inside <pre>/<code> example blocks (docs page FP)', () => {
+      const html = `
+        <html>
+          <body>
+            <h1>How to avoid mixed content</h1>
+            <p>Don't do this:</p>
+            <pre><code>&lt;script src="http://insecure.example.com/lib.js"&gt;&lt;/script&gt;</code></pre>
+            <pre>&lt;img src="http://docs.example.com/diagram.png"&gt;</pre>
+            <p>Use HTTPS instead.</p>
+          </body>
+        </html>
+      `;
+      const crawlResult = createCrawlResult('https://example.com', html);
+      const findings = runMixedContentModule(crawlResult);
+      expect(findings).toHaveLength(0);
+    });
+
+    it('does not flag mixed content inside HTML comments', () => {
+      const html = `
+        <html>
+          <body>
+            <!-- legacy reference: <script src="http://old-cdn.local/jquery.js"></script> -->
+            <p>nothing to see here</p>
+          </body>
+        </html>
+      `;
+      const crawlResult = createCrawlResult('https://example.com', html);
+      const findings = runMixedContentModule(crawlResult);
+      expect(findings).toHaveLength(0);
+    });
+
+    it('still flags a real <script src="http://...">  alongside a docs example', () => {
+      const html = `
+        <html>
+          <head>
+            <script src="http://cdn.real-leak.com/tracker.js"></script>
+          </head>
+          <body>
+            <pre><code>&lt;script src="http://docs.example.com/lib.js"&gt;&lt;/script&gt;</code></pre>
+          </body>
+        </html>
+      `;
+      const crawlResult = createCrawlResult('https://example.com', html);
+      const findings = runMixedContentModule(crawlResult);
+      const scriptFinding = findings.find((f) => f.title.includes('script'));
+      expect(scriptFinding).toBeDefined();
+      // Only the real one — the docs example is suppressed.
+      expect(scriptFinding?.title).toContain('1 script ');
+      expect(scriptFinding?.evidence).toContain('cdn.real-leak.com');
+      expect(scriptFinding?.evidence).not.toContain('docs.example.com');
     });
   });
 

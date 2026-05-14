@@ -1,4 +1,5 @@
 import type { CrawlResult, RawFinding } from '../types';
+import { cleanHtml } from '../tools/html-clean';
 
 interface EndpointProbe {
   path: string;
@@ -119,9 +120,16 @@ export async function runDevInterfacesModule(crawl: CrawlResult): Promise<RawFin
           signal: AbortSignal.timeout(8_000),
           headers: { 'User-Agent': 'VibeSafe-Scanner/1.0' },
         });
-        const body = await res.text();
+        const rawBody = await res.text();
         const headers: Record<string, string> = {};
         res.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+        // Phase 3.4: substring/regex detection (e.g. `body.includes('swagger')`,
+        // PHP Version, openapi banner) fires on docs/marketing pages that
+        // happen to mention the keyword inside an example <pre>/<code>
+        // block or HTML comment. JSON-y responses (Swagger schema, Spring
+        // _links payload) are not <pre>/comments, so cleaning is a no-op
+        // for true positives.
+        const body = cleanHtml(rawBody);
         if (probe.detect(res.status, body, headers)) {
           return { probe, status: res.status };
         }

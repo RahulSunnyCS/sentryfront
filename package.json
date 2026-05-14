@@ -20,7 +20,9 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "test:fixtures": "vitest run src/__tests__/lib/scanner/fixtures"
+    "test:fixtures": "vitest run src/__tests__/lib/scanner/fixtures",
+    "test:corpus": "vitest run src/__tests__/lib/scanner/corpus",
+    "corpus": "node scripts/corpus.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.709.0",
