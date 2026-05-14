@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import Script from 'next/script';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
 import { LoginCard } from './login-card';
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <>
+      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
       <Nav />
       <div style={{ paddingTop: 'var(--nav-h)', display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
         <main

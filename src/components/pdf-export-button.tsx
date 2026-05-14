@@ -9,69 +9,58 @@ interface Props {
 
 export function PdfExportButton({ scanId }: Props) {
   const pdfEnabled = useFeature('pdfExport');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   if (!pdfEnabled) {
-    return null; // Hide button if PDF export is disabled
+    return null;
   }
 
-  const handleExport = async () => {
-    setLoading(true);
-    setError(null);
+  const handlePrint = () => {
+    setPrinting(true);
 
+    const originalTitle = document.title;
+    let hostname = scanId;
     try {
-      const res = await fetch(`/api/v1/scans/${scanId}/pdf`, {
-        method: 'GET', // Changed from POST to GET
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'PDF generation failed' }));
-        throw new Error(body.error || 'PDF generation failed');
-      }
-
-      // Download PDF directly (it's a blob/buffer response)
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `vibesafe-report-${scanId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
+      const url = document.querySelector<HTMLElement>('[data-scan-url]')?.dataset.scanUrl;
+      if (url) hostname = new URL(url).hostname;
+    } catch {
+      // ignore — fall back to scanId
     }
+    const date = new Date().toISOString().split('T')[0];
+    document.title = `vibesafe-${hostname}-${date}`;
+
+    const restore = () => {
+      document.title = originalTitle;
+      setPrinting(false);
+      window.removeEventListener('afterprint', restore);
+    };
+    window.addEventListener('afterprint', restore);
+
+    window.print();
+
+    // Safari/Firefox sometimes fail to fire afterprint reliably.
+    setTimeout(restore, 1000);
   };
 
   return (
-    <div>
-      <button
-        onClick={handleExport}
-        disabled={loading}
-        style={{
-          padding: '8px 16px',
-          borderRadius: 8,
-          border: '1px solid var(--border)',
-          backgroundColor: loading ? 'var(--surface)' : 'var(--accent)',
-          color: loading ? 'var(--text-secondary)' : '#fff',
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: loading ? 'not-allowed' : 'pointer',
-          transition: 'all 0.15s',
-        }}
-      >
-        {loading ? 'Generating PDF...' : '📄 Download PDF'}
-      </button>
-
-      {error && (
-        <p style={{ fontSize: 12, color: '#e53e3e', marginTop: 8 }}>
-          {error}
-        </p>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={handlePrint}
+      disabled={printing}
+      className="no-print"
+      style={{
+        padding: '8px 16px',
+        borderRadius: 8,
+        border: '1px solid var(--border)',
+        backgroundColor: printing ? 'var(--surface)' : 'var(--accent)',
+        color: printing ? 'var(--text-secondary)' : '#fff',
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: printing ? 'not-allowed' : 'pointer',
+        transition: 'all 0.15s',
+      }}
+    >
+      {printing ? 'Opening print…' : '📄 Download PDF'}
+    </button>
   );
 }

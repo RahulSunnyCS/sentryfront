@@ -621,3 +621,67 @@ input, textarea, select, button { font: inherit; color: inherit; }
 .legal-content a { color: var(--accent); text-decoration: underline; }
 .legal-content a:hover { color: var(--accent-dark); }
 .legal-content strong { font-weight: 600; color: var(--text); }
+
+/* ─────────────────────────────────────────────────────────────
+   Print (Save as PDF) — hide chrome, expand content, A4 layout
+   ───────────────────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide app chrome and any element explicitly opted out */
+  nav,
+  footer,
+  .no-print,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Remove the top padding the layout reserves for the fixed nav */
+  main {
+    padding-top: 0 !important;
+  }
+
+  /* Neutralize sticky / fixed positioning so content flows naturally */
+  *,
+  *::before,
+  *::after {
+    position: static !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Expand any collapsed disclosures so the whole report prints */
+  details {
+    display: block !important;
+  }
+  details > summary {
+    display: none !important;
+  }
+  details > *:not(summary) {
+    display: revert !important;
+  }
+
+  /* Avoid awkward page breaks inside cards / list items */
+  .card,
+  article,
+  section,
+  li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+}
