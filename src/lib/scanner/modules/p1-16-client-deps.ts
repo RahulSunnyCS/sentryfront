@@ -134,7 +134,7 @@ export async function runClientDepsModule(crawl: CrawlResult): Promise<RawFindin
     const chunks = await collectChunks(crawl);
     if (chunks.length === 0) return [];
 
-    const components = detectAcrossChunks(chunks);
+    const components = await detectAcrossChunks(chunks);
     if (components.length === 0) return [];
 
     // OSV batch lookup — one call for every (lib, version) tuple.

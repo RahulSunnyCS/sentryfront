@@ -1,12 +1,15 @@
 /**
  * Client-side library detector backed by retire.js's signature database.
  *
- * We vendor a snapshot of jsrepository-v4.json (under ./data/) and run the
- * three signal types we can evaluate purely from a Chunk record:
- *   - URI regex     (against the chunk URL)
+ * Signatures are loaded by `retire-cache.ts` — fresh copy fetched from
+ * the RetireJS GitHub repo at scan time, cached in-process for 24h, with
+ * the vendored snapshot under ./data/ as the cold-start / outage fallback.
+ *
+ * We run the four signal types we can evaluate purely from a Chunk record:
+ *   - URI regex      (against the chunk URL)
  *   - filename regex (against the URL basename)
  *   - filecontent regex (against the first 8 KB of the chunk body)
- *   - SHA-1 hash    (against the full chunk body)
+ *   - SHA-1 hash     (against the full chunk body)
  *
  * Retire's `func` (runtime expression) and `ast` (AST XPath) extractors are
  * intentionally skipped — they require executing the chunk or parsing it
@@ -18,7 +21,7 @@
  * FP guards documented inline at each guard site.
  */
 import { createHash } from 'crypto';
-import jsRepository from './data/jsrepository.json';
+import { loadJsRepository, type JsRepository, type SignatureEntry } from './retire-cache';
 
 const VERSION_PATTERN = '[0-9][0-9.a-z_\\-]+';
 const CONTENT_SCAN_BYTES = 8 * 1024;
@@ -37,25 +40,6 @@ export interface DetectedComponent {
   // We do *not* derive severity here — that's the module's job.
   npmName: string;        // 'jquery' (falls back to library name)
 }
-
-interface SignatureExtractors {
-  uri?: string[];
-  filename?: string[];
-  filecontent?: string[];
-  filecontentreplace?: string[];
-  hashes?: Record<string, string>;
-  func?: string[];
-  ast?: string[];
-}
-
-interface SignatureEntry {
-  npmname?: string;
-  bowername?: string[];
-  extractors?: SignatureExtractors;
-  vulnerabilities?: unknown[];
-}
-
-const repo = jsRepository as Record<string, SignatureEntry>;
 
 // Pre-compile per-library regex tables so detection across N chunks is fast.
 interface CompiledLibrary {
@@ -94,11 +78,26 @@ function compileLibrary(name: string, entry: SignatureEntry): CompiledLibrary | 
   };
 }
 
-const COMPILED: CompiledLibrary[] = Object.entries(repo)
-  // The retire-example entry is for retire's own tests; never useful.
-  .filter(([name]) => name !== 'retire-example')
-  .map(([name, entry]) => compileLibrary(name, entry))
-  .filter((c): c is CompiledLibrary => c !== null);
+// In-process cache for the *compiled* tables. Keyed by reference identity of
+// the source JsRepository object, so a refresh in retire-cache.ts (new object
+// returned) transparently triggers recompilation here.
+let compiledFor: { source: JsRepository; libraries: CompiledLibrary[] } | null = null;
+
+function compileAll(repo: JsRepository): CompiledLibrary[] {
+  return Object.entries(repo)
+    // The retire-example entry is for retire's own tests; never useful.
+    .filter(([name]) => name !== 'retire-example')
+    .map(([name, entry]) => compileLibrary(name, entry))
+    .filter((c): c is CompiledLibrary => c !== null);
+}
+
+async function getCompiled(): Promise<CompiledLibrary[]> {
+  const repo = await loadJsRepository();
+  if (!compiledFor || compiledFor.source !== repo) {
+    compiledFor = { source: repo, libraries: compileAll(repo) };
+  }
+  return compiledFor.libraries;
+}
 
 // FP guard #1: libraries whose URL/filename signatures are too loose and
 // frequently misfire (e.g. AngularJS 1.x firing on Angular 2+ paths).
@@ -128,12 +127,7 @@ function sha1(content: string): string {
   return createHash('sha1').update(content).digest('hex');
 }
 
-/**
- * Run every signature against one chunk and return all matches.
- * One library may match via multiple extractors; we de-dupe by
- * (library, version) and prefer the most specific detection method.
- */
-export function detectComponents(chunk: Chunk): DetectedComponent[] {
+function detectComponentsInner(chunk: Chunk, compiled: CompiledLibrary[]): DetectedComponent[] {
   const url = chunk.url;
   const file = basename(url);
   const head = chunk.content.slice(0, CONTENT_SCAN_BYTES);
@@ -142,7 +136,7 @@ export function detectComponents(chunk: Chunk): DetectedComponent[] {
   // Per-library best match, indexed so we drop child libs whose parent matched.
   const perLibrary = new Map<string, DetectedComponent>();
 
-  for (const lib of COMPILED) {
+  for (const lib of compiled) {
     let best: DetectedComponent | null = null;
 
     // Hash match is the most specific — try first.
@@ -221,12 +215,25 @@ export function detectComponents(chunk: Chunk): DetectedComponent[] {
 }
 
 /**
- * Convenience: run detection across many chunks in parallel.
+ * Run every signature against one chunk and return all matches.
+ * One library may match via multiple extractors; we de-dupe by
+ * (library, version) and prefer the most specific detection method.
  */
-export function detectAcrossChunks(chunks: Chunk[]): DetectedComponent[] {
+export async function detectComponents(chunk: Chunk): Promise<DetectedComponent[]> {
+  const compiled = await getCompiled();
+  return detectComponentsInner(chunk, compiled);
+}
+
+/**
+ * Convenience: run detection across many chunks. Loads compiled tables
+ * once and reuses them across every chunk.
+ */
+export async function detectAcrossChunks(chunks: Chunk[]): Promise<DetectedComponent[]> {
+  if (chunks.length === 0) return [];
+  const compiled = await getCompiled();
   const out: DetectedComponent[] = [];
   for (const chunk of chunks) {
-    out.push(...detectComponents(chunk));
+    out.push(...detectComponentsInner(chunk, compiled));
   }
   return out;
 }
