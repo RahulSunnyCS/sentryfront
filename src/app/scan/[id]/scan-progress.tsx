@@ -204,7 +204,7 @@ export function ScanProgress({ scanId, scanUrl }: Props) {
           Scanning {scanUrl}
         </div>
         <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 32 }}>
-          Running {total} security, performance, and compliance checks...
+          Running {total} security, performance, and accessibility checks...
         </div>
 
         <aside

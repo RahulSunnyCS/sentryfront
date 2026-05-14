@@ -66,16 +66,15 @@ React vs Next.js → Learning Guide → Try Exercises → Use Cheat Sheet as ref
 - **SECURITY_MODULES.md**
   - 15 security checks: what, how, false positives, improvements
 
-- **[COMPLIANCE_MODULES.md](./modules/COMPLIANCE_MODULES.md)** ⭐ **NEW!**
-  - GDPR/CCPA privacy compliance, WCAG 2.2 attestation
-  - Cookie consent, privacy policies, user rights
-  - PCI-DSS, HIPAA (future)
+- **[COMPLIANCE_MODULES.md](./modules/COMPLIANCE_MODULES.md)** ⚠️ **FUTURE / NOT YET IMPLEMENTED**
+  - Future module specs (GDPR/CCPA/PCI-DSS/HIPAA). No `p5-*.ts` modules exist in `src/lib/scanner/modules/` today; the document describes a planned design, not shipped code.
+  - Treat as a planning artifact until at least one P5 module ships.
 
 - **PERFORMANCE_MODULES.md**
   - Core Web Vitals, Lighthouse, performance analysis
 
 - **ACCESSIBILITY_MODULES.md**
-  - WCAG 2.2 compliance, color contrast, screen reader support
+  - WCAG 2.2 AA criteria (subset, evaluated via Lighthouse), color contrast, screen reader support
 
 - **SEO_MODULES.md**
   - Meta tags, structured data, crawlability, mobile SEO

@@ -24,13 +24,12 @@ const TRUST_ITEMS = [
 
 const HERO_FINDINGS = [
   { status: 'Protected', title: 'Stripe account secured', sub: 'Secret key removed from JS bundle' },
-  { status: 'Protected', title: 'Security headers hardened', sub: 'Enterprise-grade protection enabled' },
-  { status: 'Confirmed', title: 'GDPR compliance verified', sub: "Your users' data is protected" },
+  { status: 'Protected', title: 'Security headers hardened', sub: 'CSP, HSTS, and X-Frame-Options in place' },
+  { status: 'Verified', title: 'TLS configuration solid', sub: 'Modern cipher suites, no mixed content' },
 ];
 
 const CATEGORIES: Array<{ label: string; color?: string; bg?: string }> = [
   { label: '🛡️ Security' },
-  { label: '⚖️ Compliance' },
   { label: '⚡ Performance' },
   { label: '♿ Accessibility' },
   { label: '🔍 SEO' },
@@ -47,7 +46,7 @@ const STEPS = [
   {
     n: '02',
     title: 'We scan 31 checks in parallel',
-    desc: 'Security headers, secrets in JS bundles, TLS configuration, GDPR & WCAG compliance, Core Web Vitals, SEO meta — all under 90 seconds.',
+    desc: 'Security headers, secrets in JS bundles, TLS configuration, accessibility (WCAG 2.2 AA criteria via Lighthouse), Core Web Vitals, SEO meta — all under 90 seconds.',
   },
   {
     n: '03',
@@ -83,12 +82,6 @@ const FEATURE_CARDS = [
     title: 'Code Scanning (CI/CD)',
     desc: 'Catch secrets before deployment with GitHub Actions, GitLab CI, or Bitbucket Pipelines integration.',
     tags: '✓ GitHub  ✓ GitLab  ✓ Bitbucket  ✓ PR comments',
-  },
-  {
-    emoji: '⚖️',
-    title: 'Compliance Checks',
-    desc: 'GDPR, WCAG 2.2 Level AA, cookie consent, privacy policy detection — stay legally compliant.',
-    tags: '✓ GDPR  ✓ WCAG 2.2 AA  ✓ Cookie consent',
   },
   {
     emoji: '⚡',
@@ -156,7 +149,7 @@ const FAQS = [
   },
   {
     q: 'How is this different from Lighthouse or Snyk?',
-    a: 'Lighthouse only measures performance and surface-level SEO. Snyk needs your source code and focuses on dependencies. VibeSafe runs against your live URL, covers security + compliance + performance + a11y + SEO in one report, and writes the fix for you. Think of it as Lighthouse + OWASP ZAP + Gitleaks + a developer-grade AI assistant, in a 90-second pass.',
+    a: 'Lighthouse only measures performance and surface-level SEO. Snyk needs your source code and focuses on dependencies. VibeSafe runs against your live URL, covers security + performance + accessibility + SEO in one report, and writes the fix for you. Think of it as Lighthouse + OWASP ZAP + Gitleaks + a developer-grade AI assistant, in a 90-second pass.',
   },
   {
     q: 'Do credits expire?',
