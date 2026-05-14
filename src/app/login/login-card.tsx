@@ -137,7 +137,7 @@ export function LoginCard() {
         : 0;
 
     const popupCallback = `${window.location.origin}/auth/popup-callback`;
-    const signInUrl = `/api/auth/signin/github?callbackUrl=${encodeURIComponent(popupCallback)}`;
+    const signInUrl = `/auth/popup-start?provider=github&callbackUrl=${encodeURIComponent(popupCallback)}`;
 
     const popup = window.open(
       signInUrl,

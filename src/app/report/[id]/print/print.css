@@ -80,12 +80,15 @@
   padding: 18mm 16mm 22mm;
   position: relative;
   box-shadow: 0 4px 24px rgba(15, 23, 42, 0.10);
-  page-break-after: always;
-  break-after: page;
 }
-[data-print-doc] .page:last-of-type {
-  page-break-after: auto;
-  break-after: auto;
+
+/* Every page after the first starts on a new physical sheet when printing.
+   Using break-before on the next page instead of break-after on the current
+   one avoids Chrome inserting an extra blank sheet when content fits exactly
+   to the A4 boundary. */
+[data-print-doc] .page + .page {
+  page-break-before: always;
+  break-before: page;
 }
 
 /* Running header / footer */
@@ -763,6 +766,7 @@
   }
   [data-print-doc] .page {
     margin: 0;
+    min-height: 0;
     box-shadow: none;
   }
   [data-print-doc] .print-cta { display: none; }
