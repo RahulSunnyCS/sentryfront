@@ -1,10 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { IconShield } from '@/components/icons';
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: { credential: string }) => void;
+            auto_select?: boolean;
+            cancel_on_tap_outside?: boolean;
+          }) => void;
+          prompt: () => void;
+          renderButton: (
+            parent: HTMLElement,
+            options: {
+              type?: 'standard' | 'icon';
+              theme?: 'outline' | 'filled_blue' | 'filled_black';
+              size?: 'small' | 'medium' | 'large';
+              text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
+              shape?: 'rectangular' | 'pill' | 'circle' | 'square';
+              logo_alignment?: 'left' | 'center';
+              width?: number | string;
+            },
+          ) => void;
+          disableAutoSelect: () => void;
+        };
+      };
+    };
+  }
+}
+
+const GOOGLE_CLIENT_ID_FROM_ENV = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
 function sanitizeCallback(raw: string | null): string {
   if (!raw) return '/dashboard';
@@ -13,28 +46,145 @@ function sanitizeCallback(raw: string | null): string {
   return raw;
 }
 
-export function LoginCard() {
+export function LoginCard({ googleClientId }: { googleClientId?: string }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = sanitizeCallback(
     searchParams?.get('callbackUrl') ?? searchParams?.get('next') ?? null,
   );
 
+  // Prefer the value passed in from the server (read from GOOGLE_CLIENT_ID);
+  // fall back to NEXT_PUBLIC_GOOGLE_CLIENT_ID for older deployments that
+  // already set it.
+  const clientId = googleClientId || GOOGLE_CLIENT_ID_FROM_ENV;
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState<null | 'github' | 'google' | 'email'>(null);
   const [error, setError] = useState<string | null>(null);
+  const googleBtnRef = useRef<HTMLDivElement | null>(null);
 
-  const handleOAuth = async (provider: 'github' | 'google') => {
+  // ── Google One Tap ────────────────────────────────────────────────────────
+  const handleGoogleCredential = useCallback(
+    async (response: { credential: string }) => {
+      setError(null);
+      setLoading('google');
+      try {
+        const res = await fetch('/api/auth/google-one-tap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({ error: 'Sign-in failed' }));
+          throw new Error(body.error || 'Sign-in failed');
+        }
+        router.push(callbackUrl);
+        router.refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Sign-in failed');
+        setLoading(null);
+      }
+    },
+    [callbackUrl, router],
+  );
+
+  useEffect(() => {
+    if (!clientId) return;
+
+    let cancelled = false;
+    const interval = setInterval(() => {
+      if (cancelled) return;
+      if (!window.google?.accounts?.id) return;
+
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleCredential,
+        cancel_on_tap_outside: true,
+      });
+
+      if (googleBtnRef.current) {
+        googleBtnRef.current.innerHTML = '';
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          text: 'continue_with',
+          shape: 'rectangular',
+          logo_alignment: 'left',
+          width: googleBtnRef.current.offsetWidth || 360,
+        });
+      }
+
+      window.google.accounts.id.prompt();
+      clearInterval(interval);
+    }, 200);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [handleGoogleCredential, clientId]);
+
+  // ── GitHub popup ──────────────────────────────────────────────────────────
+  const handleGithubPopup = () => {
     setError(null);
-    setLoading(provider);
-    try {
-      await signIn(provider, { callbackUrl });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Sign-in failed');
-      setLoading(null);
+
+    const width = 520;
+    const height = 640;
+    const left =
+      typeof window !== 'undefined'
+        ? Math.max(0, window.screenX + (window.outerWidth - width) / 2)
+        : 0;
+    const top =
+      typeof window !== 'undefined'
+        ? Math.max(0, window.screenY + (window.outerHeight - height) / 2)
+        : 0;
+
+    const popupCallback = `${window.location.origin}/auth/popup-callback`;
+    const signInUrl = `/auth/popup-start?provider=github&callbackUrl=${encodeURIComponent(popupCallback)}`;
+
+    const popup = window.open(
+      signInUrl,
+      'github-oauth',
+      `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
+    );
+
+    if (!popup) {
+      // Popup blocked — fall back to full-page redirect.
+      signIn('github', { callbackUrl });
+      return;
     }
+
+    setLoading('github');
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if ((event.data as { type?: string } | null)?.type !== 'oauth-complete') return;
+
+      window.removeEventListener('message', onMessage);
+      clearInterval(closeWatcher);
+      try {
+        popup.close();
+      } catch {
+        // ignore
+      }
+      router.push(callbackUrl);
+      router.refresh();
+    };
+    window.addEventListener('message', onMessage);
+
+    // Detect user closing the popup manually
+    const closeWatcher = setInterval(() => {
+      if (popup.closed) {
+        window.removeEventListener('message', onMessage);
+        clearInterval(closeWatcher);
+        setLoading(null);
+      }
+    }, 500);
   };
 
+  // ── Email/password (unchanged) ────────────────────────────────────────────
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -85,8 +235,28 @@ export function LoginCard() {
 
       {/* OAuth */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
-        <OAuthButton provider="github" loading={loading === 'github'} disabled={loading !== null} onClick={() => handleOAuth('github')} />
-        <OAuthButton provider="google" loading={loading === 'google'} disabled={loading !== null} onClick={() => handleOAuth('google')} />
+        <GithubButton
+          loading={loading === 'github'}
+          disabled={loading !== null}
+          onClick={handleGithubPopup}
+        />
+        {clientId ? (
+          <div
+            ref={googleBtnRef}
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              minHeight: 44,
+            }}
+            aria-label="Continue with Google"
+          />
+        ) : (
+          <FallbackGoogleButton
+            loading={loading === 'google'}
+            disabled={loading !== null}
+            onClick={() => signIn('google', { callbackUrl })}
+          />
+        )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', margin: 'var(--space-6) 0' }}>
@@ -195,39 +365,65 @@ const labelCss: React.CSSProperties = {
   marginBottom: 'var(--space-2)',
 };
 
-function OAuthButton({
-  provider,
+function GithubButton({
   loading,
   disabled,
   onClick,
 }: {
-  provider: 'github' | 'google';
   loading: boolean;
   disabled: boolean;
   onClick: () => void;
 }) {
-  const isGithub = provider === 'github';
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       className="btn-secondary"
-      style={{ width: '100%', justifyContent: 'center', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled && !loading ? 0.6 : 1 }}
+      style={{
+        width: '100%',
+        justifyContent: 'center',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled && !loading ? 0.6 : 1,
+      }}
     >
-      {isGithub ? (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.64.71 1.03 1.61 1.03 2.71 0 3.84-2.34 4.69-4.57 4.94.36.31.69.92.69 1.85V21c0 .27.16.59.67.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z" />
-        </svg>
-      ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
-          <path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.07H2.18A11 11 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.83z" />
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83C6.71 7.3 9.14 5.38 12 5.38z" />
-        </svg>
-      )}
-      {loading ? 'Redirecting…' : `Continue with ${isGithub ? 'GitHub' : 'Google'}`}
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.64.71 1.03 1.61 1.03 2.71 0 3.84-2.34 4.69-4.57 4.94.36.31.69.92.69 1.85V21c0 .27.16.59.67.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z" />
+      </svg>
+      {loading ? 'Signing in…' : 'Continue with GitHub'}
+    </button>
+  );
+}
+
+function FallbackGoogleButton({
+  loading,
+  disabled,
+  onClick,
+}: {
+  loading: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="btn-secondary"
+      style={{
+        width: '100%',
+        justifyContent: 'center',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled && !loading ? 0.6 : 1,
+      }}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
+        <path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.07H2.18A11 11 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.83z" />
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83C6.71 7.3 9.14 5.38 12 5.38z" />
+      </svg>
+      {loading ? 'Redirecting…' : 'Continue with Google'}
     </button>
   );
 }

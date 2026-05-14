@@ -9,69 +9,45 @@ interface Props {
 
 export function PdfExportButton({ scanId }: Props) {
   const pdfEnabled = useFeature('pdfExport');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
 
   if (!pdfEnabled) {
-    return null; // Hide button if PDF export is disabled
+    return null;
   }
 
-  const handleExport = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`/api/v1/scans/${scanId}/pdf`, {
-        method: 'GET', // Changed from POST to GET
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'PDF generation failed' }));
-        throw new Error(body.error || 'PDF generation failed');
-      }
-
-      // Download PDF directly (it's a blob/buffer response)
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `vibesafe-report-${scanId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
+  const handleClick = () => {
+    setOpening(true);
+    const url = `/report/${scanId}/print?print=auto`;
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      // Popup blocked — fall back to navigating the current tab.
+      window.location.href = url;
+      return;
     }
+    // Reset the button quickly so users can re-open if they accidentally close
+    // the new tab.
+    window.setTimeout(() => setOpening(false), 600);
   };
 
   return (
-    <div>
-      <button
-        onClick={handleExport}
-        disabled={loading}
-        style={{
-          padding: '8px 16px',
-          borderRadius: 8,
-          border: '1px solid var(--border)',
-          backgroundColor: loading ? 'var(--surface)' : 'var(--accent)',
-          color: loading ? 'var(--text-secondary)' : '#fff',
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: loading ? 'not-allowed' : 'pointer',
-          transition: 'all 0.15s',
-        }}
-      >
-        {loading ? 'Generating PDF...' : '📄 Download PDF'}
-      </button>
-
-      {error && (
-        <p style={{ fontSize: 12, color: '#e53e3e', marginTop: 8 }}>
-          {error}
-        </p>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={opening}
+      className="no-print"
+      style={{
+        padding: '8px 16px',
+        borderRadius: 8,
+        border: '1px solid var(--border)',
+        backgroundColor: opening ? 'var(--surface)' : 'var(--accent)',
+        color: opening ? 'var(--text-secondary)' : '#fff',
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: opening ? 'not-allowed' : 'pointer',
+        transition: 'all 0.15s',
+      }}
+    >
+      {opening ? 'Opening…' : '📄 Download PDF'}
+    </button>
   );
 }

@@ -1,6 +1,6 @@
 /**
  * NextAuth Configuration
- * 
+ *
  * Handles authentication with GitHub and Google OAuth providers.
  * Only active when AUTH_ENABLED=true and AUTH_PROVIDER=nextauth.
  */
@@ -20,7 +20,7 @@ interface ExtendedUser {
 
 export const nextAuthConfig: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
-  
+
   providers: [
     GitHubProvider({
       clientId: authConfig.nextauth.github.id,
@@ -47,12 +47,6 @@ export const nextAuthConfig: NextAuthOptions = {
       return session;
     },
   },
-
-  // Use NextAuth's default sign-in page (remove custom pages for now)
-  // pages: {
-  //   signIn: '/auth/signin',
-  //   error: '/auth/error',
-  // },
 
   session: {
     strategy: 'database',
