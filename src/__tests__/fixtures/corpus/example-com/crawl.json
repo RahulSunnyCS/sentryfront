@@ -1,0 +1,25 @@
+{
+  "finalUrl": "https://example.com/",
+  "statusCode": 200,
+  "headers": {
+    "age": "11302",
+    "allow": "GET, HEAD",
+    "cf-cache-status": "HIT",
+    "cf-ray": "9fbb5bb9b8587ef2-MAA",
+    "connection": "keep-alive",
+    "content-encoding": "br",
+    "content-type": "text/html",
+    "date": "Thu, 14 May 2026 16:42:49 GMT",
+    "last-modified": "Thu, 14 May 2026 05:30:09 GMT",
+    "server": "cloudflare",
+    "transfer-encoding": "chunked"
+  },
+  "cookies": [],
+  "jsBundleUrls": [],
+  "inlineScriptContent": "",
+  "html": "<!doctype html><html lang=\"en\"><head><title>Example Domain</title><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style>body{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}</style></head><body><div><h1>Example Domain</h1><p>This domain is for use in documentation examples without needing permission. Avoid use in operations.</p><p><a href=\"https://iana.org/domains/example\">Learn more</a></p></div></body></html>\n",
+  "tls": null,
+  "stack": "Cloudflare Pages",
+  "cleanedHtml": "<!doctype html><html lang=\"en\"><head><title>Example Domain</title><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style></style></head><body><div><h1>Example Domain</h1><p>This domain is for use in documentation examples without needing permission. Avoid use in operations.</p><p><a href=\"https://iana.org/domains/example\">Learn more</a></p></div></body></html>\n",
+  "renderMode": "fetch-only"
+}

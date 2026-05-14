@@ -1,0 +1,93 @@
+{
+  "grade": "F",
+  "score": 193,
+  "findingsCount": 14,
+  "moduleFindingCounts": {
+    "P1-01": 0,
+    "P1-02": 0,
+    "P1-03": 6,
+    "P1-04": 0,
+    "P1-05": 0,
+    "P1-06": 8,
+    "P1-07": 0,
+    "P1-08": 0,
+    "P1-09": 0,
+    "P1-12": 0,
+    "P1-13": 0,
+    "P1-14": 0,
+    "P1-15": 0,
+    "P1-16": 0
+  },
+  "findings": [
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "title": "Missing Permissions-Policy header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "title": "Missing Referrer-Policy header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "LOW",
+      "title": "Missing X-Content-Type-Options header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "LOW",
+      "title": "Missing X-Frame-Options header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "MEDIUM",
+      "title": "Missing Content-Security-Policy (CSP) header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "MEDIUM",
+      "title": "Missing Strict-Transport-Security (HSTS) header"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "title": "Sensitive file publicly accessible: /.git/config"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "title": "Sensitive file publicly accessible: /.git/HEAD"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "title": "Sensitive file publicly accessible: /backup.sql"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "title": "Sensitive file publicly accessible: /backup.zip"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "title": "Sensitive file publicly accessible: /database.sql"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "title": "Sensitive file publicly accessible: /db.sqlite"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "title": "Sensitive file publicly accessible: /dump.sql"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "HIGH",
+      "title": "31 sensitive paths returned non-404 responses"
+    }
+  ]
+}

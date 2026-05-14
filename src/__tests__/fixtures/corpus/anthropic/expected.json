@@ -1,0 +1,93 @@
+{
+  "grade": "F",
+  "score": 107,
+  "findingsCount": 14,
+  "moduleFindingCounts": {
+    "P1-01": 1,
+    "P1-02": 1,
+    "P1-03": 4,
+    "P1-04": 0,
+    "P1-05": 0,
+    "P1-06": 4,
+    "P1-07": 0,
+    "P1-08": 0,
+    "P1-09": 1,
+    "P1-12": 0,
+    "P1-13": 1,
+    "P1-14": 1,
+    "P1-15": 1,
+    "P1-16": 0
+  },
+  "findings": [
+    {
+      "moduleId": "P1-01",
+      "severity": "MEDIUM",
+      "title": "High-entropy string detected — possible secret"
+    },
+    {
+      "moduleId": "P1-02",
+      "severity": "HIGH",
+      "title": "Production sourcemaps expose full source code (1 file)"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "title": "Missing Permissions-Policy header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "title": "Missing Referrer-Policy header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "LOW",
+      "title": "Missing X-Content-Type-Options header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "LOW",
+      "title": "Missing X-Frame-Options header"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "title": "Sensitive file publicly accessible: /.env"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "title": "Sensitive file publicly accessible: /.git/config"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "title": "Sensitive file publicly accessible: /.git/HEAD"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "HIGH",
+      "title": "4 sensitive paths returned non-404 responses"
+    },
+    {
+      "moduleId": "P1-09",
+      "severity": "MEDIUM",
+      "title": "4 unrecognized third-party script domains"
+    },
+    {
+      "moduleId": "P1-13",
+      "severity": "INFO",
+      "title": "security.txt present accessible without authentication"
+    },
+    {
+      "moduleId": "P1-14",
+      "severity": "LOW",
+      "title": "sitemap.xml includes 2 potentially sensitive paths"
+    },
+    {
+      "moduleId": "P1-15",
+      "severity": "MEDIUM",
+      "title": "No Cache-Control header on authenticated response"
+    }
+  ]
+}

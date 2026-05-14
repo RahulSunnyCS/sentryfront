@@ -1,0 +1,53 @@
+{
+  "grade": "C",
+  "score": 8,
+  "findingsCount": 6,
+  "moduleFindingCounts": {
+    "P1-01": 0,
+    "P1-02": 0,
+    "P1-03": 6,
+    "P1-04": 0,
+    "P1-05": 0,
+    "P1-06": 0,
+    "P1-07": 0,
+    "P1-08": 0,
+    "P1-09": 0,
+    "P1-12": 0,
+    "P1-13": 0,
+    "P1-14": 0,
+    "P1-15": 0,
+    "P1-16": 0
+  },
+  "findings": [
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "title": "Missing Permissions-Policy header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "title": "Missing Referrer-Policy header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "LOW",
+      "title": "Missing X-Content-Type-Options header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "LOW",
+      "title": "Missing X-Frame-Options header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "MEDIUM",
+      "title": "Missing Content-Security-Policy (CSP) header"
+    },
+    {
+      "moduleId": "P1-03",
+      "severity": "MEDIUM",
+      "title": "Missing Strict-Transport-Security (HSTS) header"
+    }
+  ]
+}

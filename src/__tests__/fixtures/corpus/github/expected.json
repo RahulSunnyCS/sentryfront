@@ -1,0 +1,58 @@
+{
+  "grade": "D",
+  "score": 29,
+  "findingsCount": 7,
+  "moduleFindingCounts": {
+    "P1-01": 0,
+    "P1-02": 0,
+    "P1-03": 1,
+    "P1-04": 0,
+    "P1-05": 0,
+    "P1-06": 1,
+    "P1-07": 0,
+    "P1-08": 0,
+    "P1-09": 1,
+    "P1-12": 0,
+    "P1-13": 4,
+    "P1-14": 0,
+    "P1-15": 0,
+    "P1-16": 0
+  },
+  "findings": [
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "title": "Missing Permissions-Policy header"
+    },
+    {
+      "moduleId": "P1-06",
+      "severity": "HIGH",
+      "title": "18 sensitive paths returned non-404 responses"
+    },
+    {
+      "moduleId": "P1-09",
+      "severity": "MEDIUM",
+      "title": "1 unrecognized third-party script domain"
+    },
+    {
+      "moduleId": "P1-13",
+      "severity": "HIGH",
+      "title": "Spring Boot Actuator accessible without authentication"
+    },
+    {
+      "moduleId": "P1-13",
+      "severity": "INFO",
+      "title": "security.txt present accessible without authentication"
+    },
+    {
+      "moduleId": "P1-13",
+      "severity": "MEDIUM",
+      "title": "Swagger UI (API documentation exposed) accessible without authentication"
+    },
+    {
+      "moduleId": "P1-13",
+      "severity": "MEDIUM",
+      "title": "Swagger UI accessible without authentication"
+    }
+  ]
+}

@@ -1,0 +1,893 @@
+[
+  {
+    "url": "https://xss-game.appspot.com/",
+    "status": 200,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "cache-control": "no-cache",
+      "content-length": "3080",
+      "content-type": "text/html; charset=utf-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "d4ceb753cc1e6332aad8a662f344561b"
+    },
+    "body": "<!doctype html>\n<html>\n  <head>\n\n    <link  type=\"text/css\" rel=\"stylesheet\" href=\"/static/game.css\" />\n    <script src=\"/static/game.js\"></script>\n    <title>XSS game</title>\n\n  </head>\n  <body>\n    <h1 id=\"level-title\">Warning: You are entering the XSS game area</h1>\n\n    <div id=\"instructions\">\n\n    <h2>Welcome, recruit!</h2>\n    <a href=\"//www.google.com/about/appsecurity/learning/xss/index.html\">Cross-site\n      scripting</a> (XSS) bugs are one of the most common and dangerous types\n    of vulnerabilities in Web applications. These nasty buggers can allow your\n    enemies to steal or modify user data in your apps and you must learn to\n    dispatch them, pronto! \n\n    <br><br>\n    At Google, we know very well how important these bugs are. In fact, Google is so \n    serious about finding and fixing XSS issues that <a\n      href=\"//www.google.com/about/appsecurity/reward-program/index.html#rewards\"\n    >we are paying mercenaries up to $7,500</a> for dangerous XSS \n    bugs discovered in our most sensitive products.\n\n    <br><br>\n    In this training program, you will learn to find and exploit XSS bugs. You'll use\n    this knowledge to confuse and infuriate your adversaries by preventing such\n    bugs from happening in your applications.\n\n    <br><br>\n    There will be cake at the end of the test.\n    <br><br>\n\n     \n      <a class=\"next-button\" href=\"/level1\">Let me at 'em!</a>\n    \n    <br>\n    <h4><a href=\"#\" onclick=\"this.style.display = 'none'; document.getElementById('intro-faq').style.display='block'; return false\">?</a></h4>\n    <div id=\"intro-faq\" style=\"display: none\">\n      <h4>What's this all about?</h4>\n      This security game consists of several levels resembling real-world applications\nwhich are vulnerable to XSS - your task will be to find the problem and attack\nthe apps, similar to what an evil hacker might do.\n      <br><br>\n      XSS bugs are common because they have a nasty habit of popping up wherever a webapp\n      deals with untrusted input. Our motivation is to highlight common coding patterns\n      which lead to XSS to help you spot them in your code.\n\n      <h4>Who can play?</h4>\n      The game is designed primarily for developers working on Web\napplications who do not specialize in security. If you're a connoisseur of\nonline hacking challenges you'll find the first few levels quite easy, but\nyou just might learn something useful along the way.\n      <br><br>\n      You'll need a modern browser which supports Javascript and cookies.\n\n      <h4>Is it possible to cheat at this game?</h4>\n      Yes, since this is a browser-based game, you will be able to cheat by\n      messing with the page internals in developer tools or editing HTTP traffic.\n      <br><br>\n      However, we're sure that you won't have to resort to that -- there are\n      hints and source to guide you. And as your teacher once told you:\n      <i>you would only be cheating yourself</i> ;-)\n\n      <h4>How will I know when I'm done?</h4>\n      There <b>will</b> be cake at the end of the test.\n      <br><br>\n\n    </div>\n  </body>\n</html>"
+  },
+  {
+    "url": "https://crt.sh/?q=%.appspot.com&output=json",
+    "status": 502,
+    "headers": {
+      "connection": "keep-alive",
+      "content-length": "150",
+      "content-type": "text/html",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "nginx"
+    },
+    "body": "<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n<center><h1>502 Bad Gateway</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+  },
+  {
+    "url": "https://xss-game.appspot.com/static/game.js",
+    "status": 200,
+    "headers": {
+      "age": "0",
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "cache-control": "public, max-age=600",
+      "content-encoding": "gzip",
+      "content-length": "1606",
+      "content-type": "text/javascript",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "etag": "\"2q59WA\"",
+      "expires": "Thu, 14 May 2026 16:55:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "7c7464cfa946b13712ffda2cf7ddcd28"
+    },
+    "body": "var userOpenedAlert = false;\n\nfunction setInnerText(element, value) {\n  if (element.innerText) {\n    element.innerText = value;\n  } else {\n    element.textContent = value;\n  }\n}\n\nfunction levelSolved() {\n  if (!userOpenedAlert) {\n    return;\n  }\n\n  var oReq = new XMLHttpRequest();\n  oReq.onload = function () { \n    if (oReq.readyState != 4) return;\n    document.getElementById('next-controls').style.display = \"block\";\n    eval(oReq.responseText);\n  };\n  oReq.open(\"GET\", window.location.toString() + '/record', true);\n  oReq.send();\n}\n\nwindow.addEventListener(\"message\", function(event) {\n\n  if (!window.location.origin) {\n    window.location.origin = window.location.protocol + \"//\" \n        + window.location.hostname \n        + (window.location.port ? ':' + window.location.port: '');\n  }\n\n  if (event.origin == window.location.origin && event.data == \"success\") {\n    userOpenedAlert = true;\n    levelSolved();\n    return;\n  }\n\n  updateURLBar('1', event.data);\n}, false);\n\nfunction updateURLBar(frameNum, value) {\n  var urlbar = document.getElementById('input' + frameNum);\n  urlbar.value = unescape(value);\n}\n\nfunction updateFrame(frameNum, url) {\n  if (!url) {\n    var urlbar = document.getElementById('input' + frameNum); \n    url = urlbar.value;\n  };\n\n  // Make sure that the URL points to the frame of the current level\n  var frameLink = document.createElement('a');\n  frameLink.href = url;\n\n  if (!url.match(/^https?:/) ||\n      frameLink.protocol != location.protocol ||\n      frameLink.hostname != location.hostname ||\n      frameLink.pathname.replace(/^\\//, '').search(location.pathname.replace(/^\\//, '')) != 0 ||\n      frameLink.pathname.search('(\\\\.|%2[eE])(\\\\.|%2[eE])') >= 0) {\n        alert(\"Sorry, I can't navigate the frame to that URL.\");\n    return;\n  } else {\n    var frame = document.querySelector('iframe');\n    frame.src = url; \n    frame.contentWindow.postMessage(url, \"*\");\n  }\n};\n\nfunction toggleCode() {\n  var codeFrame = document.getElementById('source-frame');\n  if (getComputedStyle(codeFrame, '').display != \"none\") {\n    codeFrame.style.display = \"none\";\n    logXHR('/code/0')\n  } else {\n    codeFrame.style.display = \"inline\";\n    logXHR('/code/1')\n  }\n\n  \n  return false;\n}\n\nfunction logXHR(path) {\n  window.location.toString().match(/level(\\d+)/);\n  var lNum = RegExp.$1 || \"0\";\n\n  var oReq = new XMLHttpRequest();\n  oReq.open(\"GET\", '/feedback/level' + lNum + path, true);\n  oReq.send();\n}\n\n\nfunction showHint() {\n  var firstHiddenHint = document.querySelector('#hints li[data-hidden]');\n  if (!firstHiddenHint)\n    return;\n\n  firstHiddenHint.style.display = \"block\";\n  firstHiddenHint.removeAttribute('data-hidden');\n  window.scroll(0, document.body.clientHeight);\n\n  var hintNumEl = document.getElementById('hint-num');\n  var hintNum = parseInt(hintNumEl.innerHTML, 10) + 1;\n  setInnerText(hintNumEl, hintNum);\n\n  logXHR('/hint/' + hintNum)\n}\n\nfunction sendFeedbackResponse(question, value) {\n\n  var oReq = new XMLHttpRequest();\n  oReq.open(\"GET\", '/feedback/' + question + '/' + value, true);\n  oReq.send();\n\n  setInnerText(document.getElementById('question-' + question), \"Thanks!\");\n\n}\n\nfunction selectFile(el, file_name) {\n  var selector_container = el.parentNode;\n  for (var i = 0; i < selector_container.children.length; i++) {\n    var child = selector_container.children[i];\n    if (child == el) {\n      child.className = child.className + \" selected\";\n    } else {\n      child.className = child.className.replace(/ selected/g, \"\");\n    }\n  }\n\n  var container = document.getElementById('multi-examples');\n  for (var i = 0; i < container.children.length; i++) {\n    var child = container.children[i];\n    if (child.id == file_name) {\n      child.className = \"selected\";\n    } else {\n      child.className = \"\";\n    }\n  }\n\n  document.getElementById(file_name).className = \"selected\";\n  logXHR(\"/file/\" + file_name);\n}\n\nfunction setInputFieldReturnHandler() {\n  var inputField = document.getElementById('input1');\n  if (!inputField) {\n    return;\n  }\n  inputField.value = document.querySelector('iframe').src;\n  inputField.onkeyup = function (e) {\n    if (e.keyCode == 13) {\n      updateFrame(1);\n      return false;\n    }\n  }\n}\n"
+  },
+  {
+    "url": "https://xss-game.appspot.com/__debug__",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "a34a6a1922d2247f5c81d0c9586ae0cf"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/static/game.js.map",
+    "status": 404,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "connection": "close",
+      "content-length": "295",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "3d54e47887e9c1133319bc475e217fef"
+    },
+    "body": ""
+  },
+  {
+    "url": "https://xss-game.appspot.com/%00",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "a4dee42b0509fb69a5ba909f5cfc6fc7"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/actuator",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "1eab2bdcb1bc76b614960934e4df3233"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/api/vibesafe-nonexistent",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "eda2934bd6b22acd6800292f2ab7db0a"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/actuator/env",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "fedffd3edab9ebdb585ef1d9205accbf"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/.well-known/security.txt",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:15 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "93258b6996e5f0cf6985b2679895d1eb"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/this-path-does-not-exist-vibesafe",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "1edf8b02cd42ca5c386c7b50ce0735f6"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/openapi.json",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "ba686d411ea4d1c605c1aec980341d19"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/api-docs",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "231f8ed04bb383e1aad8a662f34450a1"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/undefined",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "29a1f63e44bef06a8c0f5bcc9339d22d"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/swagger",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "02baa7a1f796fa9a8bc4da2ce8af3c8d"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/vibesafe-probe-nonexistent-path-check",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "8a159545664c76395b785b256b96d007"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/_profiler",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "40a7fe3e98b164434bdda547c0dc8d0e"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/robots.txt",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "765008863a905fe77caefb436e9bb691"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/actuator/health",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "e861dbd29ad620998bc4da2ce8af304f"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/phpinfo.php",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "fc3d2008cda3107e8c0f5bcc9339d6cd"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/graphql",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "29f452edc845113ca5ba909f5cfc6db1"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/sitemap.xml",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "d9dcdc2bf5b61c2286b902f788b66711"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/swagger-ui.html",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "78d74ff9b88e66a85b785b256b96dbc6"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/config.json",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "5a7750ab9ad718578c0f5bcc9339deca"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/appsettings.json",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "54c401e288ee8ade0f5b12d21a58f7e4"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/.env",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "4f2610d2899b50a612ffda2cf7ddcc9c"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/.env.production",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "bdcc592c785a0c3e386c7b50ce0732ba"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/config.php",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "54b5e5ca14ede1c0af67510ae6145f72"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/config.yaml",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "848897726b082afda5ba909f5cfc674f"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/.env.backup",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "6d4760eac9d4a5a76985b2679895d878"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/settings.json",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "5ba0fcd41d6d3f4fda981414fa2dfbde"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/config.yml",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "5188b9cf22c6574514960934e4df3565"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/.env.local",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "562d92ef04f1f1c0585ef1d9205ac599"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/graphql",
+    "status": 405,
+    "headers": {
+      "allow": "GET",
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "188",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "ae388276613c97b05b785b256b96d5fd"
+    },
+    "body": "<html>\n <head>\n  <title>405 Method Not Allowed</title>\n </head>\n <body>\n  <h1>405 Method Not Allowed</h1>\n  The method POST is not allowed for this resource. <br /><br />\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/web.config",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "f667a7dcc5af917faad8a662f34451ea"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/db.sqlite",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "5a23e4a860e0215ede6c103b7a23247f"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/dump.sql",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "9d875ba3b4a3ddb09d77b2ed8046ba3d"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/.git/HEAD",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "72ce666a2edfad755c81d0c9586ae4ab"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/database.sql",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "57abd5c4f011c9edf52872fd0c6e0e57"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/.gitignore",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "a2dbed7e9a95331865f4d6d4f30dfa12"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/backup.zip",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "6b76abf87a325003f907f7e1ba8f0433"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/.svn/entries",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "c88c5792a3b8d0cf4018e47b61c2144e"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/backup.sql",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "d7634d56db6259179f100d331674a682"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/.git/config",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:12 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "b8d8c3b58d59421c4bdda547c0dc8e1a"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/backup.tar.gz",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "4cf9ecfb644b9bc912ffda2cf7ddc783"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/admin",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "d347d4eb0cd4fecf5b785b256b96d08f"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/wp-admin",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "b93661eb3d8642788c0f5bcc9339dc8e"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/www.zip",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "0cdefb75d2529e46585ef1d9205ac8d0"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/cpanel",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "07828a13896a96aada981414fa2df3f1"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/controlpanel",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "eec2d1edf0a862b7af67510ae6145757"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/admin/login",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "3ca7569c58152f0f05c1aec9803412de"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/panel",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "2a38c209804bc67d14960934e4df3f5e"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/dashboard",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "d0a724127eaf2e16a5ba909f5cfc6494"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/administrator",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:13 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "23f46c1e8eff0d126985b2679895d9d9"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/openapi.yaml",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "9c4f98120723c35f8c0f5bcc9339d6da"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/swagger-ui",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "e6c1507283274e1f585ef1d9205ac82f"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/trace",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "09d8dc44f455d433aad8a662f344582d"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/debug",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "c65301101b35d5515b785b256b96de0b"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/install.php",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "98bb1b95bc672ea914960934e4df3933"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/server-info",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "143c925861ca243c6985b2679895d0cd"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/server-status",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "14b3657ca6c3390105c1aec980341d73"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/info.php",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "f215abc93d841efaa5ba909f5cfc62cf"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/test.php",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:14 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "d98c501c2a113dbe5c81d0c9586ae91d"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/package.json",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:15 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "14a9b98085e95a828bc4da2ce8af3548"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/Gemfile",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:15 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "0df0b3c12a8000c95b785b256b96d9f6"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/composer.json",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:15 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "c55e4a6410b8af97585ef1d9205ac4eb"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/requirements.txt",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:15 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "89932cf68b132b06aad8a662f3445270"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  },
+  {
+    "url": "https://xss-game.appspot.com/Pipfile",
+    "status": 500,
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "content-length": "228",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Thu, 14 May 2026 16:45:15 GMT",
+      "server": "Google Frontend",
+      "x-cloud-trace-context": "b03fc20613dc495505c1aec980341896"
+    },
+    "body": "<html>\n <head>\n  <title>500 Internal Server Error</title>\n </head>\n <body>\n  <h1>500 Internal Server Error</h1>\n  The server has either erred or is incapable of performing the requested operation.<br /><br />\n\n\n\n </body>\n</html>"
+  }
+]
