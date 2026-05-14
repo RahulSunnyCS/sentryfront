@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-09",
+      "severity": "INFO",
+      "titleIncludes": "known third-party script"
+    }
+  ]
+}

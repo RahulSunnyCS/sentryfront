@@ -1,0 +1,7 @@
+{
+  "finalUrl": "https://example.com",
+  "jsBundleUrls": [
+    "not-a-valid-url",
+    "https://js.stripe.com/v3/"
+  ]
+}

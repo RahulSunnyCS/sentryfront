@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "cache-control": "private, max-age=600"
+  },
+  "cookies": [
+    {
+      "name": "session",
+      "value": "abc",
+      "secure": true,
+      "httpOnly": true,
+      "sameSite": "Lax",
+      "domain": "example.com",
+      "path": "/"
+    }
+  ]
+}

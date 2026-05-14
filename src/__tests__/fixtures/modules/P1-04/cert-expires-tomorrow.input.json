@@ -1,0 +1,11 @@
+{
+  "finalUrl": "https://example.com",
+  "tls": {
+    "valid": true,
+    "protocol": "TLSv1.3",
+    "expiresAt": "2030-01-02T00:00:00.000Z",
+    "daysUntilExpiry": 1,
+    "issuer": "Let's Encrypt",
+    "subject": "example.com"
+  }
+}

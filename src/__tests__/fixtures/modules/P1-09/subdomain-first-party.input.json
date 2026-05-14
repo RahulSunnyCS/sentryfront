@@ -1,0 +1,6 @@
+{
+  "finalUrl": "https://app.example.com",
+  "jsBundleUrls": [
+    "https://app.example.com/static/app.js"
+  ]
+}

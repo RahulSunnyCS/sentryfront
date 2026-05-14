@@ -128,6 +128,10 @@ export function buildCrawl(inputs: FixtureCase['inputs']): CrawlResult {
   if (inputs.html) {
     crawl.html = inputs.html;
   }
+  // JSON has no Date type — coerce known Date fields after merging.
+  if (crawl.tls && typeof crawl.tls.expiresAt === 'string') {
+    crawl.tls.expiresAt = new Date(crawl.tls.expiresAt);
+  }
   return crawl;
 }
 

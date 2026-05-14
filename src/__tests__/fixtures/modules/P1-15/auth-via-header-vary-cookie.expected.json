@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-15",
+      "severity": "MEDIUM",
+      "titleIncludes": "may be cached by intermediaries"
+    }
+  ]
+}
