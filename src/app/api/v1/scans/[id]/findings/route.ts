@@ -4,7 +4,7 @@ import { getCurrentUser, isAuthEnabled } from '@/lib/auth/helpers';
 import { canViewScan } from '@/lib/report-access';
 import { applyTierGating } from '@/lib/tier-gating';
 import { logger } from '@/lib/logger';
-import type { Severity } from '@/types';
+import type { Severity, FindingDispositionValue } from '@/types';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   logger.setScanScope(params.id);
@@ -33,6 +33,24 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Scan is not yet complete.' }, { status: 409 });
   }
 
+  // Phase 3.7: fold each user's latest disposition per finding onto the payload
+  // so the report view can render the action-button state without N round-trips.
+  // One findMany ordered desc → reduce to Map<findingId, latestDisposition>.
+  let dispositionByFindingId: Map<string, FindingDispositionValue> | null = null;
+  if (user) {
+    const rows = await prisma.findingDisposition.findMany({
+      where: { scanId: params.id, userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      select: { findingId: true, disposition: true },
+    });
+    dispositionByFindingId = new Map();
+    for (const row of rows) {
+      if (!dispositionByFindingId.has(row.findingId)) {
+        dispositionByFindingId.set(row.findingId, row.disposition as FindingDispositionValue);
+      }
+    }
+  }
+
   // Map findings to response format
   const findings = scan.findings.map((f) => ({
     id: f.id,
@@ -46,6 +64,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     impact: f.impact,
     fixManual: JSON.parse(f.fixManual) as string[],
     fixAiPrompt: f.fixAiPrompt,
+    confidence: (f as { confidence?: string | null }).confidence ?? null,
+    currentDisposition: dispositionByFindingId?.get(f.id) ?? null,
   }));
 
   const tier = user?.tier || scan.tier || 'free';

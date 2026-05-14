@@ -20,8 +20,17 @@ vi.mock('@/lib/prisma', () => ({
     finding: {
       create: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       createMany: vi.fn(),
       delete: vi.fn(),
+    },
+    findingDisposition: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      groupBy: vi.fn(),
+      count: vi.fn(),
+      deleteMany: vi.fn(),
     },
     scanEvent: {
       create: vi.fn(),
@@ -98,6 +107,10 @@ vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
   captureMessage: vi.fn(),
   withSentryConfig: (config: any) => config,
+  setTag: vi.fn(),
+  setUser: vi.fn(),
+  setContext: vi.fn(),
+  addBreadcrumb: vi.fn(),
 }));
 
 // Mock NextAuth

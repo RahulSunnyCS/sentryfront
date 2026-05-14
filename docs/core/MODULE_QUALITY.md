@@ -8,6 +8,20 @@ Living record of FP closures, regression nets, and measured FP rates per scanner
 - Once Phase 3.7 telemetry ships, each module gets a numeric FP rate alongside its qualitative entries.
 - Modules without entries here have not had targeted FP work yet.
 
+## Recall floor (Phase 3.7)
+
+The numeric FP rates in the auto-generated section below are observation-only. Any PR that tunes a module in response to FP telemetry MUST run the Phase 3.6 corpus (`yarn corpus` / CI job `Run scan-quality corpus (Phase 3.6 replay)`) and show **zero regressions in true-positive count for that module** before merging. Reducing FPs cannot come at the cost of missing real threats.
+
+## Auto-generated FP rates
+
+Refreshed daily at 09:00 UTC by `/api/cron/aggregate-fp-rates`. The Vercel filesystem is read-only at runtime, so production runs return JSON only; the markdown below is committed by a CI runner that mirrors the cron with `FP_RATES_WRITE_LOCAL=1`.
+
+<!-- BEGIN AUTO-FP-RATES -->
+
+_No dispositions recorded yet._
+
+<!-- END AUTO-FP-RATES -->
+
 ---
 
 ## P1-08 — Mixed Content

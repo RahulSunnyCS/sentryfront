@@ -5,6 +5,8 @@
     { "moduleId": "P1-03", "titleIncludes": "X-Frame-Options" },
     { "moduleId": "P1-03", "titleIncludes": "X-Content-Type-Options" },
     { "moduleId": "P1-03", "titleIncludes": "Referrer-Policy" },
-    { "moduleId": "P1-03", "titleIncludes": "Permissions-Policy" }
+    { "moduleId": "P1-03", "titleIncludes": "Permissions-Policy" },
+    { "moduleId": "P1-03", "titleIncludes": "Cross-Origin-Opener-Policy" },
+    { "moduleId": "P1-03", "titleIncludes": "Cross-Origin-Embedder-Policy" }
   ]
 }

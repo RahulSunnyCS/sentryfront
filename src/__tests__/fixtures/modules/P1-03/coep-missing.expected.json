@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "titleIncludes": "Missing Cross-Origin-Embedder-Policy"
+    }
+  ]
+}

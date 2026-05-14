@@ -22,6 +22,7 @@ const defaultFeatures = {
   tierGating: true,
   headlessCrawl: true,
   exploitIntelSeverity: true,
+  headerCoverageChecks: true,
 };
 
 // Parse FEATURES env variable (JSON object)
@@ -69,6 +70,11 @@ export const features = {
 
   /** Phase 3.3: KEV + EPSS exploit-intel severity tiering for client-side CVE findings. */
   exploitIntelSeverity: customFeatures.exploitIntelSeverity ?? defaultFeatures.exploitIntelSeverity,
+
+  /** Phase 3.8: coverage-gap header checks — SRI on external scripts, COOP/COEP presence,
+   *  Permissions-Policy + Referrer-Policy value sanity. CSP/HSTS/XFO/XCTO presence checks
+   *  always run regardless of this flag. */
+  headerCoverageChecks: customFeatures.headerCoverageChecks ?? defaultFeatures.headerCoverageChecks,
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────

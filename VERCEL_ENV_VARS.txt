@@ -85,4 +85,16 @@ IMPORTANT NOTES:
    - GitHub: https://your-app.vercel.app/api/auth/callback/github
    - Google: https://your-app.vercel.app/api/auth/callback/google
 
+PHASE 3.7 - FP-rate telemetry
+-----------------------------
+CRON_SECRET=<random-string>
+   Required in production. Vercel cron sends `Authorization: Bearer ${CRON_SECRET}`
+   to /api/cron/aggregate-fp-rates. In non-prod, leaving this unset disables
+   the auth check so local curl works.
+
+FP_RATES_WRITE_LOCAL=1
+   Set ONLY on a CI runner that mirrors the daily cron and commits the
+   updated `docs/core/MODULE_QUALITY.md`. Do NOT set on Vercel - the runtime
+   filesystem is read-only, so production runs always return JSON only.
+
 ===========================================

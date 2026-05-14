@@ -71,7 +71,7 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
   const [error, setError] = useState<string | null>(null);
 
   const handleScan = async () => {
-    const target = url.trim() || 'taskflow.app';
+    const target = url.trim() || 'example.com';
     setError(null);
     setLoading(true);
     try {

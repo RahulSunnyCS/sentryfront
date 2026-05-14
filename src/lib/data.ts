@@ -50,7 +50,7 @@ export const SEVERITY_CONFIG = {
 
 export const BAD_SCAN: ScanData = {
   id: 'demo-bad',
-  url: 'taskflow.app',
+  url: 'example.com',
   grade: 'D',
   score: 48,
   stack: 'Next.js on Vercel',
@@ -176,7 +176,7 @@ export const BAD_SCAN: ScanData = {
       id: 'f9', module: 'P1-08', category: 'Mixed Content', severity: 'MEDIUM',
       title: 'Insecure resources loaded on checkout page',
       location: '/checkout — 2 HTTP resources',
-      evidence: '<img src="http://cdn.taskflow.app/badge.png">\n<script src="http://analytics.taskflow.app/track.js">',
+      evidence: '<img src="http://cdn.example.com/badge.png">\n<script src="http://analytics.example.com/track.js">',
       explanation: 'Your checkout page loads resources over unencrypted HTTP. This is especially concerning on a payment page.',
       impact: 'A man-in-the-middle could replace the insecure script with malicious code to steal payment info.',
       fixManual: [

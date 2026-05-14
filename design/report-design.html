@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VibeSafe Report · taskflow.app · May 14, 2026</title>
+  <title>VibeSafe Report · example.com · May 14, 2026</title>
   <style>
     /* ───────────────────────────────────────────────────────────
        Design tokens (light — PDFs default to paper)
@@ -709,7 +709,7 @@
 
       <div class="cover-subject">
         <div>
-          <div class="url">taskflow.app</div>
+          <div class="url">example.com</div>
           <div class="url-note">Unauthenticated scope · public surface · 1 origin</div>
         </div>
         <div class="grade-ring" aria-label="Overall grade C, 71 out of 100">
@@ -763,7 +763,7 @@
        ════════════════════════════════════════════════════════════ -->
   <section class="page" aria-label="Executive summary">
     <header class="running-header">
-      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · example.com</span>
       <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
     </header>
 
@@ -775,7 +775,7 @@
       </div>
 
       <p class="lede">
-        taskflow.app earned an overall grade of <strong>C (71/100)</strong>. No
+        example.com earned an overall grade of <strong>C (71/100)</strong>. No
         critical issues were found, but several medium-severity gaps weaken the
         site's defense-in-depth posture and one high-severity cookie misconfiguration
         risks session theft on non-HTTPS networks.
@@ -848,7 +848,7 @@
       <div class="callout">
         <strong>What this report covers and what it doesn't.</strong>
         VibeSafe tested only what an anonymous visitor can reach: the public,
-        unauthenticated surface of taskflow.app. Authenticated routes, admin
+        unauthenticated surface of example.com. Authenticated routes, admin
         flows, and post-login state weren't probed. Source code, dependency
         SBOMs, and live exploit verification are out of scope for a passive
         scan — see <em>Recommended next steps</em>.
@@ -867,7 +867,7 @@
        ════════════════════════════════════════════════════════════ -->
   <section class="page" aria-label="Scope and methodology">
     <header class="running-header">
-      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · example.com</span>
       <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
     </header>
 
@@ -884,7 +884,7 @@
       </p>
 
       <div class="kv-grid">
-        <div class="kv"><span class="k">Target URL</span><span class="v"><code>https://taskflow.app</code></span></div>
+        <div class="kv"><span class="k">Target URL</span><span class="v"><code>https://example.com</code></span></div>
         <div class="kv"><span class="k">Resolved IP</span><span class="v"><code>76.76.21.21</code> (Vercel)</span></div>
         <div class="kv"><span class="k">Detected stack</span><span class="v">Next.js 14 · React 18 · Stripe · Sentry</span></div>
         <div class="kv"><span class="k">TLS</span><span class="v">TLS 1.3 · Let's Encrypt · valid 71 days</span></div>
@@ -922,7 +922,7 @@
         <strong>Reproducibility.</strong> Each finding's <em>Evidence</em> block contains the raw
         request/response excerpt that triggered the detection. To rerun the
         scan locally, install the VibeSafe CLI and run
-        <code>vibesafe scan https://taskflow.app --modules all</code>. Module IDs
+        <code>vibesafe scan https://example.com --modules all</code>. Module IDs
         (e.g. <code>S2-04</code>) map to the source files in
         <code>src/lib/scanner/modules/</code>.
       </div>
@@ -940,7 +940,7 @@
        ════════════════════════════════════════════════════════════ -->
   <section class="page" aria-label="Priority findings">
     <header class="running-header">
-      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · example.com</span>
       <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
     </header>
 
@@ -1003,7 +1003,7 @@ set-cookie: sid=ey8nQ...; Path=/; HttpOnly; SameSite=Lax
             compromised third-party tag. A CSP turns successful XSS attempts
             into harmless console warnings.</p>
           <h5>Evidence</h5>
-          <pre class="evidence">curl -I https://taskflow.app/ | grep -i csp
+          <pre class="evidence">curl -I https://example.com/ | grep -i csp
 (no header returned)</pre>
           <h5>Remediation</h5>
           <p>Start with a report-only policy to learn what your site loads:
@@ -1050,7 +1050,7 @@ set-cookie: sid=ey8nQ...; Path=/; HttpOnly; SameSite=Lax
        ════════════════════════════════════════════════════════════ -->
   <section class="page" aria-label="All security findings">
     <header class="running-header">
-      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · example.com</span>
       <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
     </header>
 
@@ -1168,7 +1168,7 @@ set-cookie: sid=ey8nQ...; Path=/; HttpOnly; SameSite=Lax
        ════════════════════════════════════════════════════════════ -->
   <section class="page" aria-label="Performance findings">
     <header class="running-header">
-      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · example.com</span>
       <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
     </header>
 
@@ -1223,7 +1223,7 @@ set-cookie: sid=ey8nQ...; Path=/; HttpOnly; SameSite=Lax
        ════════════════════════════════════════════════════════════ -->
   <section class="page" aria-label="Accessibility and SEO findings">
     <header class="running-header">
-      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · example.com</span>
       <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
     </header>
 
@@ -1287,7 +1287,7 @@ set-cookie: sid=ey8nQ...; Path=/; HttpOnly; SameSite=Lax
        ════════════════════════════════════════════════════════════ -->
   <section class="page" aria-label="What passed">
     <header class="running-header">
-      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · example.com</span>
       <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
     </header>
 
@@ -1331,7 +1331,7 @@ set-cookie: sid=ey8nQ...; Path=/; HttpOnly; SameSite=Lax
        ════════════════════════════════════════════════════════════ -->
   <section class="page" aria-label="Recommended next steps">
     <header class="running-header">
-      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · example.com</span>
       <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
     </header>
 
@@ -1400,7 +1400,7 @@ set-cookie: sid=ey8nQ...; Path=/; HttpOnly; SameSite=Lax
        ════════════════════════════════════════════════════════════ -->
   <section class="page" aria-label="Glossary and references">
     <header class="running-header">
-      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · example.com</span>
       <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
     </header>
 
@@ -1460,7 +1460,7 @@ set-cookie: sid=ey8nQ...; Path=/; HttpOnly; SameSite=Lax
        ════════════════════════════════════════════════════════════ -->
   <section class="page" aria-label="Report attestation">
     <header class="running-header">
-      <span class="brand"><span class="brand-mark">V</span> VibeSafe · taskflow.app</span>
+      <span class="brand"><span class="brand-mark">V</span> VibeSafe · example.com</span>
       <span class="meta">May 14, 2026 · Report rpt_8f3a91c2</span>
     </header>
 
@@ -1510,7 +1510,7 @@ set-cookie: sid=ey8nQ...; Path=/; HttpOnly; SameSite=Lax
       <p style="font-size:9pt;color:var(--text-tertiary);margin-top:10mm;">
         © 2026 VibeSafe. This report is confidential and intended for the
         named recipient only. Findings are based on the public response of
-        taskflow.app at the time of scanning and may not reflect the current
+        example.com at the time of scanning and may not reflect the current
         state of the site.
       </p>
     </div>

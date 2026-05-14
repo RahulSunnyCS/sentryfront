@@ -57,7 +57,7 @@ Landing Page
 // Anonymous scan creation
 POST /api/v1/scans
 {
-  "url": "taskflow.app",
+  "url": "example.com",
   "anonymous": true
 }
 
@@ -276,7 +276,7 @@ Authorization: Bearer <jwt_token>
   "recentScans": [
     {
       "id": "scan_abc123",
-      "url": "taskflow.app",
+      "url": "example.com",
       "grade": "D",
       "score": 35,
       "summary": { "CRITICAL": 2, "HIGH": 4, "MEDIUM": 3 },
@@ -331,18 +331,18 @@ Users choose **ONE method** based on their access level.
 #### Method 1: DNS TXT Record
 
 **Steps:**
-1. User initiates verification for `taskflow.app`
+1. User initiates verification for `example.com`
 2. VibeSafe generates unique token: `a8f3e2b9c1d4e5f6`
 3. User adds DNS TXT record:
    ```
-   Name:  _vibesafe-verify.taskflow.app
+   Name:  _vibesafe-verify.example.com
    Type:  TXT
    Value: vibesafe-verify=a8f3e2b9c1d4e5f6
    ```
 4. User clicks "Verify DNS Record"
 5. VibeSafe polls DNS:
    ```bash
-   dig TXT _vibesafe-verify.taskflow.app
+   dig TXT _vibesafe-verify.example.com
    ```
 6. If record found → ✅ Verified
 7. If not found → Wait 5 mins, retry (DNS propagation)
@@ -350,7 +350,7 @@ Users choose **ONE method** based on their access level.
 **Technical Implementation:**
 ```typescript
 // Generate verification token
-POST /api/v1/domains/taskflow.app/verify/initiate
+POST /api/v1/domains/example.com/verify/initiate
 {
   "method": "dns"
 }
@@ -359,7 +359,7 @@ POST /api/v1/domains/taskflow.app/verify/initiate
 {
   "token": "a8f3e2b9c1d4e5f6",
   "dnsRecord": {
-    "name": "_vibesafe-verify.taskflow.app",
+    "name": "_vibesafe-verify.example.com",
     "type": "TXT",
     "value": "vibesafe-verify=a8f3e2b9c1d4e5f6"
   },
@@ -367,7 +367,7 @@ POST /api/v1/domains/taskflow.app/verify/initiate
 }
 
 // Verify DNS
-POST /api/v1/domains/taskflow.app/verify/check
+POST /api/v1/domains/example.com/verify/check
 {
   "method": "dns",
   "token": "a8f3e2b9c1d4e5f6"
@@ -411,7 +411,7 @@ async function verifyDNS(domain: string, token: string) {
 5. User clicks "Verify Meta Tag"
 6. VibeSafe fetches homepage:
    ```bash
-   curl https://taskflow.app
+   curl https://example.com
    ```
 7. Parse HTML, check for meta tag
 8. If found → ✅ Verified
@@ -419,7 +419,7 @@ async function verifyDNS(domain: string, token: string) {
 **Technical Implementation:**
 ```typescript
 // Verify meta tag
-POST /api/v1/domains/taskflow.app/verify/check
+POST /api/v1/domains/example.com/verify/check
 {
   "method": "meta",
   "token": "a8f3e2b9c1d4e5f6"
@@ -457,14 +457,14 @@ async function verifyMetaTag(url: string, token: string) {
 2. VibeSafe generates token: `a8f3e2b9c1d4e5f6`
 3. User adds CNAME record:
    ```
-   Name:  verify.taskflow.app
+   Name:  verify.example.com
    Type:  CNAME
    Value: a8f3e2b9c1d4e5f6.verify.vibesafe.app
    ```
 4. User clicks "Verify CNAME Record"
 5. VibeSafe performs DNS lookup:
    ```bash
-   dig CNAME verify.taskflow.app
+   dig CNAME verify.example.com
    ```
 6. If points to correct target → ✅ Verified
 
@@ -498,11 +498,11 @@ async function verifyCNAME(domain: string, token: string) {
    ```
    vibesafe-verify=a8f3e2b9c1d4e5f6
    ```
-4. User uploads to website root: `https://taskflow.app/vibesafe-verify.txt`
+4. User uploads to website root: `https://example.com/vibesafe-verify.txt`
 5. User clicks "Verify File Upload"
 6. VibeSafe fetches the file:
    ```bash
-   curl https://taskflow.app/vibesafe-verify.txt
+   curl https://example.com/vibesafe-verify.txt
    ```
 7. If content matches → ✅ Verified
 
@@ -539,13 +539,13 @@ async function verifyFile(domain: string, token: string) {
 1. User initiates verification
 2. VibeSafe generates token: `a8f3e2b9c1d4e5f6`
 3. User sends email from one of:
-   - `admin@taskflow.app`
-   - `webmaster@taskflow.app`
-   - `postmaster@taskflow.app`
+   - `admin@example.com`
+   - `webmaster@example.com`
+   - `postmaster@example.com`
 4. Email details:
    ```
    To: verify@vibesafe.app
-   Subject: Verify taskflow.app
+   Subject: Verify example.com
    Body: a8f3e2b9c1d4e5f6
    ```
 5. User clicks "I've Sent the Email"
@@ -557,8 +557,8 @@ async function verifyFile(domain: string, token: string) {
 // Email handler (webhook or IMAP polling)
 async function handleVerificationEmail(email: IncomingEmail) {
   // Parse email
-  const from = email.from; // e.g., admin@taskflow.app
-  const domain = from.split('@')[1]; // taskflow.app
+  const from = email.from; // e.g., admin@example.com
+  const domain = from.split('@')[1]; // example.com
   const subject = email.subject;
   const body = email.body.trim();
 
@@ -623,7 +623,7 @@ async function handleVerificationEmail(email: IncomingEmail) {
 **For GoDaddy:**
 ```
 1. Go to GoDaddy DNS Management
-2. Find your domain "taskflow.app" and click "DNS"
+2. Find your domain "example.com" and click "DNS"
 3. Scroll to "Records" section
 4. Click "Add" button
 5. Select "TXT" from Type dropdown
@@ -640,7 +640,7 @@ async function handleVerificationEmail(email: IncomingEmail) {
 ```
 1. Log in to Namecheap
 2. Click "Domain List" in left sidebar
-3. Find "taskflow.app" and click "Manage"
+3. Find "example.com" and click "Manage"
 4. Go to "Advanced DNS" tab
 5. Click "Add New Record"
 6. Select "TXT Record"
@@ -666,7 +666,7 @@ AI: 🤖 Here's how to find DNS settings in GoDaddy:
 
 1. Log in to your GoDaddy account
 2. Click "My Products" at the top
-3. Find your domain (taskflow.app) in the list
+3. Find your domain (example.com) in the list
 4. Click the "..." (three dots) next to it
 5. Select "Manage DNS"
 
@@ -929,7 +929,7 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
 2. Already logged in (session cookie)
 3. Redirects to /dashboard
 4. Sees 3 monitored sites
-5. Site #1 (taskflow.app) shows: "2 new critical issues"
+5. Site #1 (example.com) shows: "2 new critical issues"
 6. Clicks to view report
 7. Expands finding: "Stripe key exposed"
 8. Copies AI fix prompt

@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "titleIncludes": "Weak Referrer-Policy value",
+      "evidenceIncludes": "unsafe-url"
+    }
+  ]
+}
