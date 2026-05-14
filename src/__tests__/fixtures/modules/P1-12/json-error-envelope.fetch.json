@@ -1,0 +1,7 @@
+{
+  "default": {
+    "status": 404,
+    "headers": { "content-type": "application/json" },
+    "body": "{\"error\":\"Not Found\",\"message\":\"The requested resource could not be located.\"}"
+  }
+}

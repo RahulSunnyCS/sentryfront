@@ -1,0 +1,10 @@
+{
+  "responses": [
+    {
+      "url": "https://example.com/this-path-does-not-exist-vibesafe",
+      "status": 500,
+      "body": "Internal Server Error — failed loading /var/www/app/dist/server.bundle.js: ENOENT no such file or directory."
+    }
+  ],
+  "default": { "status": 404, "body": "Not Found" }
+}

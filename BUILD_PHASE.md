@@ -195,131 +195,231 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 
 ---
 
-## Phase 3 — Review & harden existing scan modules
+## Phase 3 — Improve detection quality
 
-**Goal:** Audit what we already check, fix what's wrong, fill obvious gaps. **No new product surface added in this phase.** The output is confidence that "VibeSafe says your site is a B" is something we'd defend in front of a security engineer.
+**Goal:** Make the scanner *better at seeing real targets*, not just better-tested for invented inputs. The output is confidence that "VibeSafe says your site is a B" is something we'd defend in front of a senior security engineer — especially on AI-built SPAs, which are our acquisition channel.
 
-**Estimated effort:** 2–3 weeks
+**Reframe note (2026-05-14):** the previous Phase 3 was structured around hygiene audits (per-module FP review, copy review, fixtures). 3.10 fixtures continue, but the new ordering puts the biggest detection-quality gaps first: headless rendering, client-side dep vulns, exploit-intel severity, DOM-aware regex matching. Hygiene work follows.
 
-### 3.1 Build a scan-quality test corpus
+**No new product surface added in this phase.** Phase 3 still runs *before* Phase 5 (active testing).
+
+**Estimated effort:** 3–4 weeks
+
+### 3.1 Headless-rendered crawl + JS-chunk coverage
+
+The single biggest detection-quality gap: today `crawler.ts` does a static `fetch()` and never executes JS. On a Lovable / Bolt / v0 / Cursor SPA — almost every site we're built to scan — the scanner sees an empty shell and downloads zero JS chunks. `playwright` is already a dependency but unused.
+
+- [ ] Swap `fetch()` in `src/lib/scanner/crawler.ts:119` for Playwright `page.goto()` + wait for network idle
+- [ ] Capture every URL the browser requests via `page.on('request')`; download `application/javascript` responses
+- [ ] Extend `CrawlResult` in `src/lib/scanner/types.ts` with: `renderedHtml`, `consoleErrors`, `networkRequests`, `loadedChunkContents` (Map<url, string>)
+- [ ] Keep all existing fields working — new fields are additive so existing modules keep passing
+- [ ] Preserve the TLS probe (`getTLSInfo`) and cookie/JWT parsing — those stay
+- [ ] Strategy A: render entry route, scan every JS chunk the browser loads
+- [ ] Strategy C (framework manifest scan): probe well-known manifest paths and fetch listed chunks:
+  - [ ] Next.js: `/_next/static/chunks/_buildManifest.js`, `/_next/static/chunks/_app-build-manifest.json`
+  - [ ] Vite: `/manifest.json` (or asset-manifest fingerprint)
+  - [ ] Nuxt: `/_payload.js`
+  - [ ] SvelteKit: `/_app/version.json`
+  - [ ] Remix: build manifest path
+- [ ] Strategy B (multi-route render) is **deferred to Phase 5** — natural fit with authenticated/interactive scanning
+- [ ] Document the coverage envelope in `docs/core/SCAN_COVERAGE.md` — what we see, what we don't (post-login chunks, interaction-triggered chunks, custom bundlers)
+- [ ] Measure per-scan cost change: today ≈1 fetch, target ≤(1 render + 40 chunk fetches) at p95. Baseline + report in commit message.
+
+### 3.2 Client-side dependency vulnerability detection
+
+We extract `jsBundleUrls` but never fingerprint them. Phase 7.5 already plans the same data feeds (OSV) for server-side scanning — stand them up here first, reuse in 7.5.
+
+- [ ] Add `retire.js` (FreeBSD, npm package) — fingerprints vulnerable jQuery, Bootstrap, AngularJS, lodash, etc. by URL/hash
+- [ ] Run `retire.js` against every chunk captured in 3.1 (not just entry HTML)
+- [ ] Call `OSV.dev` (CC-BY-4.0, free API) for each fingerprinted `(ecosystem, name, version)` triple; cache responses for 24h
+- [ ] Produce a new scanner module (next P1 ID — `P1-16` if naming continues)
+- [ ] Module output fields: `library`, `version`, `chunkUrl`, `cves[]`, `severity` (set by 3.3 rubric, not raw CVSS)
+- [ ] Fixture coverage per 3.10 standard (≥3 positive, ≥3 negative, ≥1 edge case)
+
+### 3.3 Exploit-intel severity tiering (KEV + EPSS)
+
+Phase 7.5 line-items these feeds anyway. Stand them up in Phase 3 so client-side CVE findings from 3.2 ship with real severity, not raw CVSS.
+
+- [ ] Daily job: fetch CISA KEV JSON (public-domain) — load into a `kev_entries` table keyed by CVE
+- [ ] Daily job: fetch FIRST.org EPSS snapshot — `epss_score` + `epss_percentile` per CVE
+- [ ] Implement rubric: `severity = adjust(cvssBase, kevBonus, epssPercentile)`
+  - Critical: in KEV, or (CVSS ≥ 9 AND EPSS percentile ≥ 90)
+  - High: CVSS ≥ 7 AND EPSS percentile ≥ 50
+  - Medium: CVSS ≥ 4
+  - Low: everything else
+- [ ] Publish rubric in `docs/core/SEVERITY_RUBRIC.md` — referenced by Phase 7.5
+- [ ] Wire into 3.2's new client-side dep module; legacy modules adopt incrementally
+- [ ] Telemetry: stamp `kev_match` + `epss_percentile` on every finding for later analysis
+
+### 3.4 DOM-aware context for regex modules
+
+Five of the nine audited FP traps share a root cause: regex modules match against raw HTML, including comments, `<script>` bodies, and code examples in docs pages.
+
+- [ ] Add a preprocessing layer that produces a `cleanedHtml` field on `CrawlResult`
+  - [ ] Strip HTML comments
+  - [ ] Strip `<script>` and `<style>` bodies (URLs in src/href still extracted separately)
+  - [ ] Strip `<pre>`, `<code>`, `<samp>` blocks (code examples in docs)
+  - [ ] Preserve attribute-vs-text distinction so modules can opt-in to one or the other
+- [ ] Migrate P1-08 (mixed content) to match against `cleanedHtml`
+- [ ] Migrate P1-12 (error disclosure) to match against `cleanedHtml`
+- [ ] Migrate P1-13 (dev interfaces — Swagger/GraphiQL substring match) to match against `cleanedHtml`
+- [ ] Add fixtures proving each migration closes its FP trap (docs-page false-positive case for each)
+
+### 3.5 Targeted FP fixes from the audit
+
+Concrete fixes for FPs identified by reading the module code, not theoretical. Each lands with a regression fixture.
+
+- [ ] **P1-14 (robots/sitemap)**: anchor `/admin`, `/api/v\d/` regexes so `/api/v2/docs` doesn't match
+- [ ] **P1-05 (cookies)**: tighten `looksLikeSessionCookie` — exclude `auth_timeout`, `auth_context`, `auth_redirect`, etc. (substring match for `auth_*` over-fires)
+- [ ] **P1-15 (cache)**: distinguish session cookies from tracking cookies (`_ga`, `_gid`, `fbp`) — only the former gate the "must be no-store" requirement
+- [ ] **P1-06 (sensitive paths)**: suppress 200-with-auth-prompt false positive — if `/admin` returns 200 but body contains a login form, downgrade to INFO not CRITICAL
+- [ ] **P1-11 (subdomain takeover)**: require body-confirmed dead-host signal, not just CNAME suffix match — a live `.github.io` page is fine
+- [ ] Each fix gets a fixture in the 3.10 harness before merging
+- [ ] Document each FP closure in `MODULE_QUALITY.md` with before/after corpus FP-rate numbers
+
+### 3.6 Scan-quality corpus (integration signal)
+
+Was 3.1 in the old plan. Now an *integration test* that 3.5 fixes don't regress real-world scans.
 
 - [ ] Curate 30+ real sites covering A/B/C/D/F grade distribution
 - [ ] Include AI-built sites (Lovable, Bolt, v0, Replit, Cursor outputs)
-- [ ] Include known-bad fixtures (deliberately broken `.env.example` exposure, missing headers, etc.)
+- [ ] Include known-bad fixtures (deliberately broken `.env.example` exposure, missing headers)
 - [ ] Include known-good fixtures (security-hardened reference sites)
 - [ ] Lock baseline expected output per fixture; track drift over time
 - [ ] CI job that runs the corpus on every backend PR
+- [ ] Corpus scans run with `INTERNAL_SCAN=true` so they get full LLM enrichment (per 3.14) for free
 
-### 3.2 False-positive audit (per module)
+### 3.7 Production telemetry for FP measurement
 
-For each of the 15 security modules + performance/a11y/SEO modules:
+The <5% FP-rate target is unfalsifiable without real user signal. Fixtures and corpus are necessary but not sufficient.
 
-- [ ] Run against the corpus
-- [ ] Manually classify each finding: true positive / false positive / unclear
-- [ ] Calculate per-module FP rate; target <5%
-- [ ] For modules >5%: tighten heuristics or remove the finding
-- [ ] Document the FP rate per module in `docs/core/MODULE_QUALITY.md`
+- [ ] New table: `finding_disposition` — records `scan_id`, `finding_id`, `disposition` (dismissed, fp, helpful, fix_didnt_help), `user_id`, `created_at`
+- [ ] UI: dismiss / "this is a false positive" / "fix prompt didn't help" buttons on each finding in the report view
+- [ ] Daily aggregate job → per-module FP rate, auto-write to `MODULE_QUALITY.md`
+- [ ] Internal dashboard: FP rate per module over time, alerting if any module crosses 5%
 
-**Specific known concerns to investigate:**
+### 3.8 Coverage-gap additions
 
-- [ ] P1-01 (Client-side secrets) — current regex may match non-secret strings (e.g. base64 in image URLs)
-- [ ] P1-03 (Security headers) — does it correctly handle CDN-injected headers vs origin headers?
-- [ ] P1-07 (CORS) — false positive risk on intentionally permissive APIs
-- [ ] P1-09 (Third-party scripts) — does it distinguish first-party vs third-party correctly?
-- [ ] P1-12 (Error disclosure) — common FP from intentional 404 / debug routes
+What we should be checking but aren't. Each new check needs ≥3 fixtures before merging.
 
-### 3.3 Coverage gap audit
-
-What we should be checking but aren't:
-
-- [ ] Subresource integrity (SRI) on external scripts
-- [ ] Permissions Policy / Feature Policy headers
-- [ ] Referrer-Policy header
+- [ ] Subresource Integrity (SRI) on external scripts
+- [ ] Permissions-Policy / Feature-Policy headers
+- [ ] Referrer-Policy header presence + value sanity
 - [ ] Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy
-- [ ] CSP `unsafe-inline` / `unsafe-eval` detection (depth check, not just presence of CSP)
-- [ ] Service worker security (scope, fetch handlers)
-- [ ] Web app manifest exposure
-- [ ] `.git/`, `.svn/`, `.DS_Store` exposure (likely covered by P1-06 — verify depth)
+- [ ] Service-worker security (scope, fetch handlers)
+- [ ] Web-app-manifest exposure
+- [ ] `.git/`, `.svn/`, `.DS_Store` exposure (verify P1-06 depth)
 - [ ] `package.json`, `composer.json`, `Gemfile.lock` exposure
-- [ ] Common backup file extensions (`.bak`, `.old`, `.swp`)
-- [ ] Storybook / Swagger / GraphiQL exposure in prod
-- [ ] AI-builder-specific leaks: Lovable preview tokens, Bolt project IDs, v0 generation IDs in URLs
+- [ ] Common backup-file extensions (`.bak`, `.old`, `.swp`)
+- [ ] AI-builder-specific token leaks: Lovable preview tokens, Bolt project IDs, v0 generation IDs in URLs
 
-### 3.4 Finding-copy review
+### 3.9 Finding-copy + AI-fix-prompt review
+
+Applies to existing findings + new findings from 3.2 / 3.8. Severity language must align with 3.3 rubric.
 
 - [ ] Every finding has a one-sentence "what" (the problem)
 - [ ] Every finding has a one-sentence "why" (the impact in plain English)
 - [ ] Every finding has a verified working fix prompt for at least Cursor + ChatGPT
-- [ ] Severity levels follow a documented rubric (not vibes)
+- [ ] Severity language references the 3.3 rubric, not vibes
 - [ ] No jargon without inline explanation
-- [ ] No findings that recommend installing third-party services as the only fix
+- [ ] No findings whose only fix is "install a third-party service"
 
-### 3.5 SEO module review + AI discoverability bundle
+### 3.10 Per-module fixture tests (continued)
 
-Treat as one combined "SEO & AI discoverability" audit category (no separate GEO selling point):
+Already in progress on this branch — 58 cases across 8 P1 modules. Reframed: fixtures are a regression net for known cases, not the primary quality measurement (corpus + telemetry are).
+
+- [ ] Test harness exists: `src/__tests__/lib/scanner/fixtures/<module-id>/<case-name>.{input,expected}.{html,json,headers}` ✅ (landed)
+- [ ] Continue backfilling to all 15 P1 + 5 P3 + 5 P4 modules
+- [ ] Per-module minimum: ≥3 positive, ≥3 negative, ≥1 edge-case fixture
+- [ ] **Every bug report becomes a new fixture** (regression test forever)
+- [ ] Fixture authoring guide in `docs/core/FIXTURE_GUIDE.md`
+- [ ] CI job `pnpm test:fixtures` runs in <30s
+
+### 3.11 SEO + AI-discoverability bundle (trimmed)
+
+Trim to high-signal checks; cut speculative items pending real customer demand.
 
 - [ ] Existing SEO checks reviewed for FP rate + relevance
 - [ ] Add `llms.txt` presence check
-- [ ] Add AI-crawler robots policy detection (`User-agent: GPTBot`, `ClaudeBot`, `PerplexityBot`, etc. — whether explicitly allowed or blocked)
-- [ ] Add citable-stats check (numbers in copy with source attribution)
-- [ ] Add TLDR/summary section detection on long-form pages
-- [ ] Add table/list density check on key landing pages
-- [ ] **Do not add a separate score or category.** Bundle into existing SEO score, mention "includes AI search optimization" in copy.
+- [ ] Add AI-crawler robots-policy detection (`GPTBot`, `ClaudeBot`, `PerplexityBot`, etc. — explicit allow or block)
+- [ ] **Do not add a separate score or category.** Bundle into existing SEO score; mention "includes AI search optimization" in copy.
+- [ ] Defer: TLDR/summary-section detection, citable-stats check, table/list density — revisit when a customer asks for them.
 
-### 3.6 Performance module review
+### 3.12 Reporting copy alignment
 
-- [ ] Are Core Web Vitals measured from real user data or synthetic? Document.
-- [ ] Lighthouse score consistency — same site, same time should produce same score within ±3 points
-- [ ] Mobile vs desktop scoring documented separately
-
-### 3.7 Accessibility module review
-
-- [ ] WCAG 2.2 AA coverage map — which criteria do we check, which do we miss?
-- [ ] Reduce false positives on contrast checks (gradient backgrounds, decorative text)
-- [ ] Form-label heuristic accuracy
-
-### 3.8 Update reporting copy
-
-- [ ] Executive summary (`execSummary` in `report-view.tsx`) reflects audited reality
+- [ ] `execSummary` in `report-view.tsx` reflects audited reality (3.1–3.5 changes)
 - [ ] Comparison table on landing page reflects verified module count + accuracy claims
 - [ ] FAQ entries on landing + `/docs` are accurate
+- [ ] AI Fix Prompt section copy updated for 3.14 paywall (lock-state CTA when not purchased)
 
-### 3.9 Apply learnings from Phase 2 wiring
+### 3.13 Header nuance — CSP Evaluator + Observatory
 
-- [ ] Address every "this module's output is weird" observation captured during Phase 2 backend wiring
-- [ ] Triage backlog of module-quality issues from production telemetry (once we have it)
+Replaces P1-03's "present / absent" header check with strength scoring.
 
-### 3.10 Per-module fixture unit tests
+- [ ] Integrate `@google/csp-evaluator` (Apache 2.0) for deep CSP analysis (detects `unsafe-inline`, `unsafe-eval`, missing nonces, weak `script-src` allowlists, etc.)
+- [ ] Optionally call Mozilla Observatory API for overall header grade — cache result for 24h
+- [ ] Replace P1-03's binary findings with graded findings; severity per the 3.3 rubric
+- [ ] Distinguish CDN-injected headers (Cloudflare/Vercel auto-add) from origin-set headers when possible
 
-Distinct from the end-to-end corpus in 3.1 — these are small, fast, deterministic input → expected-output pairs that run on every PR in milliseconds. The corpus catches real-world integration drift; fixtures catch regressions in module logic.
+### 3.14 LLM enrichment → paid opt-in ($0.50, Claude Opus 4.7)
 
-- [ ] Test harness: `tests/fixtures/<module-id>/<case-name>.{input,expected}.{html,json,headers}`
-- [ ] Each fixture pairs raw input (HTML snippet, response headers, JS bundle excerpt, robots.txt content, etc.) with expected output (`{ finding: bool, severity?, type?, evidence? }`)
-- [ ] Snapshot-style comparison — failed snapshots block CI
-- [ ] Per-module minimum coverage:
-  - [ ] At least 3 positive cases (should flag)
-  - [ ] At least 3 negative cases (should NOT flag — classic false-positive traps)
-  - [ ] At least 1 edge case (malformed input, empty input, very large input)
-- [ ] **Every bug report becomes a new fixture** (regression test forever)
-- [ ] Fixture authoring guide in `docs/core/FIXTURE_GUIDE.md` so contributors can add cases consistently
-- [ ] CI job: `pnpm test:fixtures` runs in <30s
+Today `enrichFindingsWithLLM` runs on every scan, free to the user, ~$0.01–0.02 cost to us. Convert to opt-in paid add-on with a stronger model. See `~/.claude/plans/before-going-what-does-nested-feather.md` for full UX + pricing rationale.
 
-**Example fixture pairs to seed:**
+**Model + infrastructure**
 
-- P1-01 (Secrets): real AWS key string (flag) vs base64-encoded image URL (don't flag) vs example `.env.example` placeholder (don't flag)
-- P1-03 (Headers): CSP with `unsafe-inline` (flag medium) vs strict CSP (don't flag) vs missing CSP entirely (flag high)
-- P1-07 (CORS): `Access-Control-Allow-Origin: *` on private API (flag) vs same header on intentional public API (don't flag — needs heuristic for "intentional")
-- P1-12 (Error disclosure): stack trace in 500 response (flag) vs custom 404 page (don't flag) vs Next.js dev overlay (flag, dev-only warning)
+- [ ] `src/lib/llm/enrichment.ts`: change `model` from `claude-sonnet-4-20250514` to `claude-opus-4-7`
+- [ ] Add `cache_control: { type: "ephemeral" }` on the system prompt block (use `claude-api` skill for SDK shape)
+- [ ] Increase timeout from 20s → 45s (Opus latency)
+- [ ] `src/lib/scan-worker.ts:125`: make `enrichFindingsWithLLM` conditional on `scan.options.llmEnrichmentPurchased === true`; default false
+- [ ] Run enrichment async so deterministic findings render first; AI Fix Prompts stream in
+
+**Schema + API**
+
+- [ ] Extend scan-input schema with `llmEnrichmentPurchased: boolean`
+- [ ] `src/app/api/scan/route.ts`: verify payment record before honoring `llmEnrichmentPurchased: true`
+- [ ] New endpoint `src/app/api/scan/[id]/unlock-ai/route.ts` — retroactive unlock via Stripe checkout; on webhook success, enqueue an `enrich-existing-scan` worker job
+- [ ] New worker job `enrich-existing-scan` — re-runs enrichment for a previously-completed scan
+
+**UI**
+
+- [ ] Scan submission form: "AI Fix Prompts — $0.50" checkbox, default **unchecked**
+- [ ] Live submit-button total: `Run scan` vs `Run scan — $0.50`
+- [ ] Results page: locked AI Fix Prompt cards with `Unlock for $0.50` CTA when not purchased
+- [ ] Onboarding promo: first scan for a new user includes AI Fix Prompts free (wow-factor)
+
+**Payments**
+
+- [ ] New `src/lib/payments/stripe.ts` (check repo first — reuse existing billing module if present)
+- [ ] **Wallet model recommended over per-scan checkout** — pre-load $5–10 credit, debit $0.50 per enrichment; Stripe fee drops from $0.32 to ~$0.015 per charge
+- [ ] `INTERNAL_SCAN=true` env flag bypasses paywall for corpus / dogfood scans (needed for 3.6, 3.9 measurement)
+- [ ] Retention policy: scans remain unlock-eligible for 7 days
+
+**Honest concerns to track**
+
+- [ ] Removing default LLM enrichment reduces free-scan "wow factor" — monitor signup-to-scan and scan-to-share conversion after launch
+- [ ] If conversion drops, ship "first scan free with AI Fix Prompts" promo before introducing wallet
+- [ ] Subscription / credit-pack tiering deferred — wait for real conversion data
 
 ### Exit checklist for Phase 3
 
-- [ ] Every module has documented FP rate in `MODULE_QUALITY.md`
-- [ ] No module exceeds 5% FP rate (or has an acknowledged exception with reason)
-- [ ] Scan corpus runs cleanly in CI
-- [ ] Every module has ≥3 positive + ≥3 negative + ≥1 edge-case fixture; all green in CI
-- [ ] Every finding has reviewed copy + working AI fix prompt
-- [ ] SEO module includes the AI-discoverability sub-checks
-- [ ] At least one external security engineer has spot-reviewed 10 scans and signed off
+- [ ] Headless-rendered crawl shipped; old static-fetch path removed
+- [ ] At least one new module covering client-side dep vulns; `retire.js` + OSV.dev in production
+- [ ] KEV + EPSS daily feeds running; severity rubric published in `docs/core/SEVERITY_RUBRIC.md`
+- [ ] Every audit-identified FP (≥5 modules) has a fixture + a code fix; FP rate on corpus drops measurably
+- [ ] DOM-aware preprocessing layer in use by P1-08 / P1-12 / P1-13
+- [ ] 30+ site corpus runs in CI; baselines locked
+- [ ] Production telemetry shipping `finding_disposition` events; FP-rate dashboard live
+- [ ] Every module has ≥3 positive + ≥3 negative + ≥1 edge-case fixture; all green in CI (3.10)
+- [ ] LLM enrichment behind $0.50 paywall in production, with retroactive-unlock flow
+- [ ] Comparison-table + FAQ copy match audited reality
+- [ ] No module exceeds 5% FP rate on the corpus OR in production telemetry (whichever is higher)
+
+**Deferred from Phase 3:**
+
+- WCAG 2.2 AA full coverage map → future "Accessibility focus" phase. Phase 3 a11y is limited to spot-checking FP rate on contrast + form-label checks.
+- Performance module deep review (score-variance investigation) → Phase 12 (perf/cost optimization). Phase 3 keeps only the Lighthouse-consistency spot-check.
+- External security-engineer signoff (10-scan spot review) → moved out of Phase 3 exit checklist; reframed as a launch gate before Phase 5 ships DAST publicly.
+- Multi-route headless rendering (Strategy B) → Phase 5 (active scanning), where authenticated/interactive flows live.
 
 ---
 
@@ -593,7 +693,7 @@ The Phase 1 checklist is marked complete. Before flipping Phase 5 from "coming s
 
 - [ ] **OSV.dev** integration (`https://api.osv.dev/v1/query`) — primary lookup, free, no API key, CC-BY-4.0 data. Given `(ecosystem, name, version)`, returns all known advisories.
 - [ ] **CISA KEV** feed sync (daily) — flag findings whose CVE is on the Known Exploited Vulnerabilities list with a `kev: true` badge. Free, public domain.
-- [ ] **EPSS** score lookup (FIRST.org) — daily snapshot, attach `epss_score` and `epss_percentile` to each finding. Used in severity prioritization rubric (Phase 3.4) so HIGH/CRITICAL isn't pure CVSS.
+- [ ] **EPSS** score lookup (FIRST.org) — daily snapshot, attach `epss_score` and `epss_percentile` to each finding. Used in severity prioritization rubric (Phase 3.3) so HIGH/CRITICAL isn't pure CVSS. Feed job stood up in Phase 3.3; Phase 7.5 reuses.
 - [ ] Cache OSV responses locally (Redis, 24h TTL) — OSV is fast but we'd be one of their bigger clients at scale; be polite.
 - [ ] Mirror CISA KEV + EPSS as JSON files on our CDN, refreshed nightly — zero runtime dep on third-party uptime for hot paths.
 
@@ -634,7 +734,7 @@ The Phase 1 checklist is marked complete. Before flipping Phase 5 from "coming s
 - [ ] Findings from manifest scans use a new category `Server-Side Dependency Vulnerability` (distinct from existing client-side P1-XX findings)
 - [ ] Dedupe across modalities: if the same `name@version` appears in SBOM + GitHub manifest + image scan, surface as one finding with multiple evidence sources
 - [ ] Reachability is explicitly NOT claimed — copy reads "this dependency is in your build; we don't know if it's actually called at runtime." Honest delta vs. Oligo / Endor.
-- [ ] Severity rubric documented: CVSS base × (KEV bonus) × (EPSS percentile) → our severity. Published in `docs/core/SEVERITY_RUBRIC.md` (cross-references Phase 3.4).
+- [ ] Severity rubric documented: CVSS base × (KEV bonus) × (EPSS percentile) → our severity. Published in `docs/core/SEVERITY_RUBRIC.md` by Phase 3.3; Phase 7.5 cross-references it.
 
 ### 7.5.7 Pricing & tier gating
 

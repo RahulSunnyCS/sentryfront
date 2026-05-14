@@ -1,0 +1,11 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-16",
+      "severity": "MEDIUM",
+      "category": "Vulnerable Client-Side Dependency",
+      "titleIncludes": "bootstrap 3.3.7",
+      "evidenceIncludes": "CVE-2019-8331"
+    }
+  ]
+}

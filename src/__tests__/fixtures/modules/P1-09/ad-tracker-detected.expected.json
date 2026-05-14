@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-09",
+      "severity": "LOW",
+      "titleIncludes": "Advertising/tracking scripts detected"
+    }
+  ]
+}

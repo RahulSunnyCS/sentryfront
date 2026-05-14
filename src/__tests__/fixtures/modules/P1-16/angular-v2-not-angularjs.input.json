@@ -1,0 +1,7 @@
+{
+  "finalUrl": "https://target.example/",
+  "renderMode": "headless",
+  "loadedChunkContents": {
+    "https://cdn.example.com/2.0.0/angular.min.js": "/** @license Angular v2.0.0 */ var t=function(){return function(){}}();// no AngularJS v1.x header — this is Angular 2"
+  }
+}

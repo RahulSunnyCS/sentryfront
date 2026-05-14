@@ -1,0 +1,22 @@
+{
+  "cookies": [
+    {
+      "name": "theme",
+      "value": "dark",
+      "secure": false,
+      "httpOnly": false,
+      "sameSite": null,
+      "domain": "example.com",
+      "path": "/"
+    },
+    {
+      "name": "lang",
+      "value": "en",
+      "secure": false,
+      "httpOnly": false,
+      "sameSite": null,
+      "domain": "example.com",
+      "path": "/"
+    }
+  ]
+}

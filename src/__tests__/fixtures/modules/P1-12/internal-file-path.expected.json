@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-12",
+      "severity": "MEDIUM",
+      "titleIncludes": "Internal file path"
+    }
+  ]
+}

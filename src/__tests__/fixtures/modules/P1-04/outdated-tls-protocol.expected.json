@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-04",
+      "severity": "HIGH",
+      "titleIncludes": "Outdated TLS protocol"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-16",
+      "severity": "HIGH",
+      "category": "Vulnerable Client-Side Dependency",
+      "titleIncludes": "lodash 4.17.4",
+      "evidenceIncludes": "CVE-2018-3721"
+    }
+  ]
+}

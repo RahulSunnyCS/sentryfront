@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-03",
+      "severity": "MEDIUM",
+      "titleIncludes": "Strict-Transport-Security"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "finalUrl": "https://example.com",
+  "jsBundleUrls": [
+    "https://random-unknown-cdn.invalid/lib.js"
+  ]
+}

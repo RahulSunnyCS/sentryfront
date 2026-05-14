@@ -1,0 +1,14 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-15",
+      "severity": "MEDIUM",
+      "titleIncludes": "may be cached by intermediaries"
+    },
+    {
+      "moduleId": "P1-15",
+      "severity": "LOW",
+      "titleIncludes": "Vary header missing"
+    }
+  ]
+}

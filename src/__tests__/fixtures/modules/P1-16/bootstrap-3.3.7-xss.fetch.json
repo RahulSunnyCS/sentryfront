@@ -1,0 +1,40 @@
+{
+  "responses": [
+    {
+      "urlMatches": "^https://api\\.osv\\.dev/v1/querybatch$",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"results\":[{\"vulns\":[{\"id\":\"GHSA-7mvr-5x2g-wfc8\"},{\"id\":\"GHSA-fxwx-4rwg-5wpq\"}]}]}"
+    },
+    {
+      "urlMatches": "^https://api\\.osv\\.dev/v1/vulns/GHSA-7mvr-5x2g-wfc8$",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"id\":\"GHSA-7mvr-5x2g-wfc8\",\"summary\":\"XSS in Bootstrap data-template\",\"aliases\":[\"CVE-2019-8331\"],\"severity\":[{\"type\":\"CVSS_V3\",\"score\":\"5.4\"}]}"
+    },
+    {
+      "urlMatches": "^https://api\\.osv\\.dev/v1/vulns/GHSA-fxwx-4rwg-5wpq$",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"id\":\"GHSA-fxwx-4rwg-5wpq\",\"summary\":\"XSS in Bootstrap tooltip data-viewport\",\"aliases\":[\"CVE-2018-14041\"],\"severity\":[{\"type\":\"CVSS_V3\",\"score\":\"6.1\"}]}"
+    },
+    {
+      "urlMatches": "cisa\\.gov.*known_exploited_vulnerabilities\\.json",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"vulnerabilities\":[]}"
+    },
+    {
+      "urlMatches": "^https://api\\.first\\.org/data/v1/epss\\?cve=CVE-2019-8331",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"status\":\"OK\",\"data\":[{\"cve\":\"CVE-2019-8331\",\"epss\":\"0.18000\",\"percentile\":\"0.45000\"}]}"
+    },
+    {
+      "urlMatches": "^https://api\\.first\\.org/data/v1/epss\\?cve=CVE-2018-14041",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"status\":\"OK\",\"data\":[{\"cve\":\"CVE-2018-14041\",\"epss\":\"0.22000\",\"percentile\":\"0.55000\"}]}"
+    }
+  ]
+}

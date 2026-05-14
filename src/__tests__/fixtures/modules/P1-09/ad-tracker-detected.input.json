@@ -1,0 +1,6 @@
+{
+  "finalUrl": "https://example.com",
+  "jsBundleUrls": [
+    "https://connect.facebook.net/en_US/fbevents.js"
+  ]
+}

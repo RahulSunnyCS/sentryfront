@@ -1,0 +1,7 @@
+{
+  "finalUrl": "https://example.com",
+  "jsBundleUrls": [
+    "https://example.com/_next/static/chunks/main.js",
+    "https://example.com/_next/static/chunks/framework.js"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "cookies": [
+    {
+      "name": "next-auth.session-token",
+      "value": "opaque-random-id-not-a-jwt-12345",
+      "secure": true,
+      "httpOnly": true,
+      "sameSite": "Lax",
+      "domain": "example.com",
+      "path": "/"
+    }
+  ]
+}

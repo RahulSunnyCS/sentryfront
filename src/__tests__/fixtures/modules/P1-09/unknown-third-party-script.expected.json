@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-09",
+      "severity": "MEDIUM",
+      "titleIncludes": "unrecognized third-party script"
+    }
+  ]
+}

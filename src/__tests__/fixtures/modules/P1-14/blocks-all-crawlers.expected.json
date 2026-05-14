@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-14",
+      "severity": "INFO",
+      "titleIncludes": "blocks all search engine crawlers"
+    }
+  ]
+}

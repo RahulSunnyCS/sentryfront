@@ -1,0 +1,7 @@
+{
+  "finalUrl": "https://target.example/",
+  "renderMode": "headless",
+  "loadedChunkContents": {
+    "https://cdn.example.com/4.17.4/lodash.min.js": "// lodash bundle body — URI fingerprint is sufficient for detection"
+  }
+}

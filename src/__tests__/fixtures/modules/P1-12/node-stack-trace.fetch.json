@@ -1,0 +1,11 @@
+{
+  "responses": [
+    {
+      "url": "https://example.com/api/vibesafe-nonexistent",
+      "status": 500,
+      "headers": { "content-type": "text/html" },
+      "body": "Error: Cannot read property 'id' of undefined\n    at getUserHandler (/app/src/routes/users.js:42:18)\n    at processTicksAndRejections (node:internal/process/task_queues:96:5)\n    at async runMicrotasks (node:internal/process/task_queues:33:7)"
+    }
+  ],
+  "default": { "status": 404, "body": "Not found" }
+}

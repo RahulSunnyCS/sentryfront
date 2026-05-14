@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-16",
+      "severity": "CRITICAL",
+      "category": "Vulnerable Client-Side Dependency",
+      "evidenceIncludes": "CVE-2099-9999"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+content-security-policy: default-src 'none'; script-src 'self' 'nonce-abc123'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'
+strict-transport-security: max-age=63072000; includeSubDomains; preload
+x-frame-options: DENY
+x-content-type-options: nosniff
+referrer-policy: no-referrer
+permissions-policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()

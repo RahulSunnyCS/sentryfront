@@ -1,0 +1,7 @@
+{
+  "finalUrl": "https://example.com",
+  "jsBundleUrls": [
+    "https://js.stripe.com/v3/",
+    "https://www.googletagmanager.com/gtag/js?id=G-XXXXX"
+  ]
+}

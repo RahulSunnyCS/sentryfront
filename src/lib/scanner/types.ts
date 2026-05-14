@@ -11,6 +11,11 @@ export interface RawFinding {
   impact: string;
   fixManual: string[];
   fixAiPrompt: string;
+
+  // Phase 3.3: exploit-intel telemetry. Populated by modules that consult
+  // KEV/EPSS (currently P1-16). Absent on findings from legacy modules.
+  kevMatch?: boolean;
+  epssPercentile?: number | null;
 }
 
 export interface ParsedCookie {
@@ -32,14 +37,29 @@ export interface TLSCertInfo {
   subject: string | null;
 }
 
+export interface NetworkRequest {
+  url: string;
+  method: string;
+  resourceType: string;           // 'document' | 'script' | 'stylesheet' | 'xhr' | 'fetch' | ...
+  status: number | null;
+  fromCache: boolean;
+}
+
 export interface CrawlResult {
   finalUrl: string;
   statusCode: number;
   headers: Record<string, string>;
   cookies: ParsedCookie[];
-  jsBundleUrls: string[];         // absolute URLs of <script src> bundles
-  inlineScriptContent: string;    // concatenated inline <script> bodies
-  html: string;
+  jsBundleUrls: string[];         // absolute URLs of <script src> bundles in the initial HTML
+  inlineScriptContent: string;    // concatenated inline <script> bodies from the initial HTML
+  html: string;                   // initial fetched HTML, pre-JS-execution
   tls: TLSCertInfo | null;
   stack: string;                  // detected framework/host
+
+  // Phase 3.1: headless render + chunk coverage. Optional so legacy callers / fallback path work.
+  renderedHtml?: string;          // post-JS HTML snapshot from Playwright
+  consoleErrors?: string[];       // browser console errors during render
+  networkRequests?: NetworkRequest[]; // every request the browser made during render
+  loadedChunkContents?: Record<string, string>; // url -> JS body, both browser-loaded and manifest-discovered
+  renderMode?: 'headless' | 'fetch-only'; // which path actually ran
 }

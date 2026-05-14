@@ -1,0 +1,14 @@
+{
+  "responses": [
+    {
+      "url": "https://example.com/robots.txt",
+      "status": 200,
+      "body": "User-agent: *\nDisallow: /\n"
+    },
+    {
+      "url": "https://example.com/sitemap.xml",
+      "status": 404,
+      "body": ""
+    }
+  ]
+}

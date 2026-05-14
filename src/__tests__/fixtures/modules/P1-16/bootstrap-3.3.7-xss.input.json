@@ -1,0 +1,7 @@
+{
+  "finalUrl": "https://target.example/",
+  "renderMode": "headless",
+  "loadedChunkContents": {
+    "https://target.example/vendor/bootstrap.min.js": "/*! Bootstrap v3.3.7 (https://getbootstrap.com) | MIT License */\n!function(t){/* minified body */}();"
+  }
+}

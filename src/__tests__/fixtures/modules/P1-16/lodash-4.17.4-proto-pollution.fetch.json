@@ -1,0 +1,28 @@
+{
+  "responses": [
+    {
+      "urlMatches": "^https://api\\.osv\\.dev/v1/querybatch$",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"results\":[{\"vulns\":[{\"id\":\"GHSA-fvqr-27wr-82fm\"}]}]}"
+    },
+    {
+      "urlMatches": "^https://api\\.osv\\.dev/v1/vulns/GHSA-fvqr-27wr-82fm$",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"id\":\"GHSA-fvqr-27wr-82fm\",\"summary\":\"Prototype Pollution in lodash\",\"aliases\":[\"CVE-2018-3721\"],\"severity\":[{\"type\":\"CVSS_V3\",\"score\":\"7.4\"}]}"
+    },
+    {
+      "urlMatches": "cisa\\.gov.*known_exploited_vulnerabilities\\.json",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"vulnerabilities\":[]}"
+    },
+    {
+      "urlMatches": "^https://api\\.first\\.org/data/v1/epss\\?cve=CVE-2018-3721",
+      "status": 200,
+      "headers": { "content-type": "application/json" },
+      "body": "{\"status\":\"OK\",\"data\":[{\"cve\":\"CVE-2018-3721\",\"epss\":\"0.31000\",\"percentile\":\"0.65000\"}]}"
+    }
+  ]
+}

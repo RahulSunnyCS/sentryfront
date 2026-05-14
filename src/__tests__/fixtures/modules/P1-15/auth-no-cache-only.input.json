@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "cache-control": "no-cache, must-revalidate"
+  },
+  "cookies": [
+    {
+      "name": "session",
+      "value": "abc",
+      "secure": true,
+      "httpOnly": true,
+      "sameSite": "Lax",
+      "domain": "example.com",
+      "path": "/"
+    }
+  ]
+}
