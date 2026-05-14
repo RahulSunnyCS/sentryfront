@@ -1,0 +1,4 @@
+{
+  "url": "http://testphp.vulnweb.com/",
+  "notes": "Acunetix intentionally-vulnerable PHP test site. Expected band: F."
+}

@@ -4,7 +4,7 @@
 Companion to `PHASES.md` (which tracks the product/business narrative). This doc is the honest engineering plan: what's actually built, what's mocked, and the order we'll harden it.
 
 **Last updated:** 2026-05-14
-**Current phase:** Phase 3 — Improve detection quality (3.1 headless crawl, 3.2 client-side dep vulns, 3.3 KEV+EPSS severity, 3.4 DOM-aware regex preprocessing, 3.5 targeted FP fixes all shipped; **3.6 scan-quality corpus is next**)
+**Current phase:** Phase 3 — Improve detection quality (3.1 headless crawl, 3.2 client-side dep vulns, 3.3 KEV+EPSS severity, 3.4 DOM-aware regex preprocessing, 3.5 targeted FP fixes all shipped; 3.6 scan-quality corpus infrastructure shipped at 10-site seed — expansion to 30+ sites and AI-built coverage are now open backlog items)
 
 ---
 
@@ -284,13 +284,16 @@ Concrete fixes for FPs identified by reading the module code, not theoretical. E
 
 Was 3.1 in the old plan. Now an *integration test* that 3.5 fixes don't regress real-world scans.
 
-- [ ] Curate 30+ real sites covering A/B/C/D/F grade distribution
-- [ ] Include AI-built sites (Lovable, Bolt, v0, Replit, Cursor outputs)
-- [ ] Include known-bad fixtures (deliberately broken `.env.example` exposure, missing headers)
-- [ ] Include known-good fixtures (security-hardened reference sites)
-- [ ] Lock baseline expected output per fixture; track drift over time
-- [ ] CI job that runs the corpus on every backend PR
-- [ ] Corpus scans run with `INTERNAL_SCAN=true` so they get full LLM enrichment (per 3.14) for free
+Initial infrastructure shipped: replay-only test harness (`yarn test:corpus`), recorder CLI (`yarn corpus record --site <slug>`), 10 seed slugs across A/B/C/D/F. CI runs the replay on every backend PR. See `docs/core/CORPUS_GUIDE.md`.
+
+- [x] Initial 10-site corpus covering A/B/C/D/F grade distribution (seed slugs registered; baselines lock on first `yarn corpus record`)
+- [ ] Expand to 30+ real sites covering A/B/C/D/F grade distribution
+- [ ] Include AI-built sites (Lovable, Bolt, v0, Replit, Cursor outputs) — deferred until project-owned reference apps exist
+- [ ] Include known-bad fixtures (deliberately broken `.env.example` exposure, missing headers) — covered by per-module fixture tests today; add to corpus when project-owned sites land
+- [x] Include known-good fixtures (security-hardened reference sites — github.com, anthropic.com, stripe.com)
+- [x] Lock baseline expected output per fixture; track drift over time (strict drift: exact grade, ±1 score, exact `moduleFindingCounts`, exact finding set on `(moduleId, severity, title)`)
+- [x] CI job that runs the corpus on every backend PR (`.github/workflows/test.yml` step `Run scan-quality corpus (Phase 3.6 replay)`)
+- [ ] Corpus scans run with `INTERNAL_SCAN=true` so they get full LLM enrichment (per 3.14) for free — deferred; LLM output is non-deterministic so baseline pinning needs a separate snapshot layer
 
 ### 3.7 Production telemetry for FP measurement
 
