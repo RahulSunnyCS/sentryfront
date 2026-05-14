@@ -70,7 +70,7 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 
 - [x] `POST /api/v1/verify/init` body `{ domain }` returning `{ token, expires_at }`
 - [x] `POST /api/v1/verify/check` body `{ domain, method }` returning `{ verified: bool, detected_value?, expected_value }`
-- [x] Replace hardcoded `domain="taskflow.app"` and `token="vibesafe-verify=…"` with values from URL search params or initiated session
+- [x] Replace hardcoded `domain="example.com"` and `token="vibesafe-verify=…"` with values from URL search params or initiated session
 - [x] Real DNS lookup (TXT query) + real meta tag fetch from `/` of domain (meta fetch reuses `validateAndNormalize` SSRF guard)
 - [x] Persist verification state to user account so it's remembered across sessions
 - [x] Rate-limit `/check` (1/sec per user, 10/min per (user, domain)) via Upstash sliding window with no-op fallback when env vars unset
@@ -81,7 +81,7 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 - [x] `GET /api/v1/active-test/:id/progress` SSE stream emitting `probe_started`, `probe_complete`, `scan_complete`
 - [x] `GET /api/v1/active-test/:id/results` returning `{ findings: [...], passed: [...], summary }`
 - [x] Replace `CONFIRMED_FINDINGS` and `PASSED` arrays with real data
-- [x] Replace hardcoded `domain="taskflow.app"` with controlled input value
+- [x] Replace hardcoded `domain="example.com"` with controlled input value
 - [x] Replace 1.8s simulated step progression with real SSE listener (`EventSource` on `/progress`)
 - [ ] Credit deduction integration (3 credits per run, error if insufficient) — **deferred:** no `Credit` table exists yet; lands when payment ledger is built
 - [x] Idempotency key on `/start` (replay logic in place so the deduction, when added later, can't double-bill)

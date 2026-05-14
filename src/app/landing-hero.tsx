@@ -116,7 +116,7 @@ const TESTIMONIALS = [
   {
     quote: 'Caught a Stripe live key in my Lovable export before launch. Worth ten years of subscription fees.',
     name: 'Maya Chen',
-    role: 'Indie founder · taskflow.app',
+    role: 'Indie founder · example.com',
   },
   {
     quote: 'We replaced a quarterly $4,000 pentest with VibeSafe on every deploy. Findings come with fixes — we just paste them into Cursor.',
@@ -226,7 +226,7 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
   const [error, setError] = useState<string | null>(null);
 
   const handleScan = async () => {
-    const target = url.trim() || 'taskflow.app';
+    const target = url.trim() || 'example.com';
     setError(null);
     setLoading(true);
     try {
@@ -294,7 +294,7 @@ function HeroSection({ weeklyCount }: { weeklyCount: number | null }) {
             spellCheck={false}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="taskflow.app"
+            placeholder="example.com"
             disabled={loading}
           />
           <button type="submit" disabled={loading} aria-label="Start free scan">

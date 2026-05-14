@@ -50,7 +50,7 @@
 
 **What to add:**
 ```
-Name:  _vibesafe-verify.taskflow.app
+Name:  _vibesafe-verify.example.com
 Type:  TXT
 Value: vibesafe-verify=a8f3e2b9c1d4e5f6
 ```
@@ -85,7 +85,7 @@ Value: vibesafe-verify=a8f3e2b9c1d4e5f6
 
 **What to add:**
 ```
-Name:      verify.taskflow.app
+Name:      verify.example.com
 Type:      CNAME
 Points to: a8f3e2b9c1d4e5f6.verify.vibesafe.app
 ```
@@ -103,7 +103,7 @@ Some registrar UIs (like GoDaddy's) make CNAME records easier to understand than
 1. Create a file named `vibesafe-verify.txt`
 2. Add this line: `vibesafe-verify=a8f3e2b9c1d4e5f6`
 3. Upload to your website root
-4. Should be accessible at: `https://taskflow.app/vibesafe-verify.txt`
+4. Should be accessible at: `https://example.com/vibesafe-verify.txt`
 
 **Who should use this:**
 - Shopify store owner (can upload files via admin)
@@ -118,11 +118,11 @@ Some registrar UIs (like GoDaddy's) make CNAME records easier to understand than
 
 **What to do:**
 1. Send email **from** one of these addresses:
-   - `admin@taskflow.app`
-   - `webmaster@taskflow.app`
-   - `postmaster@taskflow.app`
+   - `admin@example.com`
+   - `webmaster@example.com`
+   - `postmaster@example.com`
 2. Send **to:** `verify@vibesafe.app`
-3. **Subject:** Verify taskflow.app
+3. **Subject:** Verify example.com
 4. **Body:** `a8f3e2b9c1d4e5f6`
 5. Click "I've Sent the Email" button
 
@@ -151,7 +151,7 @@ We show you exact steps for your provider:
 **Example for GoDaddy users:**
 ```
 1. Go to GoDaddy DNS Management ↗️
-2. Find "taskflow.app" and click "DNS"
+2. Find "example.com" and click "DNS"
 3. Click "Add" button
 4. Select "TXT" from dropdown
 5. Name: _vibesafe-verify

@@ -565,7 +565,7 @@
         <span>Required for Active Testing</span>
       </div>
       <h1>Verify you own this domain</h1>
-      <p>To run active security tests on <span class="domain">taskflow.app</span>, we need proof you own or are authorized to test it.</p>
+      <p>To run active security tests on <span class="domain">example.com</span>, we need proof you own or are authorized to test it.</p>
     </div>
 
     <!-- Why this matters -->
@@ -810,9 +810,9 @@
     // Verify (simulated)
     function runVerify(method) {
       const target = document.getElementById('techStatus');
-      target.innerHTML = '<div class="verify-status pending"><div class="spinner"></div><span>Checking ' + (method === 'dns' ? 'DNS TXT record' : 'meta tag') + ' for taskflow.app...</span></div>';
+      target.innerHTML = '<div class="verify-status pending"><div class="spinner"></div><span>Checking ' + (method === 'dns' ? 'DNS TXT record' : 'meta tag') + ' for example.com...</span></div>';
       setTimeout(() => {
-        target.innerHTML = '<div class="verify-status success"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Verified!</strong> Domain ownership confirmed for taskflow.app. Active testing is now unlocked.</span></div>';
+        target.innerHTML = '<div class="verify-status success"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Verified!</strong> Domain ownership confirmed for example.com. Active testing is now unlocked.</span></div>';
       }, 1800);
     }
 
@@ -959,9 +959,9 @@
 
     function runGuidedVerify(method) {
       const target = document.getElementById('guidedStatus');
-      target.innerHTML = '<div class="verify-status pending" style="margin-top: 16px;"><div class="spinner"></div><span>Checking ' + (method === 'dns' ? 'DNS TXT record' : 'meta tag') + ' for taskflow.app...</span></div>';
+      target.innerHTML = '<div class="verify-status pending" style="margin-top: 16px;"><div class="spinner"></div><span>Checking ' + (method === 'dns' ? 'DNS TXT record' : 'meta tag') + ' for example.com...</span></div>';
       setTimeout(() => {
-        target.innerHTML = '<div class="verify-status success" style="margin-top: 16px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Verified!</strong> taskflow.app is now confirmed. Active testing is unlocked.</span></div>';
+        target.innerHTML = '<div class="verify-status success" style="margin-top: 16px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Verified!</strong> example.com is now confirmed. Active testing is unlocked.</span></div>';
       }, 1800);
     }
   </script>
