@@ -1,0 +1,10 @@
+{
+  "findings": [
+    { "moduleId": "P1-03", "titleIncludes": "Content-Security-Policy" },
+    { "moduleId": "P1-03", "titleIncludes": "Strict-Transport-Security" },
+    { "moduleId": "P1-03", "titleIncludes": "X-Frame-Options" },
+    { "moduleId": "P1-03", "titleIncludes": "X-Content-Type-Options" },
+    { "moduleId": "P1-03", "titleIncludes": "Referrer-Policy" },
+    { "moduleId": "P1-03", "titleIncludes": "Permissions-Policy" }
+  ]
+}

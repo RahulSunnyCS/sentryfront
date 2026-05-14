@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-05",
+      "severity": "HIGH",
+      "titleIncludes": "Secure flag"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "cookies": [
+    {
+      "name": "auth_token",
+      "value": "abc123",
+      "secure": true,
+      "httpOnly": true,
+      "sameSite": null,
+      "domain": "example.com",
+      "path": "/"
+    }
+  ]
+}

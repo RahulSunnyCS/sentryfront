@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-08",
+      "severity": "MEDIUM",
+      "titleIncludes": "passive resource"
+    }
+  ]
+}
