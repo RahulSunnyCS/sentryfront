@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/helpers';
 import { canViewScan } from '@/lib/report-access';
+import { logger } from '@/lib/logger';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  logger.setScanScope(params.id);
   const scan = await prisma.scan.findUnique({ where: { id: params.id } });
 
   if (!scan) {

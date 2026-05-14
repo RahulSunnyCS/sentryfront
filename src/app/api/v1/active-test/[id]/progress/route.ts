@@ -3,10 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { iterScanEvents } from '@/lib/events';
 import { getCurrentUser } from '@/lib/auth/helpers';
 import { parseActiveTestSummary } from '@/lib/active-test-worker';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  logger.setScanScope(params.id);
   const user = await getCurrentUser();
   if (!user) {
     return new Response(JSON.stringify({ error: 'Authentication required.' }), {

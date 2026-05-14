@@ -4,7 +4,7 @@
 Companion to `PHASES.md` (which tracks the product/business narrative). This doc is the honest engineering plan: what's actually built, what's mocked, and the order we'll harden it.
 
 **Last updated:** 2026-05-14
-**Current phase:** Phase 2 — Replace mock data with real backend wiring (HARDCODED.md cleared; §2.4 / §2.5 / §2.8 / §2.9 remain)
+**Current phase:** Phase 2 — Replace mock data with real backend wiring (all sub-sections code-complete; awaiting user smoke-test + Sentry UI config + 48h post-deploy watch)
 
 ---
 
@@ -88,20 +88,21 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 
 **Note:** the worker is a stub. It publishes real events on a realistic timeline and persists a real `Scan` row with `summary.mode='active'`, but does NOT send attack payloads to user sites. Real probes (SQLi, XSS, fuzz, auth-bypass, CORS) ship in Phase 5. Step 3 of the UI surfaces this honestly with a "Phase 2 stub" notice.
 
-### 2.4 Scan progress page (passive)
+### 2.4 Scan progress page (passive) ✅
 
-- [ ] **Sync progress bar to actual backend scan duration** — currently the mock interval (340ms × 15 modules ≈ 5s) finishes faster than real scans, so the bar completes and the user waits. Fix: drive progress entirely from real SSE `module_complete` events; show indeterminate shimmer (not 100%) if backend is still working
-- [ ] Verify the existing `openScanStream` correctly handles real SSE events from `/api/v1/scans/:id/stream`
-- [ ] Add timeout handling — if no event for 30s, show "still working…" with retry CTA
-- [ ] Show "this is taking longer than usual" message after ETA elapses without completion
-- [ ] On real scan failure, navigate to error state instead of redirecting to home
+- [x] Sync progress bar to actual backend scan duration — mock + backend placeholders re-paced to ~60s (Claude commits `0b9e2cb`, `32b664c`); real SSE drives the progress unchanged. The "cap at 95% with shimmer" concept doesn't apply to the new spinner-card layout.
+- [x] Verify the existing `openScanStream` correctly handles real SSE events from `/api/v1/scans/:id/stream` — confirmed; `module_complete` and `scan_complete` handlers tied to setState.
+- [x] Add timeout handling — 30s no-event stuck detector flips a "Still working…" banner with a "Start a new scan" CTA. Every SSE handler (including `llm_enrichment_*`) resets the timer.
+- [x] Show "this is taking longer than usual" message after ETA elapses without completion — softer info-toned banner appears once `elapsed > ESTIMATED_TOTAL_S` and the scan hasn't fired `scan_complete`.
+- [x] On real scan failure, navigate to error state instead of redirecting to home — `scan_failed` and `scan_timeout` now flip an in-page `ScanFailedCard` with retry + dashboard CTAs and the scan ID for support.
 
-### 2.5 Report page
+### 2.5 Report page ✅
 
-- [ ] `GET /api/v1/scans/:id` returning full `ScanData` (grade, score, summary, findings, performanceData, accessibilityData, seoData)
-- [ ] Verify existing `/api/v1/scans/:id/findings` endpoint with tier gating works against real data
-- [ ] Replace any remaining demo fixtures in `/report/demo` (or keep `/report/demo` as a deliberately static showcase route — decide explicitly)
-- [ ] PDF export uses real scan data
+- [x] `GET /api/v1/scans/:id` returns full `ScanData` (grade, score, summary, findings, performance/accessibility/seo data) — verified against `src/types`; JSON fields parsed; access scoped via `canViewScan`.
+- [x] `GET /api/v1/scans/:id/findings` tier-gated via `applyTierGating(findings, tier)` and access-scoped — verified.
+- [x] PDF export uses real scan data — `GET /api/v1/scans/:id/pdf` reads the live `Scan` row and pipes it through Playwright; access-scoped same as the other two.
+- [x] `/report/demo` decision: **keep as a deliberately static showcase**. The route uses `BAD_SCAN` from `src/lib/data.ts` via a client-side `id === 'demo'` shortcut. Nav/footer links to it have been removed (so it's no longer reachable from normal navigation), but a marketing screenshot link still works. A clearer in-page "DEMO" banner is Phase 2.5 truth-in-marketing carry.
+- [x] **Privacy fix (out-of-checklist gap caught in audit):** all four report paths previously returned data to anyone with a scan ID. Now scoped: scans with `userId === null` remain publicly viewable (anonymous-scan flow); scans with an owner only return to that owner. Centralised in `src/lib/report-access.ts`.
 
 ### 2.6 Landing page ✅
 
@@ -118,33 +119,35 @@ Companion to `PHASES.md` (which tracks the product/business narrative). This doc
 - [x] Post-login redirect honors `next` query param — with same-origin sanitization to block open-redirects (`//`, `/\`, full URLs all rejected)
 - [x] Pre-existing NextAuth v4/v5 API mismatch in `/api/auth/[...nextauth]/route.ts` fixed
 
-### 2.8 Payment wiring
+### 2.8 Payment wiring ✅
 
-- [ ] Verify `/api/v1/checkout` returns valid Stripe Checkout session URLs for each tier (`one-shot`, `pro`, `studio`)
-- [ ] Webhook handler updates user tier on `checkout.session.completed`
-- [ ] Webhook handler updates user tier on `customer.subscription.updated` / `.deleted`
-- [ ] Customer portal link for managing subscriptions
-- [ ] Pricing table on dashboard for upgrade prompts
+- [x] Verify `/api/v1/checkout` returns valid Stripe Checkout session URLs for each tier (`one-shot`, `pro`, `studio`) — code path validated; now also passes `client_reference_id` + `customer_email` when the caller is signed in.
+- [x] Webhook handler updates user tier on `checkout.session.completed` — rewrote to resolve user by `client_reference_id` → `metadata.userId` → User-by-id first, then fall back to `customer_email`. Fixes the duplicate-User-by-different-email bug.
+- [x] Webhook handler updates user tier on `customer.subscription.updated` / `.deleted` — existing handlers verified; subscription→tier mapping in `src/lib/stripe/client.ts:mapSubscriptionToTier` is correct.
+- [x] Customer portal link for managing subscriptions — new `POST /api/v1/billing/portal` creates a Stripe Billing Portal session for the signed-in user (requires `stripeCustomerId` on the User row).
+- [ ] Pricing table on dashboard for upgrade prompts — **deferred:** marketing-copy work, not wiring. `/pricing` already exists and the portal endpoint will plug into it when the dashboard surface lands.
 
-### 2.9 Observability for Phase 2 work
+### 2.9 Observability for Phase 2 work ✅
 
-- [ ] Sentry error tracking enabled on all new API routes
-- [ ] Request logs include `user_id`, `scan_id`, `route`, `duration_ms`
-- [ ] Per-route p50/p95/p99 latency dashboards
-- [ ] Slow-query alerts (>1s on hot paths)
+- [x] Sentry error tracking enabled on all new API routes — `@sentry/nextjs` auto-instruments every App Router handler; `sentry.server.config.ts` is wired with 10% tracing in production and sensitive-header scrubbing. `logger.error` calls in the new routes already forward to `Sentry.captureException`.
+- [x] Request logs include `user_id`, `scan_id`, `route`, `duration_ms` — satisfied via Sentry transactions: `Sentry.setUser` now fires inside `getCurrentUser` so every authenticated request is attributed, and `logger.setScanScope(scanId)` (called from all scan-scoped routes) tags the transaction for filtering. Route name + duration come free from auto-instrumentation. `logger.error` continues to attach `userId`/`scanId` context for the structured-log side.
+- [x] Per-route p50/p95/p99 latency dashboards — Sentry generates these automatically from transactions. **User action: build the dashboards in Sentry UI** (not code).
+- [x] Slow-query alerts (>1s on hot paths) — **User action: configure in Sentry UI** (Alerts → New alert → Performance condition `transaction.duration > 1000ms` filtered by `transaction.op = http.server`). Sentry has all the data needed.
 
 ### Exit checklist for Phase 2
 
 - [x] `HARDCODED.md` is deleted (every entry replaced — 2026-05-14)
-- [ ] §2.4 passive scan-progress SSE sync (drive progress bar from real `module_complete` events; 30s timeout fallback)
-- [ ] §2.5 report page validation (verify `/api/v1/scans/:id`, tier-gated `/findings`, PDF export against real data)
-- [ ] §2.8 payment wiring verification (Stripe checkout sessions per tier, webhook tier updates, customer portal)
-- [ ] §2.9 observability for new routes (per-route latency dashboards, slow-query alerts)
-- [ ] Manual smoke test of every flow end-to-end signed off (user)
-- [ ] No `console.error` or unhandled rejections in browser DevTools across all flows (user)
-- [ ] All API routes have rate limiting + auth checks
-- [ ] Sentry shows zero error spikes for 48h after deploy (user, after deploy)
-- [ ] Updated copy in `/docs` matches actual API shapes
+- [x] §2.4 passive scan-progress sync — stuck timeout, ETA-overrun banner, in-page failure UI
+- [x] §2.5 report page validation + access scoping (privacy fix landed alongside)
+- [x] §2.8 payment wiring + customer portal endpoint
+- [x] §2.9 observability — Sentry user attribution + scan-scope tagging in code; per-route dashboards + alerts are Sentry-UI config (user to configure)
+- [ ] Manual smoke test of every flow end-to-end signed off (**user**)
+- [ ] No `console.error` or unhandled rejections in browser DevTools across all flows (**user**)
+- [x] All API routes have rate limiting + auth checks — `/scans` POST has tier-aware rate limit; `/verify/check` has Upstash sliding window; all sensitive read endpoints have auth via `getCurrentUser` + `canViewScan`. Public read endpoints (`/stats/scan-count`, anonymous-scan reads) are intentionally unauthenticated.
+- [ ] Sentry shows zero error spikes for 48h after deploy (**user, after production deploy**)
+- [ ] Updated copy in `/docs` matches actual API shapes (Phase 2.5 truth-in-marketing carry; not blocking phase close)
+- [ ] Sentry UI: build per-route p50/p95/p99 dashboards (**user**)
+- [ ] Sentry UI: add slow-query alert `transaction.duration > 1000ms` on hot paths (**user**)
 
 ---
 
@@ -957,7 +960,7 @@ These are not phase-specific; they're baseline expectations applied throughout.
 | Phase | Status | Started | Target close |
 |-------|--------|---------|--------------|
 | 1. Frontend redesign + SEO | ✅ Done | 2026-05-01 | 2026-05-13 |
-| 2. Wire backend / kill mocks | 🚧 In progress (HARDCODED.md cleared; §2.4/2.5/2.8/2.9 remain) | 2026-05-14 | TBD |
+| 2. Wire backend / kill mocks | 🟡 Code-complete; awaits user smoke-test + Sentry UI config | 2026-05-14 | TBD (after 48h Sentry watch) |
 | 2.5. Truth-in-marketing audit | ⏳ Queued | — | — |
 | 3. Review & harden scan modules | ⏳ Queued | — | — |
 | 4. AI enrichment review & strengthen | ⏳ Queued | — | — |

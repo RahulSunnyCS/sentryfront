@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/helpers';
 import { parseActiveTestSummary } from '@/lib/active-test-worker';
+import { logger } from '@/lib/logger';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  logger.setScanScope(params.id);
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });

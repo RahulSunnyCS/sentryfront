@@ -5,6 +5,7 @@
  */
 
 import { getServerSession } from 'next-auth';
+import * as Sentry from '@sentry/nextjs';
 import { nextAuthConfig } from './nextauth-config';
 import { authConfig, isFeatureReady } from '@/lib/features';
 import { prisma } from '@/lib/prisma';
@@ -59,6 +60,11 @@ async function getCurrentUserNextAuth(): Promise<AuthUser | null> {
   if (!user || !user.email) {
     return null;
   }
+
+  // Attribute every authenticated request to the user in Sentry so
+  // transaction p50/p95/p99 breakdowns and error events are scoped
+  // to a real identity instead of an anonymous server transaction.
+  Sentry.setUser({ id: user.id, email: user.email, tier: user.tier ?? 'free' });
 
   return user as AuthUser;
 }

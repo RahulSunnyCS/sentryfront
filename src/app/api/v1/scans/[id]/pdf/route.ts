@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/helpers';
 import { canViewScan } from '@/lib/report-access';
 import { generatePdfBuffer, isDirectPdfAvailable } from '@/lib/pdf/export';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -28,6 +29,7 @@ export async function GET(
   }
 
   const { id } = params;
+  logger.setScanScope(id);
 
   // Fetch scan to verify it exists and is completed
   const scan = await prisma.scan.findUnique({
