@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 type Tier = 'one-shot' | 'pro' | 'studio';
 
@@ -116,14 +117,14 @@ export function CheckoutButton({ tier, label, featured = false }: Props) {
         {label}
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby={`checkout-${tier}-title`}
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
           style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
+            position: 'fixed', inset: 0, zIndex: 9000,
             background: 'rgba(0,0,0,0.65)',
             backdropFilter: 'blur(4px)',
             WebkitBackdropFilter: 'blur(4px)',
@@ -248,7 +249,7 @@ export function CheckoutButton({ tier, label, featured = false }: Props) {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }

@@ -55,7 +55,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 100,
+        zIndex: 300,
         height: 'var(--nav-h)',
         display: 'flex',
         alignItems: 'center',
