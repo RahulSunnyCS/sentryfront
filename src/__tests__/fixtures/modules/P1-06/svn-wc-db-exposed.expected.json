@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-06",
+      "severity": "CRITICAL",
+      "titleIncludes": "/.svn/wc.db",
+      "evidenceIncludes": "/.svn/wc.db"
+    }
+  ]
+}

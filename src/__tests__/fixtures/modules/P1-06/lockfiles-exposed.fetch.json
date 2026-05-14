@@ -1,0 +1,18 @@
+{
+  "responses": [
+    {
+      "url": "https://example.com/yarn.lock",
+      "status": 200,
+      "body": "# yarn lockfile v1\n\"react@18.0.0\":\n  version \"18.0.0\"\n"
+    },
+    {
+      "url": "https://example.com/package-lock.json",
+      "status": 200,
+      "body": "{\"lockfileVersion\":3,\"packages\":{}}"
+    }
+  ],
+  "default": {
+    "status": 404,
+    "body": "<html><body>Not found</body></html>"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P1-06",
+      "severity": "MEDIUM",
+      "titleIncludes": "dependency-lock file",
+      "evidenceIncludes": "/yarn.lock"
+    }
+  ]
+}
