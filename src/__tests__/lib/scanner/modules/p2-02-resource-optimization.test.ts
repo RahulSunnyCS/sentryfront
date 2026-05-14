@@ -17,8 +17,8 @@ describe('P2-02: Resource Optimization Module', () => {
             id: 'unused-javascript',
             title: 'Remove unused JavaScript',
             description: '850 KB of unused JavaScript detected',
-            wastedBytes: 850 * 1024, // 850 KB (> 500 KB threshold = MEDIUM)
-            wastedMs: 2000,
+            overallSavingsBytes: 850 * 1024, // 850 KB (> 500 KB threshold = MEDIUM)
+            overallSavingsMs: 2000,
           },
         ],
       };
@@ -61,8 +61,8 @@ describe('P2-02: Resource Optimization Module', () => {
             id: 'unused-javascript',
             title: 'Remove unused JavaScript',
             description: '200 KB of unused JavaScript detected',
-            wastedBytes: 200 * 1024, // 200 KB (>= 50 KB but < 500 KB = LOW severity)
-            wastedMs: 500,
+            overallSavingsBytes: 200 * 1024, // 200 KB (>= 50 KB but < 500 KB = LOW severity)
+            overallSavingsMs: 500,
           },
         ],
       };
@@ -89,8 +89,8 @@ describe('P2-02: Resource Optimization Module', () => {
             id: 'uses-optimized-images',
             title: 'Efficiently encode images',
             description: 'Images can be optimized',
-            wastedBytes: 600 * 1024, // 600 KB
-            wastedMs: 1500,
+            overallSavingsBytes: 600 * 1024, // 600 KB
+            overallSavingsMs: 1500,
           },
         ],
       };
@@ -116,8 +116,8 @@ describe('P2-02: Resource Optimization Module', () => {
             id: 'modern-image-formats',
             title: 'Serve images in modern formats',
             description: 'Convert images to WebP/AVIF',
-            wastedBytes: 700 * 1024,
-            wastedMs: 1800,
+            overallSavingsBytes: 700 * 1024,
+            overallSavingsMs: 1800,
           },
         ],
       };
@@ -144,15 +144,15 @@ describe('P2-02: Resource Optimization Module', () => {
             id: 'unused-javascript',
             title: 'Remove unused JavaScript',
             description: '1.2 MB of unused JavaScript detected',
-            wastedBytes: 1200 * 1024,
-            wastedMs: 3000,
+            overallSavingsBytes: 1200 * 1024,
+            overallSavingsMs: 3000,
           },
           {
             id: 'modern-image-formats',
             title: 'Serve images in modern formats',
             description: 'Convert images to WebP/AVIF',
-            wastedBytes: 800 * 1024,
-            wastedMs: 2000,
+            overallSavingsBytes: 800 * 1024,
+            overallSavingsMs: 2000,
           },
         ],
       };

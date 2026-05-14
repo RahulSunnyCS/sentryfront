@@ -22,14 +22,13 @@ export async function GET() {
     DATABASE_URL: !!process.env.DATABASE_URL,
     NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
     NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
-    PAGESPEED_API_KEY: !!process.env.PAGESPEED_API_KEY,
   };
 
   const missingEnvVars = Object.entries(requiredEnvVars)
     .filter(([, exists]) => !exists)
     .map(([name]) => name);
 
-  const overallStatus = dbStatus === 'error' || missingEnvVars.length > 0 ? 'error' : 'ok';
+  const overallStatus = dbStatus === 'error' ? 'degraded' : missingEnvVars.length > 0 ? 'degraded' : 'ok';
 
   return NextResponse.json({
     status: overallStatus,
@@ -63,6 +62,11 @@ export async function GET() {
       performanceScanning: true,
       accessibilityScanning: true,
       seoScanning: true,
+    },
+
+    // Monitoring
+    monitoring: {
+      sentry: !!process.env.SENTRY_ENABLED,
     },
 
     // Optional integrations
