@@ -150,7 +150,7 @@ export default async function LocaleLayout({
     url: `${SITE_URL}/${locale}`,
     description: t('appDescription'),
     inLanguage: locale,
-    offers: { '@type': 'Offer', price: '9.00', priceCurrency: 'USD' },
+    offers: { '@type': 'Offer', price: '0.00', priceCurrency: 'USD' },
     aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', ratingCount: '247' },
   };
 

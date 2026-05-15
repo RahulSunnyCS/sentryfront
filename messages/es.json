@@ -62,7 +62,7 @@
     "de": "Deutsch"
   },
   "landing": {
-    "pill": "Seguridad de nivel empresarial · Desde $9",
+    "pill": "Seguridad de nivel empresarial · Desde $0",
     "heroTitleLine1": "Tu sitio creado con IA ahora es",
     "heroTitleInitialLine1": "Tu sitio creado con IA no es",
     "heroTitleLine2": "técnicamente sólido",
@@ -155,7 +155,7 @@
       "bullet4": "Intentos de bypass de autenticación",
       "replaces": "Reemplaza",
       "pentest": "compromiso de pentest manual",
-      "perScan": "por escaneo activo (~$3.48)",
+      "perScan": "por escaneo activo (~$0)",
       "credits": "3 créditos"
     },
     "codeBanner": {
@@ -184,7 +184,7 @@
       "row1Manual": "2–4 semanas",
       "row1Competitor": "4–24 horas",
       "row2Feature": "Precio inicial",
-      "row2Vibesafe": "$9",
+      "row2Vibesafe": "$0",
       "row2Manual": "$3,200+",
       "row2Competitor": "$99/mes",
       "row3Feature": "Prompts de corrección IA",
@@ -192,7 +192,7 @@
       "row3Manual": "Ninguno",
       "row3Competitor": "Ninguno",
       "row4Feature": "Sondas DAST activas",
-      "row4Vibesafe": "$3.48",
+      "row4Vibesafe": "$0",
       "row4Manual": "$5,000",
       "row4Competitor": "$499",
       "row5Feature": "Configuración requerida",
@@ -299,9 +299,9 @@
   },
   "pricing": {
     "metaTitle": "Precios — Un escaneo gratis por semana, paga por pruebas activas",
-    "metaDesc": "Plan gratuito: 1 escaneo pasivo totalmente desbloqueado por semana. Verify ($9): un escaneo DAST activo. Active Pack ($29): 5 escaneos DAST. Monitor ($15/mes): escaneos pasivos ilimitados + alertas de regresión.",
+    "metaDesc": "Plan gratuito: 1 escaneo pasivo totalmente desbloqueado por semana. Verify ($0): un escaneo DAST activo. Active Pack ($0): 5 escaneos DAST. Monitor ($0/mes): escaneos pasivos ilimitados + alertas de regresión.",
     "ogTitle": "Precios de VibeSafe — Escaneo pasivo gratis, paga por la prueba",
-    "ogDesc": "Los escaneos pasivos son gratis con inicio de sesión. Las pruebas DAST activas (sondas de ataque reales) desde $9. Monitorización a $15/mes por dominio.",
+    "ogDesc": "Los escaneos pasivos son gratis con inicio de sesión. Las pruebas DAST activas (sondas de ataque reales) desde $0. Monitorización a $0/mes por dominio.",
     "eyebrow": "Precios",
     "heroTitle": "El escaneo pasivo es gratis. Paga solo para probar que los hallazgos son reales.",
     "heroLead": "Un escaneo pasivo completo a la semana es gratis (se requiere inicio de sesión). Paga por pruebas DAST activas o monitorización continua.",
@@ -328,7 +328,7 @@
       "verify": {
         "name": "Verify",
         "desc": "Confirma que un hallazgo es real",
-        "btn": "Comprar Verify — $9",
+        "btn": "Comprar Verify — $0",
         "f1": "1 escaneo DAST activo en un dominio verificado",
         "f2": "Sondas reales de SQLi / XSS / bypass de auth",
         "f3": "Retención del historial de escaneos",
@@ -337,7 +337,7 @@
       "activePack": {
         "name": "Active Pack",
         "desc": "Mejor valor para creadores con IA",
-        "btn": "Comprar Active Pack — $29",
+        "btn": "Comprar Active Pack — $0",
         "f1": "5 escaneos DAST activos",
         "f2": "Los créditos no caducan",
         "f3": "Cola de escaneo prioritaria",
@@ -346,7 +346,7 @@
       "monitor": {
         "name": "Monitor",
         "desc": "Cobertura continua por dominio",
-        "btn": "Suscribirse — $15/mes",
+        "btn": "Suscribirse — $0/mes",
         "f1": "Escaneos pasivos ilimitados en el dominio",
         "f2": "Auto-escaneo diario con alertas de regresión",
         "f3": "Diff de escaneo + notificaciones email/Slack",
@@ -360,7 +360,7 @@
       "q2": "¿Qué cuenta para la cuota semanal?",
       "a2": "Cada escaneo pasivo completado que inicies estando con sesión iniciada. Los escaneos anónimos van por un límite de tasa separado basado en IP (10/hora). Necesitas iniciar sesión para ver el informe.",
       "q3": "¿Qué es un escaneo DAST activo?",
-      "a3": "Sondas de ataque reales (inyección SQL, XSS, bypass de autenticación, fuzzing de API) enviadas contra un dominio verificado. Limitado en tasa, opt-in, se identifica con una cabecera X-Scanner. Reemplaza un pentest manual de $5.000 por $9.",
+      "a3": "Sondas de ataque reales (inyección SQL, XSS, bypass de autenticación, fuzzing de API) enviadas contra un dominio verificado. Limitado en tasa, opt-in, se identifica con una cabecera X-Scanner. Reemplaza un pentest manual de $5.000 por $0.",
       "q4": "¿Por qué cobrar por pruebas activas y no por pasivas?",
       "a4": "El escaneo pasivo es HTTP + coincidencia de patrones — coste marginal casi cero. Las pruebas activas consumen cómputo real y requieren verificación de dominio. Cobramos por lo caro.",
       "q5": "¿Puedo obtener un reembolso?",
@@ -533,7 +533,7 @@
       "p1": "Las pruebas activas envían sondas de ataque reales (SQLi, XSS, bypass de auth, fuzzing de API) contra un dominio que posees. Los hallazgos son <strong>CONFIRMADOS explotables</strong>, nunca especulativos.",
       "prereqTitle": "Requisitos previos",
       "prereq1": "Verifica la propiedad del dominio objetivo (registro DNS TXT o etiqueta meta HTML).",
-      "prereq2": "3 créditos por prueba activa (~$3.48). Reemplaza un pentest manual de $5,000.",
+      "prereq2": "3 créditos por prueba activa (~$0). Reemplaza un pentest manual de $5,000.",
       "prereq3": "Las sondas están limitadas en tasa y se ejecutan desde un bloque IP fijo para que puedas añadirlo a tu allowlist.",
       "durationTitle": "¿Cuánto tarda?",
       "durationBody": "~8 minutos en promedio para un sitio de 5 páginas. Las superficies más grandes escalan linealmente."
@@ -672,7 +672,7 @@
     },
     "pricing": {
       "title": "Precios",
-      "description": "Precios simples basados en créditos. Desde $9 — los créditos nunca caducan."
+      "description": "Precios simples basados en créditos. Desde $0 — los créditos nunca caducan."
     },
     "login": {
       "title": "Iniciar sesión",

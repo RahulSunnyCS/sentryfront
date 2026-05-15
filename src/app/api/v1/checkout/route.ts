@@ -89,15 +89,15 @@ export async function POST(req: NextRequest) {
     let mode: 'payment' | 'subscription';
 
     if (tier === 'one-shot') {
-      // Verify — one-time $9
+      // Verify — one-time $0
       priceId = STRIPE_PRICES.oneShot;
       mode = 'payment';
     } else if (tier === 'pro') {
-      // Active Pack — one-time $29 (was subscription pre-pivot; reuse the env var name)
+      // Active Pack — one-time $0 (was subscription pre-pivot; reuse the env var name)
       priceId = STRIPE_PRICES.proMonthly;
       mode = 'payment';
     } else if (tier === 'studio') {
-      // Monitor — $15/mo subscription
+      // Monitor — $0/mo subscription
       priceId = STRIPE_PRICES.studioMonthly;
       mode = 'subscription';
     } else {
