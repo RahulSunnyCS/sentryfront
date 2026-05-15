@@ -501,7 +501,61 @@
     "stageFinalizing": "Finalizando informe",
     "etaSeconds": "Aproximadamente {seconds} segundos restantes",
     "errorTitle": "Escaneo fallido",
-    "errorBody": "No pudimos completar este escaneo. Inténtalo de nuevo."
+    "errorBody": "No pudimos completar este escaneo. Inténtalo de nuevo.",
+    "labels": {
+      "target": "OBJETIVO",
+      "elapsed": "TIEMPO",
+      "eta": "ETA",
+      "stash": "BOTÍN",
+      "moduleStatus": "MÓDULO {current} / {total} · INTRUSIÓN",
+      "attackChain": "CADENA DE ATAQUE · {total} MÓDULOS",
+      "stashEmpty": "// botín vacío — esperando al primer módulo…",
+      "intel": "// intel",
+      "intelUpper": "// INTEL",
+      "found": "{count} encontrados",
+      "clean": "limpio"
+    },
+    "pill": {
+      "clean": "[LIMPIO]",
+      "owned": "[HACKEADO · {count}]",
+      "breaching": "INTRUSIÓN",
+      "queued": "[EN COLA]"
+    },
+    "statusMsg": {
+      "failed": "escaneo fallido.",
+      "complete": "análisis completo — abriendo informe…",
+      "finalising": "finalizando informe…",
+      "etaPrefix": "eta:"
+    },
+    "banners": {
+      "overrunTitle": "Está tardando más de lo habitual",
+      "overrunBody": "Tu escaneo sigue en marcha. El enriquecimiento con LLM o un objetivo lento pueden superar el ETA — redirigiremos cuando termine.",
+      "stuckTitle": "Aún trabajando…",
+      "stuckBody": "No hemos recibido datos del escáner durante 30 segundos. La conexión puede haberse caído o el escáner podría haberse bloqueado.",
+      "startNewScan": "Iniciar un nuevo escaneo"
+    },
+    "failed": {
+      "matrixHeader": "scan.failed = true",
+      "matrixBody": "algo salió mal. reintenta, o comparte scan_id={scanId} con soporte.",
+      "matrixRetry": "$ retry",
+      "matrixDashboard": "$ cd ~/dashboard",
+      "title": "Escaneo fallido",
+      "body": "Algo salió mal por nuestra parte y el escaneo no terminó. Inténtalo de nuevo — o comparte el ID del escaneo con soporte si sigue fallando.",
+      "startNew": "Iniciar un nuevo escaneo",
+      "backToDashboard": "Volver al panel"
+    },
+    "facts": [
+      "El 60% de las pequeñas empresas cierra en los 6 meses posteriores a un ciberataque — Verizon DBIR",
+      "El coste medio de una filtración de datos es de 4,45 M$ en 2024 — IBM Cost of a Data Breach Report",
+      "Los sitios creados con IA suelen exponer claves de API en bundles del cliente — un simple grep las encuentra",
+      "Un encabezado CORS mal configurado es la 2.ª causa de ataques cross-origin",
+      "El 43% de los ciberataques apuntan a pequeñas empresas, pero solo el 14% está preparado",
+      "El XSS almacenado permite secuestrar cualquier sesión iniciada — incluidos los admins",
+      "Los buckets S3 y las reglas de Firebase abiertos exponen 18 mil millones de registros al año",
+      "Un único archivo .env filtrado puede comprometer toda una pila de producción",
+      "Las tomas de subdominio pueden usarse para hacer phishing a usuarios desde \"tu\" dominio",
+      "El 92% del malware se entrega por correo — pero las vulns web son la vía de propagación interna"
+    ]
   },
   "docs": {
     "metaTitle": "Documentación",
