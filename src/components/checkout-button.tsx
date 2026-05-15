@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useToast } from '@/components/toast';
 
 type Tier = 'one-shot' | 'pro' | 'studio';
 
@@ -57,6 +58,7 @@ export function CheckoutButton({ tier, label, featured = false }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const detail = TIER_DETAILS[tier];
+  const toast = useToast();
 
   useEffect(() => {
     if (!open) return;
@@ -87,6 +89,7 @@ export function CheckoutButton({ tier, label, featured = false }: Props) {
       }
     } catch {
       setLoading(false);
+      toast.error('Checkout failed. Please try again.');
     }
   };
 

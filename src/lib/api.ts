@@ -9,6 +9,35 @@ import { BAD_SCAN } from './data';
 
 const BASE = '/api/v1';
 
+// ─── Typed error classes ─────────────────────────────────────────────────────
+
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly data: Record<string, unknown> = {},
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export class PaymentRequiredError extends ApiError {
+  constructor(message: string, data: Record<string, unknown> = {}) {
+    super(402, message, data);
+    this.name = 'PaymentRequiredError';
+  }
+}
+
+export class RateLimitError extends ApiError {
+  constructor(message: string, data: Record<string, unknown> = {}) {
+    super(429, message, data);
+    this.name = 'RateLimitError';
+  }
+}
+
+// ─── API helpers ─────────────────────────────────────────────────────────────
+
 export interface CreateScanResult {
   id: string;
   status: string;
@@ -23,8 +52,11 @@ export async function createScan(url: string): Promise<CreateScanResult> {
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? `Request failed (${res.status})`);
+    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const msg = (body.error as string) ?? `Request failed (${res.status})`;
+    if (res.status === 402) throw new PaymentRequiredError(msg, body);
+    if (res.status === 429) throw new RateLimitError(msg, body);
+    throw new ApiError(res.status, msg, body);
   }
 
   return res.json();
@@ -39,7 +71,7 @@ export async function getScan(id: string): Promise<ScanData> {
     fetch(`${BASE}/scans/${id}/findings`),
   ]);
 
-  if (!scanRes.ok) throw new Error(`Scan not found (${scanRes.status})`);
+  if (!scanRes.ok) throw new ApiError(scanRes.status, `Scan not found (${scanRes.status})`);
 
   const scan = await scanRes.json();
   const findings: Finding[] = findingsRes.ok ? await findingsRes.json() : [];
@@ -75,6 +107,6 @@ export interface ScanEventsResponse {
 
 export async function fetchScanEvents(id: string, since: number): Promise<ScanEventsResponse> {
   const res = await fetch(`${BASE}/scans/${id}/events?since=${since}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`Scan events request failed (${res.status})`);
+  if (!res.ok) throw new ApiError(res.status, `Scan events request failed (${res.status})`);
   return res.json();
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { IconArrowRight, IconCheckCircle, IconAlertCircle, IconSpinner } from '@/components/icons';
+import { useToast } from '@/components/toast';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 type Target = 'web' | 'code';
@@ -74,14 +75,14 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
   );
 
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'checking' | 'verified' | 'unverified' | 'error'>('idle');
-  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
 
   const [scanId, setScanId] = useState<string | null>(null);
   const [estimatedSeconds, setEstimatedSeconds] = useState<number | null>(null);
   const [progressByProbe, setProgressByProbe] = useState<Record<string, ProgressState>>({});
-  const [scanError, setScanError] = useState<string | null>(null);
   const [results, setResults] = useState<ResultsPayload | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
+
+  const toast = useToast();
 
   const submittedDomain = useRef<string | null>(null);
 
@@ -98,17 +99,14 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
     setStep(1);
     setScanId(null);
     setProgressByProbe({});
-    setScanError(null);
     setResults(null);
     setResultsError(null);
     setVerificationStatus('idle');
-    setVerificationMessage(null);
     submittedDomain.current = null;
   }, []);
 
   const checkVerification = useCallback(async () => {
     setVerificationStatus('checking');
-    setVerificationMessage(null);
     try {
       const response = await fetch('/api/v1/verify/init', {
         method: 'POST',
@@ -121,7 +119,7 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
       };
       if (!response.ok) {
         setVerificationStatus('error');
-        setVerificationMessage(data.error ?? 'Verification check failed.');
+        toast.error(data.error ?? 'Verification check failed.');
         return false;
       }
       if (data.verified_at) {
@@ -132,13 +130,12 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
       return false;
     } catch (err) {
       setVerificationStatus('error');
-      setVerificationMessage(err instanceof Error ? err.message : 'Network error.');
+      toast.error(err instanceof Error ? err.message : 'Network error.');
       return false;
     }
-  }, [domain]);
+  }, [domain, toast]);
 
   const startTest = useCallback(async () => {
-    setScanError(null);
     setProgressByProbe({});
     setResults(null);
     submittedDomain.current = domain;
@@ -163,13 +160,12 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
       };
 
       if (response.status === 403 && data.code === 'DOMAIN_NOT_VERIFIED') {
-        setScanError(null);
         setVerificationStatus('unverified');
         setStep(2);
         return;
       }
       if (!response.ok || !data.scan_id) {
-        setScanError(data.error ?? 'Failed to start the active test.');
+        toast.error(data.error ?? 'Failed to start the active test.');
         return;
       }
 
@@ -177,9 +173,9 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
       setEstimatedSeconds(data.estimated_seconds ?? null);
       setStep(4);
     } catch (err) {
-      setScanError(err instanceof Error ? err.message : 'Network error.');
+      toast.error(err instanceof Error ? err.message : 'Network error.');
     }
-  }, [domain, selected]);
+  }, [domain, selected, toast]);
 
   // SSE listener for /progress
   useEffect(() => {
@@ -212,7 +208,7 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
 
     const onScanFailed = () => {
       source.close();
-      setScanError('The active test failed unexpectedly. Please try again.');
+      toast.error('The active test failed unexpectedly. Please try again.');
     };
 
     source.addEventListener('probe_started', onProbeStarted as EventListener);
@@ -243,13 +239,17 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
         const data = (await response.json().catch(() => ({}))) as ResultsPayload & { error?: string };
         if (cancelled) return;
         if (!response.ok) {
-          setResultsError(data.error ?? 'Failed to load results.');
+          const msg = data.error ?? 'Failed to load results.';
+          setResultsError(msg);
+          toast.error(msg);
           return;
         }
         setResults(data);
       } catch (err) {
         if (cancelled) return;
-        setResultsError(err instanceof Error ? err.message : 'Network error.');
+        const msg = err instanceof Error ? err.message : 'Network error.';
+        setResultsError(msg);
+        toast.error(msg);
       }
     })();
     return () => {
@@ -279,7 +279,6 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
         <Step2
           domain={domain}
           status={verificationStatus}
-          message={verificationMessage}
           onCheck={async () => {
             const ok = await checkVerification();
             if (ok) setStep(3);
@@ -295,7 +294,6 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
           toggle={toggleTest}
           onBack={() => setStep(2)}
           onStart={startTest}
-          error={scanError}
         />
       )}
 
@@ -305,7 +303,6 @@ export function ActiveTestFlow({ initialDomain = '' }: Props) {
           tests={selectedTests}
           progressByProbe={progressByProbe}
           estimatedSeconds={estimatedSeconds}
-          error={scanError}
           onCancel={reset}
         />
       )}
@@ -529,13 +526,11 @@ function TargetCard({
 function Step2({
   domain,
   status,
-  message,
   onCheck,
   onBack,
 }: {
   domain: string;
   status: 'idle' | 'checking' | 'verified' | 'unverified' | 'error';
-  message: string | null;
   onCheck: () => void | Promise<void>;
   onBack: () => void;
 }) {
@@ -570,11 +565,6 @@ function Step2({
           We couldn&apos;t confirm ownership of <strong>{domain}</strong>. Run the verify wizard, then come back.
         </div>
       )}
-      {status === 'error' && message && (
-        <div role="alert" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', color: '#DC2626', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-5)' }}>
-          {message}
-        </div>
-      )}
       {status === 'verified' && (
         <div role="status" style={{ background: 'rgba(5,150,105,0.10)', border: '1px solid rgba(5,150,105,0.30)', color: 'var(--success)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-5)' }}>
           ✓ Verified — you&apos;re authorized to run tests against {domain}.
@@ -604,14 +594,12 @@ function Step3({
   toggle,
   onBack,
   onStart,
-  error,
 }: {
   domain: string;
   selected: Set<string>;
   toggle: (k: string) => void;
   onBack: () => void;
   onStart: () => void;
-  error: string | null;
 }) {
   const count = selected.size;
   return (
@@ -681,12 +669,6 @@ function Step3({
         streaming, results) but does not send any payloads to your site.
       </aside>
 
-      {error && (
-        <div role="alert" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', color: '#DC2626', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-5)' }}>
-          {error}
-        </div>
-      )}
-
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <button type="button" className="btn-secondary" onClick={onBack}>← Back</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
@@ -709,14 +691,12 @@ function Step4({
   tests,
   progressByProbe,
   estimatedSeconds,
-  error,
   onCancel,
 }: {
   domain: string;
   tests: string[];
   progressByProbe: Record<string, ProgressState>;
   estimatedSeconds: number | null;
-  error: string | null;
   onCancel: () => void;
 }) {
   return (
@@ -765,12 +745,6 @@ function Step4({
         })}
       </ol>
 
-      {error && (
-        <div role="alert" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', color: '#DC2626', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', marginTop: 'var(--space-5)' }}>
-          {error}
-        </div>
-      )}
-
       <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-6)', textAlign: 'center' }}>
         All requests would include <code style={{ fontFamily: 'var(--mono)' }}>X-Scanner: VibeSafe-DAST</code> when probes are wired in Phase 5.
       </p>
@@ -797,7 +771,9 @@ function Step5({
     return (
       <section className="card" style={{ padding: 'clamp(24px, 4vw, 40px)' }}>
         <h2 className="text-h3" style={{ marginBottom: 'var(--space-3)' }}>Couldn&apos;t load results</h2>
-        <p role="alert" style={{ color: '#DC2626', marginBottom: 'var(--space-5)' }}>{error}</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-5)' }}>
+          There was a problem loading your results.
+        </p>
         <button type="button" className="btn-secondary" onClick={onRestart}>← Run another test</button>
       </section>
     );

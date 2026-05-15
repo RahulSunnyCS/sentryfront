@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { SCAN_MODULES } from '@/lib/data';
-import { fetchScanEvents } from '@/lib/api';
+import { fetchScanEvents, ApiError } from '@/lib/api';
 
 interface Props {
   scanId: string;
@@ -229,10 +229,13 @@ export function ScanProgress({ scanId, scanUrl, initialVariant }: Props) {
           if (!terminal && !cancelled) {
             timeoutId = setTimeout(poll, 5000);
           }
-        } catch {
-          if (!cancelled) {
-            timeoutId = setTimeout(poll, 5000);
+        } catch (err) {
+          if (cancelled) return;
+          if (err instanceof ApiError && err.status === 404) {
+            router.push('/');
+            return;
           }
+          timeoutId = setTimeout(poll, 5000);
         }
       };
 

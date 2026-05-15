@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { useToast } from '@/components/toast';
 
 type Path = 'tech' | 'guided';
 type Method = 'dns' | 'meta';
@@ -90,12 +91,12 @@ const PLATFORMS: Array<{
 
 export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
   const t = useTranslations('verify');
+  const toast = useToast();
   const [path, setPath] = useState<Path>('tech');
   const [method, setMethod] = useState<Method>('dns');
   const [platformKey, setPlatformKey] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState<null | 'ok' | 'fail'>(alreadyVerified ? 'ok' : null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const metaTag = `<meta name="vibesafe-verify" content="${token.replace('vibesafe-verify=', '')}" />`;
   const platform = PLATFORMS.find((p) => p.key === platformKey);
@@ -110,7 +111,6 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
   const handleVerify = async () => {
     setVerifying(true);
     setResult(null);
-    setErrorMessage(null);
     try {
       const response = await fetch('/api/v1/verify/check', {
         method: 'POST',
@@ -122,7 +122,7 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
         setResult('fail');
         const retryAfter = response.headers.get('Retry-After');
         const seconds = retryAfter ? parseInt(retryAfter, 10) : null;
-        setErrorMessage(
+        toast.warning(
           seconds && Number.isFinite(seconds)
             ? t('tooManyChecksRetry', { seconds, plural: seconds === 1 ? '' : 's' })
             : t('tooManyChecks'),
@@ -138,7 +138,7 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
 
       if (!response.ok) {
         setResult('fail');
-        setErrorMessage(data.error ?? t('checkFailed'));
+        toast.error(data.error ?? t('checkFailed'));
         return;
       }
 
@@ -146,11 +146,11 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
         setResult('ok');
       } else {
         setResult('fail');
-        setErrorMessage(data.reason ?? null);
+        toast.error(data.reason ?? t('verifyFailFallback'));
       }
     } catch (err) {
       setResult('fail');
-      setErrorMessage(err instanceof Error ? err.message : t('networkError'));
+      toast.error(err instanceof Error ? err.message : t('networkError'));
     } finally {
       setVerifying(false);
     }
@@ -405,11 +405,6 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
           <p role="status" style={{ color: 'var(--success)', fontWeight: 600 }}>
             {t('verifiedOk')}{' '}
             <Link href="/active-test" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>{t('verifiedContinue')}</Link>
-          </p>
-        )}
-        {result === 'fail' && (
-          <p role="alert" style={{ color: '#E11D48' }}>
-            {errorMessage ?? t('verifyFailFallback')}
           </p>
         )}
 
