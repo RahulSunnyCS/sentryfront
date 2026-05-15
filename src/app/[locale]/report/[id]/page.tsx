@@ -99,6 +99,8 @@ async function getReportData(id: string): Promise<ScanData> {
   return {
     id: scan.id,
     url: scan.targetUrl,
+    inputType: ((scan as { inputType?: string }).inputType ?? 'url') as 'url' | 'apk' | 'ipa',
+    targetLabel: (scan as { targetLabel?: string | null }).targetLabel ?? null,
     grade: (scan.grade ?? 'F') as Grade,
     score: scan.score ?? 0,
     stack: scan.stack ?? 'Unknown',
@@ -112,9 +114,9 @@ async function getReportData(id: string): Promise<ScanData> {
     summary: scan.summary ? (JSON.parse(scan.summary) as ScanSummary) : { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, INFO: 0 },
     moduleResults: {},
     findings,
-    performanceData, // Add performance data
-    accessibilityData, // Add accessibility data
-    seoData, // Add SEO data
+    performanceData,
+    accessibilityData,
+    seoData,
   };
 }
 

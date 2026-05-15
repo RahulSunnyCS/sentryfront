@@ -26,6 +26,13 @@ export const SCAN_MODULES: ScanModule[] = [
   { id: 'P1-15', name: 'Cache Configuration',  plainName: 'Cache leak check' },
 ];
 
+export const MOBILE_SCAN_MODULES: ScanModule[] = [
+  { id: 'M1-01', name: 'Hardcoded Secrets',    plainName: 'API keys & credentials in binary' },
+  { id: 'M1-02', name: 'Manifest Security',    plainName: 'AndroidManifest misconfigurations' },
+  { id: 'M1-03', name: 'Cleartext Traffic',    plainName: 'HTTP traffic policy' },
+  { id: 'M1-04', name: 'Permissions Audit',    plainName: 'Over-privileged permissions' },
+];
+
 export const ACCENT_THEMES = {
   teal: { main: '#0D9488', light: '#CCFBF1', dark: '#0F766E' },
   indigo: { main: '#4F46E5', light: '#E0E7FF', dark: '#3730A3' },

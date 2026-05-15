@@ -39,6 +39,8 @@ export interface ScanSummary {
 export interface ScanData {
   id?: string;
   url: string;
+  inputType?: 'url' | 'apk' | 'ipa';
+  targetLabel?: string | null;
   grade: Grade;
   score: number;
   stack: string;

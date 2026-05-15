@@ -19,6 +19,8 @@ export interface DashboardStats {
 export interface ScanListItem {
   id: string;
   url: string;
+  inputType: string;
+  targetLabel: string | null;
   grade: Grade | null;
   score: number | null;
   critical: number;
@@ -88,6 +90,8 @@ function decodeCursor(cursor: string): { startedAt: Date; id: string } | null {
 function toScanListItem(row: {
   id: string;
   targetUrl: string;
+  inputType: string;
+  targetLabel: string | null;
   status: string;
   grade: string | null;
   score: number | null;
@@ -99,6 +103,8 @@ function toScanListItem(row: {
   return {
     id: row.id,
     url: row.targetUrl,
+    inputType: row.inputType ?? 'url',
+    targetLabel: row.targetLabel ?? null,
     grade: (row.grade as Grade | null) ?? null,
     score: row.score,
     critical: sev.critical,
@@ -113,6 +119,8 @@ function toScanListItem(row: {
 const SELECT_FIELDS = {
   id: true,
   targetUrl: true,
+  inputType: true,
+  targetLabel: true,
   status: true,
   grade: true,
   score: true,

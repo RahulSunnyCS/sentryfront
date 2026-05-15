@@ -172,7 +172,11 @@ export function ScanTable({ items, sort, onSort, locale, labels }: Props) {
             return (
               <tr key={scan.id} style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-light)' }}>
                 <th scope="row" style={{ ...tCellCss, fontWeight: 600, color: 'var(--text)', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {scan.url}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    {scan.inputType === 'apk' && <span aria-label="Android" title="Android APK" style={{ fontSize: 13 }}>🤖</span>}
+                    {scan.inputType === 'ipa' && <span aria-label="iOS" title="iOS IPA" style={{ fontSize: 13 }}>🍎</span>}
+                    {scan.targetLabel ?? scan.url}
+                  </span>
                 </th>
                 <td style={tCellCss}>
                   {scan.grade && tone ? (
@@ -212,10 +216,12 @@ export function ScanTable({ items, sort, onSort, locale, labels }: Props) {
                 </td>
                 <td style={{ ...tCellCss, textAlign: 'right' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-                    <RescanButton
-                      url={scan.url}
-                      labels={{ rescan: labels.rescan, rescanError: labels.rescanError }}
-                    />
+                    {(!scan.inputType || scan.inputType === 'url') && (
+                      <RescanButton
+                        url={scan.url}
+                        labels={{ rescan: labels.rescan, rescanError: labels.rescanError }}
+                      />
+                    )}
                     <Link
                       href={`/report/${scan.id}`}
                       style={{

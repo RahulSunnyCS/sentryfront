@@ -4,13 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { SCAN_MODULES } from '@/lib/data';
+import { SCAN_MODULES, MOBILE_SCAN_MODULES } from '@/lib/data';
 import { fetchScanEvents, ApiError } from '@/lib/api';
 
 interface Props {
   scanId: string;
   scanUrl: string;
   initialVariant: 'A' | 'C';
+  platform?: 'apk' | 'ipa';
 }
 
 type Variant = 'A' | 'C';
@@ -70,6 +71,11 @@ const MODULE_LOG_LINES: Record<string, string[]> = {
   'P1-13': ['probing /wp-admin /phpmyadmin', '/_next/static check', 'auth wall detection'],
   'P1-14': ['GET /robots.txt', 'GET /sitemap.xml', 'parsing disallow rules'],
   'P1-15': ['inspecting Cache-Control', 'private vs public audit', 'CDN edge probe'],
+  // Mobile modules
+  'M1-01': ['extracting APK…', 'grep -E "sk_live_|AKIA|AIza"', 'scanning text files for secrets…'],
+  'M1-02': ['parsing AndroidManifest.xml…', 'checking debuggable / allowBackup…', 'enumerating exported components'],
+  'M1-03': ['reading network_security_config.xml…', 'checking cleartextTrafficPermitted…', 'domain-config audit'],
+  'M1-04': ['extracting permission strings…', 'classifying dangerous permissions…', 'privilege audit'],
 };
 
 const DEFAULT_LOG_LINES = ['probing…', 'parsing response…', 'normalising findings…'];
@@ -91,9 +97,18 @@ type ViewProps = {
   finalizing: boolean;
   etaOverrun: boolean;
   retryNavigateHome: () => void;
+  platform?: 'apk' | 'ipa';
 };
 
-export function ScanProgress({ scanId, scanUrl, initialVariant }: Props) {
+const MOBILE_MODULE_LOG_LINES: Record<string, string[]> = {
+  'M1-01': ['extracting APK…', 'scanning text files for secrets…', 'grep -E "sk_live_|AKIA|AIza"'],
+  'M1-02': ['parsing AndroidManifest.xml…', 'checking debuggable / allowBackup…', 'enumerating exported components'],
+  'M1-03': ['reading network_security_config.xml…', 'checking cleartextTrafficPermitted…', 'domain-config audit'],
+  'M1-04': ['extracting permission strings…', 'classifying dangerous permissions…', 'privilege audit'],
+};
+
+export function ScanProgress({ scanId, scanUrl, initialVariant, platform }: Props) {
+  const activeModules = platform ? MOBILE_SCAN_MODULES : SCAN_MODULES;
   const router = useRouter();
   const variant: Variant = initialVariant;
   const [completedModules, setCompletedModules] = useState(0);
@@ -107,7 +122,7 @@ export function ScanProgress({ scanId, scanUrl, initialVariant }: Props) {
   const [usingRealStream, setUsingRealStream] = useState(false);
   const lastEventRef = useRef<number>(Date.now());
 
-  const total = SCAN_MODULES.length;
+  const total = activeModules.length;
   const etaSeconds = Math.max(0, ESTIMATED_TOTAL_S - elapsed);
   const finalizing =
     completedModules >= total && !scanCompleted && !scanFailed;
@@ -260,7 +275,7 @@ export function ScanProgress({ scanId, scanUrl, initialVariant }: Props) {
     const tick = (idx: number) => {
       if (cancelled) return;
       lastEventRef.current = Date.now();
-      const mod = SCAN_MODULES[idx];
+      const mod = activeModules[idx];
       if (mod) {
         setModuleResults((prev) => ({ ...prev, [mod.id]: BAD_RESULTS[mod.id] ?? 0 }));
       }
@@ -288,7 +303,7 @@ export function ScanProgress({ scanId, scanUrl, initialVariant }: Props) {
   const view: ViewProps = {
     scanId, scanUrl, total, completedModules, activeModule, moduleResults,
     elapsed, etaSeconds, factIdx, scanCompleted, scanFailed, stuck,
-    usingRealStream, finalizing, etaOverrun, retryNavigateHome,
+    usingRealStream, finalizing, etaOverrun, retryNavigateHome, platform,
   };
 
   return (
@@ -366,7 +381,8 @@ function CodeDriftBackground({ density = 14 }: { density?: number }) {
 // ─────────────────────────────────────────────────────────────
 function ScanProgressStash(p: ViewProps) {
   const t = useTranslations('scan');
-  const activeMod = SCAN_MODULES[Math.min(p.activeModule, p.total - 1)];
+  const modules = p.platform ? MOBILE_SCAN_MODULES : SCAN_MODULES;
+  const activeMod = modules[Math.min(p.activeModule, p.total - 1)];
   const activeLogs = useRollingLogs(activeMod?.id);
   const [flying, setFlying] = useState<{ id: string; key: number } | null>(null);
   const completedRef = useRef(0);
@@ -374,7 +390,7 @@ function ScanProgressStash(p: ViewProps) {
   useEffect(() => {
     if (p.completedModules > completedRef.current) {
       const idx = completedRef.current;
-      const mod = SCAN_MODULES[idx];
+      const mod = modules[idx];
       completedRef.current = p.completedModules;
       if (mod) {
         setFlying({ id: mod.id, key: Date.now() });
@@ -555,7 +571,7 @@ function ScanProgressStash(p: ViewProps) {
                   '--fly-end': 'translate(0, 320px) scale(0.4) rotate(-4deg)',
                 }}
               >
-                ✓ {SCAN_MODULES.find((m) => m.id === flying.id)?.plainName}
+                ✓ {modules.find((m) => m.id === flying.id)?.plainName}
               </div>
             )}
 
@@ -579,7 +595,7 @@ function ScanProgressStash(p: ViewProps) {
                   gap: 8,
                 }}
               >
-                {SCAN_MODULES.map((mod, i) => {
+                {modules.map((mod, i) => {
                   const done = i < p.completedModules;
                   if (!done) return null;
                   const finds = p.moduleResults[mod.id] ?? 0;
@@ -669,6 +685,7 @@ function ScanProgressStash(p: ViewProps) {
 // ─────────────────────────────────────────────────────────────
 function ScanProgressHacker(p: ViewProps) {
   const t = useTranslations('scan');
+  const modules = p.platform ? MOBILE_SCAN_MODULES : SCAN_MODULES;
   const [packets, setPackets] = useState<Array<{ key: number; targetIdx: number }>>([]);
   const completedRef = useRef(0);
 
@@ -802,7 +819,7 @@ function ScanProgressHacker(p: ViewProps) {
                 {t('labels.attackChain', { total: p.total })}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {SCAN_MODULES.map((mod, i) => {
+                {modules.map((mod, i) => {
                   const done = i < p.completedModules;
                   const active = i === p.activeModule && !done && i < p.total;
                   const finds = p.moduleResults[mod.id] ?? 0;

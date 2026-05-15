@@ -42,6 +42,7 @@ export interface CreateScanResult {
   id: string;
   status: string;
   targetUrl: string;
+  inputType?: string;
 }
 
 export async function createScan(url: string): Promise<CreateScanResult> {
@@ -49,6 +50,28 @@ export async function createScan(url: string): Promise<CreateScanResult> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const msg = (body.error as string) ?? `Request failed (${res.status})`;
+    if (res.status === 402) throw new PaymentRequiredError(msg, body);
+    if (res.status === 429) throw new RateLimitError(msg, body);
+    throw new ApiError(res.status, msg, body);
+  }
+
+  return res.json();
+}
+
+export async function createMobileScan(file: File, platform: 'apk' | 'ipa'): Promise<CreateScanResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('platform', platform);
+
+  const res = await fetch(`${BASE}/scans`, {
+    method: 'POST',
+    body: formData,
+    // Do NOT set Content-Type — browser sets it with boundary automatically
   });
 
   if (!res.ok) {

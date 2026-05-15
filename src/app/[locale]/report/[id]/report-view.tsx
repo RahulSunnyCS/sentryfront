@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
-import { GRADE_CONFIG, SCAN_MODULES, SEVERITY_RANK } from '@/lib/data';
+import { GRADE_CONFIG, SCAN_MODULES, MOBILE_SCAN_MODULES, SEVERITY_RANK } from '@/lib/data';
 import type { ScanData, Finding } from '@/types';
 import { GradeDisplay } from '@/components/grade-display';
 import { SeveritySummary } from '@/components/severity-summary';
@@ -23,7 +23,9 @@ interface FindingsResponse {
 type View = 'critical' | 'all' | 'passed';
 type Tab = 'security' | 'performance' | 'accessibility' | 'seo' | 'compliance';
 
-const MODULE_BY_ID = Object.fromEntries(SCAN_MODULES.map((m) => [m.id, m]));
+const MODULE_BY_ID = Object.fromEntries(
+  [...SCAN_MODULES, ...MOBILE_SCAN_MODULES].map((m) => [m.id, m])
+);
 
 export function ReportView({ scanData, authed = false }: { scanData: ScanData; authed?: boolean }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
   );
 
   const securityFindings = useMemo(
-    () => findings.filter((f) => f.module.startsWith('P1-')),
+    () => findings.filter((f) => f.module.startsWith('P1-') || f.module.startsWith('M1-')),
     [findings],
   );
   const performanceFindings = useMemo(
@@ -140,8 +142,16 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
             <GradeDisplay grade={scanData.grade} size={140} style="ring" animated />
             <div style={{ flex: 1, minWidth: 240 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <IconGlobe size={16} color="var(--text-tertiary)" />
-                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>{scanData.url}</span>
+                {scanData.inputType === 'apk' || scanData.inputType === 'ipa' ? (
+                  <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>
+                    {scanData.inputType === 'apk' ? '🤖' : '🍎'}
+                  </span>
+                ) : (
+                  <IconGlobe size={16} color="var(--text-tertiary)" />
+                )}
+                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
+                  {scanData.targetLabel ?? scanData.url}
+                </span>
               </div>
               <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                 <span>{scanData.stack}</span>
@@ -152,7 +162,11 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
               </div>
               <div style={{ marginBottom: 14 }}>
                 <span
-                  title="We only tested what an anonymous visitor can reach. Authenticated routes, admin flows, and post-login state weren't probed."
+                  title={
+                    scanData.inputType === 'apk' || scanData.inputType === 'ipa'
+                      ? 'Static binary analysis: secrets, manifest flags, permissions, and network config.'
+                      : 'We only tested what an anonymous visitor can reach. Authenticated routes, admin flows, and post-login state weren\'t probed.'
+                  }
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     fontSize: 11, fontWeight: 600,
@@ -164,7 +178,13 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
                     cursor: 'help',
                   }}
                 >
-                  <span aria-hidden="true">🔓</span> Unauthenticated scope
+                  <span aria-hidden="true">
+                    {scanData.inputType === 'apk' || scanData.inputType === 'ipa' ? '📦' : '🔓'}
+                  </span>
+                  {scanData.inputType === 'apk' || scanData.inputType === 'ipa'
+                    ? 'Static analysis scope'
+                    : 'Unauthenticated scope'
+                  }
                 </span>
               </div>
               <SeveritySummary summary={scanData.summary} />

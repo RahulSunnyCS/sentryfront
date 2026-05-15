@@ -82,6 +82,8 @@ model Scan {
   id          String    @id @default(cuid())
   userId      String?
   targetUrl   String
+  inputType   String    @default("url") // "url" | "apk" | "ipa"
+  targetLabel String?                   // human-readable: domain or app filename
   status      String    @default("QUEUED")
   tier        String    @default("free")
   grade       String? // Security grade (A-F)

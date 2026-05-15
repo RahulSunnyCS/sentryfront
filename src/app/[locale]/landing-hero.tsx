@@ -5,7 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/navigation';
 import { IconGlobe, IconArrowRight } from '@/components/icons';
 import { LogoMark } from '@/components/logo';
-import { createScan, PaymentRequiredError } from '@/lib/api';
+import { createScan, createMobileScan, PaymentRequiredError } from '@/lib/api';
 import { useToast } from '@/components/toast';
 import { usePaymentModal } from '@/components/payment-modal';
 import { HeroHeadlineAnim } from './HeroHeadlineAnim';
@@ -84,13 +84,25 @@ function HeroSection({
   const { openModal } = usePaymentModal();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [scanMode, setScanMode] = useState<'url' | 'apk' | 'ipa'>('url');
+  const [mobileFile, setMobileFile] = useState<File | null>(null);
 
   const handleScan = async () => {
-    const target = url.trim() || 'example.com';
     setLoading(true);
     try {
-      const { id } = await createScan(target);
-      router.push(`/scan/${id}?url=${encodeURIComponent(target)}`);
+      if (scanMode === 'url') {
+        const target = url.trim() || 'example.com';
+        const { id } = await createScan(target);
+        router.push(`/scan/${id}?url=${encodeURIComponent(target)}`);
+      } else {
+        if (!mobileFile) {
+          toast.error('Please select a file to scan.');
+          setLoading(false);
+          return;
+        }
+        const { id } = await createMobileScan(mobileFile, scanMode);
+        router.push(`/scan/${id}?filename=${encodeURIComponent(mobileFile.name)}&platform=${scanMode}`);
+      }
     } catch (e) {
       if (e instanceof PaymentRequiredError) {
         openModal();
@@ -155,33 +167,122 @@ function HeroSection({
           {t('heroLead')}
         </p>
 
+        {/* Scan type switcher */}
+        <div
+          role="tablist"
+          aria-label="Scan type"
+          style={{
+            display: 'inline-flex',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 3,
+            gap: 2,
+            marginBottom: 'var(--space-4)',
+          }}
+        >
+          {([
+            { key: 'url', label: '🌐 Website' },
+            { key: 'apk', label: '🤖 Android' },
+            { key: 'ipa', label: '🍎 iOS' },
+          ] as const).map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={scanMode === tab.key}
+              onClick={() => { setScanMode(tab.key); setMobileFile(null); }}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 'var(--fs-sm)',
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 0.15s, color 0.15s',
+                background: scanMode === tab.key ? 'var(--accent)' : 'transparent',
+                color: scanMode === tab.key ? '#fff' : 'var(--text-secondary)',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <form
-          className="url-bar"
+          className={scanMode === 'url' ? 'url-bar' : undefined}
           onSubmit={(e) => {
             e.preventDefault();
             handleScan();
           }}
           role="search"
-          aria-label={t('searchAriaLabel')}
+          aria-label={scanMode === 'url' ? t('searchAriaLabel') : `Scan ${scanMode.toUpperCase()} file`}
+          style={scanMode !== 'url' ? {
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            width: '100%',
+            maxWidth: 560,
+          } : undefined}
         >
-          <IconGlobe size={20} />
-          <label htmlFor="hero-url" className="sr-only">
-            {t('urlLabel')}
-          </label>
-          <input
-            id="hero-url"
-            name="url"
-            type="text"
-            inputMode="url"
-            autoComplete="url"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder={t('urlPlaceholder')}
-            disabled={loading}
-          />
+          {scanMode === 'url' ? (
+            <>
+              <IconGlobe size={20} />
+              <label htmlFor="hero-url" className="sr-only">
+                {t('urlLabel')}
+              </label>
+              <input
+                id="hero-url"
+                name="url"
+                type="text"
+                inputMode="url"
+                autoComplete="url"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder={t('urlPlaceholder')}
+                disabled={loading}
+              />
+            </>
+          ) : (
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-3)',
+                flex: 1,
+                minWidth: 0,
+                padding: '10px 14px',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg)',
+                cursor: 'pointer',
+                color: mobileFile ? 'var(--text)' : 'var(--text-tertiary)',
+                fontSize: 'var(--fs-base)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span aria-hidden="true" style={{ flexShrink: 0, fontSize: 18 }}>
+                {scanMode === 'apk' ? '📦' : '📱'}
+              </span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+                {mobileFile ? mobileFile.name : `Choose .${scanMode} file (max 100 MB)`}
+              </span>
+              <input
+                type="file"
+                accept={`.${scanMode}`}
+                className="sr-only"
+                disabled={loading}
+                onChange={(e) => setMobileFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          )}
           <button type="submit" disabled={loading} aria-label={t('scanAriaLabel')}>
             {loading ? t('starting') : t('scanFree')}
             {!loading && <IconArrowRight size={16} color="#fff" />}

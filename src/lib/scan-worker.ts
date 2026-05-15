@@ -7,6 +7,7 @@
 import { prisma } from './prisma';
 import { publishEvent } from './events';
 import { runScanner } from './scanner';
+import { runMobileScanner, MOBILE_ALL_MODULES } from './scanner/mobile-scanner';
 import { enrichFindingsWithLLM } from './llm/enrichment';
 import { logger } from './logger';
 import type { RawFinding } from './scanner/types';
@@ -94,6 +95,13 @@ async function runScanInternal(scanId: string): Promise<void> {
     if (!scan) throw new Error(`Scan ${scanId} not found`);
 
     await prisma.scan.update({ where: { id: scanId }, data: { status: 'RUNNING' } });
+
+    const isMobile = (scan as { inputType?: string }).inputType === 'apk' ||
+      (scan as { inputType?: string }).inputType === 'ipa';
+
+    if (isMobile) {
+      return runMobileScanInternal(scanId, scan);
+    }
 
     // Run scanner and emit placeholder progress in parallel.
     // The real results replace placeholder counts when we publish scan_complete.
@@ -203,6 +211,87 @@ async function runScanInternal(scanId: string): Promise<void> {
     }).catch(() => {});
     throw err;
   }
+}
+
+async function runMobileScanInternal(
+  scanId: string,
+  scan: { id: string; targetUrl: string; targetLabel?: string | null; inputType?: string },
+): Promise<void> {
+  const platform = ((scan as { inputType?: string }).inputType ?? 'apk') as 'apk' | 'ipa';
+  const moduleCount = MOBILE_ALL_MODULES.length;
+
+  const [mobileResult] = await Promise.all([
+    runMobileScanner(scan.targetUrl, platform),
+    emitPlaceholderProgress(scanId, moduleCount),
+  ]);
+
+  const { findings: rawFindings, appName, moduleFindingCounts } = mobileResult;
+
+  await publishEvent(scanId, 'llm_enrichment_started', {
+    scan_id: scanId,
+    finding_count: rawFindings.length,
+  });
+
+  const enrichmentResult = await enrichFindingsWithLLM(rawFindings, {
+    targetUrl: appName,
+    stack: platform === 'apk' ? 'Android APK' : 'iOS IPA',
+  });
+  const findings = enrichmentResult.findings;
+
+  await publishEvent(scanId, 'llm_enrichment_complete', {
+    scan_id: scanId,
+    used_llm: enrichmentResult.status.used,
+    reason: enrichmentResult.status.reason ?? null,
+    model: enrichmentResult.status.model ?? null,
+  });
+
+  if (findings.length > 0) {
+    await prisma.finding.createMany({
+      data: findings.map((f) => ({
+        scanId,
+        moduleId: f.moduleId,
+        severity: f.severity,
+        category: f.category,
+        title: f.title,
+        location: f.location,
+        evidence: f.evidence,
+        explanation: f.explanation,
+        impact: f.impact,
+        fixManual: JSON.stringify(f.fixManual),
+        fixAiPrompt: f.fixAiPrompt,
+        confidence: f.confidence ?? null,
+      })) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    });
+  }
+
+  const summary: Record<string, number> = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, INFO: 0 };
+  for (const f of findings) summary[f.severity] = (summary[f.severity] ?? 0) + 1;
+
+  const { grade, score } = computeGrade(findings);
+
+  await prisma.scan.update({
+    where: { id: scanId },
+    data: {
+      status: 'COMPLETED',
+      grade,
+      score,
+      stack: platform === 'apk' ? 'Android APK' : 'iOS IPA',
+      summary: JSON.stringify(summary),
+      completedAt: new Date(),
+    } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  });
+
+  await publishEvent(scanId, 'scan_complete', {
+    scan_id: scanId,
+    grade,
+    module_finding_counts: moduleFindingCounts,
+  });
+
+  // Clean up temp file
+  try {
+    const { unlinkSync } = await import('fs');
+    unlinkSync(scan.targetUrl);
+  } catch { /* best-effort cleanup */ }
 }
 
 /**

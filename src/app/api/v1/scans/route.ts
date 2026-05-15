@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { prisma } from '@/lib/prisma';
 import { validateAndNormalize, ValidationError } from '@/lib/url-validator';
+import { validateMobileFile, FileValidationError } from '@/lib/file-validator';
 import { runScan } from '@/lib/scan-worker';
 import { getCurrentUser } from '@/lib/auth/helpers';
 import { checkRateLimit, checkWeeklyScanQuota, getRateLimitHeaders } from '@/lib/rate-limiter';
@@ -84,6 +88,85 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const contentType = req.headers.get('content-type') ?? '';
+  const isMobileUpload = contentType.startsWith('multipart/form-data');
+
+  // ── Mobile file upload ──────────────────────────────────────────────────────
+  if (isMobileUpload) {
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch {
+      return NextResponse.json({ error: 'Invalid form data.' }, { status: 400 });
+    }
+
+    const file = formData.get('file');
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
+    }
+
+    let validated;
+    try {
+      validated = await validateMobileFile(file);
+    } catch (err) {
+      if (err instanceof FileValidationError) {
+        return NextResponse.json({ error: err.message }, { status: err.status });
+      }
+      return NextResponse.json({ error: 'File validation failed.' }, { status: 422 });
+    }
+
+    if (user) {
+      const quota = await checkWeeklyScanQuota(user.id, tier as 'free' | 'one-shot' | 'pro' | 'studio');
+      if (!quota.allowed) {
+        const waitMs = quota.nextScanAt ? Math.max(0, quota.nextScanAt - Date.now()) : 0;
+        logger.info('Weekly quota exhausted (mobile)', { userId: user.id, tier });
+        return NextResponse.json(
+          {
+            error: `You've used your free scan this week. Next available in ${describeWait(waitMs)}, or upgrade for unlimited.`,
+            reason: 'weekly_quota_exhausted',
+            nextScanAt: quota.nextScanAt,
+            upgradeUrl: '/pricing',
+          },
+          { status: 402 },
+        );
+      }
+    }
+
+    // Write file to tmp
+    const tmpPath = join(tmpdir(), `vibesafe-${Date.now()}-${Math.random().toString(36).slice(2)}.${validated.platform}`);
+    writeFileSync(tmpPath, validated.buffer);
+
+    const scan = await prisma.scan.create({
+      data: {
+        targetUrl: tmpPath,
+        inputType: validated.platform,
+        targetLabel: validated.originalName,
+        requesterIp: ip,
+        userId: user?.id || null,
+        tier,
+      } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    });
+
+    logger.info('Mobile scan created', {
+      scanId: scan.id,
+      platform: validated.platform,
+      label: validated.originalName,
+      userId: user?.id,
+      tier,
+      ip,
+    });
+
+    runScan(scan.id).catch((err) => {
+      logger.error('Mobile scan worker failed', { scanId: scan.id }, err);
+    });
+
+    return NextResponse.json(
+      { id: scan.id, status: scan.status, targetUrl: validated.originalName, inputType: validated.platform },
+      { status: 201, headers: rateLimitHeaders },
+    );
+  }
+
+  // ── URL scan (existing flow) ─────────────────────────────────────────────────
   let body: { url?: string };
   try {
     body = await req.json();

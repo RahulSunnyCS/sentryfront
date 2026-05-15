@@ -90,7 +90,11 @@ export function ScanCardList({ items, locale, labels }: Props) {
               style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: 'var(--fs-sm)', wordBreak: 'break-all' }}>{scan.url}</strong>
+                <strong style={{ fontSize: 'var(--fs-sm)', wordBreak: 'break-all', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  {scan.inputType === 'apk' && <span aria-label="Android APK" style={{ fontSize: 13, flexShrink: 0 }}>🤖</span>}
+                  {scan.inputType === 'ipa' && <span aria-label="iOS IPA" style={{ fontSize: 13, flexShrink: 0 }}>🍎</span>}
+                  {scan.targetLabel ?? scan.url}
+                </strong>
                 {scan.grade && tone ? (
                   <span
                     style={{
@@ -124,7 +128,9 @@ export function ScanCardList({ items, locale, labels }: Props) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
                 <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{timeLabel}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <RescanButton url={scan.url} labels={{ rescan: labels.rescan, rescanError: labels.rescanError }} />
+                  {(!scan.inputType || scan.inputType === 'url') && (
+                    <RescanButton url={scan.url} labels={{ rescan: labels.rescan, rescanError: labels.rescanError }} />
+                  )}
                   <Link
                     href={`/report/${scan.id}`}
                     style={{
