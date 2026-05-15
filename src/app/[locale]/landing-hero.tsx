@@ -5,7 +5,9 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/navigation';
 import { IconGlobe, IconArrowRight } from '@/components/icons';
 import { LogoMark } from '@/components/logo';
-import { createScan } from '@/lib/api';
+import { createScan, PaymentRequiredError } from '@/lib/api';
+import { useToast } from '@/components/toast';
+import { usePaymentModal } from '@/components/payment-modal';
 import { HeroHeadlineAnim } from './HeroHeadlineAnim';
 
 function formatCount(n: number | null, locale: string): string {
@@ -78,19 +80,23 @@ function HeroSection({
 }) {
   const t = useTranslations('landing');
   const router = useRouter();
+  const toast = useToast();
+  const { openModal } = usePaymentModal();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleScan = async () => {
     const target = url.trim() || 'example.com';
-    setError(null);
     setLoading(true);
     try {
       const { id } = await createScan(target);
       router.push(`/scan/${id}?url=${encodeURIComponent(target)}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('scanFailed'));
+      if (e instanceof PaymentRequiredError) {
+        openModal();
+      } else {
+        toast.error(e instanceof Error ? e.message : t('scanFailed'));
+      }
       setLoading(false);
     }
   };
@@ -181,15 +187,6 @@ function HeroSection({
             {!loading && <IconArrowRight size={16} color="#fff" />}
           </button>
         </form>
-
-        {error && (
-          <p
-            role="alert"
-            style={{ marginTop: 'var(--space-3)', fontSize: 'var(--fs-sm)', color: '#E11D48', maxWidth: 560 }}
-          >
-            {error}
-          </p>
-        )}
 
         <p
           aria-live="polite"
