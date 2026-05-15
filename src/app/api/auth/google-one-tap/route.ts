@@ -8,9 +8,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { authConfig } from '@/lib/features';
+import { establishSession } from '@/lib/auth/session';
 
 interface GoogleTokenInfo {
   aud?: string;
@@ -79,28 +79,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const sessionToken = crypto.randomUUID() + crypto.randomBytes(16).toString('hex');
-  const maxAgeSeconds = 30 * 24 * 60 * 60;
-  const expires = new Date(Date.now() + maxAgeSeconds * 1000);
-
-  await prisma.session.create({
-    data: { sessionToken, userId: user.id, expires },
-  });
-
-  const isSecure = req.nextUrl.protocol === 'https:';
-  const cookieName = isSecure
-    ? '__Secure-next-auth.session-token'
-    : 'next-auth.session-token';
-
   const response = NextResponse.json({ ok: true });
-  response.cookies.set({
-    name: cookieName,
-    value: sessionToken,
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: isSecure,
-    path: '/',
-    expires,
-  });
+  await establishSession(req, response, user.id);
   return response;
 }

@@ -7,37 +7,6 @@ import { useRouter, Link } from '@/i18n/navigation';
 import { signIn } from 'next-auth/react';
 import { Logo } from '@/components/logo';
 
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: {
-            client_id: string;
-            callback: (response: { credential: string }) => void;
-            auto_select?: boolean;
-            cancel_on_tap_outside?: boolean;
-          }) => void;
-          prompt: () => void;
-          renderButton: (
-            parent: HTMLElement,
-            options: {
-              type?: 'standard' | 'icon';
-              theme?: 'outline' | 'filled_blue' | 'filled_black';
-              size?: 'small' | 'medium' | 'large';
-              text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
-              shape?: 'rectangular' | 'pill' | 'circle' | 'square';
-              logo_alignment?: 'left' | 'center';
-              width?: number | string;
-            },
-          ) => void;
-          disableAutoSelect: () => void;
-        };
-      };
-    };
-  }
-}
-
 const GOOGLE_CLIENT_ID_FROM_ENV = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
 function sanitizeCallback(raw: string | null): string {
@@ -47,8 +16,9 @@ function sanitizeCallback(raw: string | null): string {
   return raw;
 }
 
-export function LoginCard({ googleClientId }: { googleClientId?: string }) {
-  const t = useTranslations('login');
+export function SignupCard({ googleClientId }: { googleClientId?: string }) {
+  const t = useTranslations('signup');
+  const tl = useTranslations('login');
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = sanitizeCallback(
@@ -57,6 +27,7 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
 
   const clientId = googleClientId || GOOGLE_CLIENT_ID_FROM_ENV;
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState<null | 'github' | 'google' | 'email'>(null);
@@ -74,17 +45,17 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
           body: JSON.stringify({ credential: response.credential }),
         });
         if (!res.ok) {
-          const body = await res.json().catch(() => ({ error: t('signInFailedGeneric') }));
-          throw new Error(body.error || t('signInFailedGeneric'));
+          const body = await res.json().catch(() => ({ error: tl('signInFailedGeneric') }));
+          throw new Error(body.error || tl('signInFailedGeneric'));
         }
         router.push(callbackUrl);
         router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : t('signInFailedGeneric'));
+        setError(e instanceof Error ? e.message : tl('signInFailedGeneric'));
         setLoading(null);
       }
     },
-    [callbackUrl, router, t],
+    [callbackUrl, router, tl],
   );
 
   useEffect(() => {
@@ -93,9 +64,10 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
     let cancelled = false;
     const interval = setInterval(() => {
       if (cancelled) return;
-      if (!window.google?.accounts?.id) return;
+      const google = window.google;
+      if (!google?.accounts?.id) return;
 
-      window.google.accounts.id.initialize({
+      google.accounts.id.initialize({
         client_id: clientId,
         callback: handleGoogleCredential,
         cancel_on_tap_outside: true,
@@ -103,18 +75,17 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
 
       if (googleBtnRef.current) {
         googleBtnRef.current.innerHTML = '';
-        window.google.accounts.id.renderButton(googleBtnRef.current, {
+        google.accounts.id.renderButton(googleBtnRef.current, {
           type: 'standard',
           theme: 'outline',
           size: 'large',
-          text: 'continue_with',
+          text: 'signup_with',
           shape: 'rectangular',
           logo_alignment: 'left',
           width: googleBtnRef.current.offsetWidth || 360,
         });
       }
 
-      window.google.accounts.id.prompt();
       clearInterval(interval);
     }, 200);
 
@@ -179,25 +150,25 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
     }, 500);
   };
 
-  const handleEmail = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading('email');
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, email, password }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || t('invalidCreds'));
+        setError(data.error || t('signupFailed'));
         setLoading(null);
         return;
       }
       window.location.href = callbackUrl;
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('signInFailedGeneric'));
+      setError(err instanceof Error ? err.message : t('signupFailed'));
       setLoading(null);
     }
   };
@@ -219,10 +190,10 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
           <Logo size={28} />
         </div>
         <h1 className="text-h3" style={{ marginBottom: 'var(--space-2)' }}>
-          {t('welcomeBack')}
+          {t('title')}
         </h1>
         <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>
-          {t('welcomeLead')}
+          {t('lead')}
         </p>
       </header>
 
@@ -231,39 +202,48 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
           loading={loading === 'github'}
           disabled={loading !== null}
           onClick={handleGithubPopup}
-          loadingLabel={t('signingIn')}
-          label={t('continueWithGithub')}
+          loadingLabel={tl('signingIn')}
+          label={tl('continueWithGithub')}
         />
         {clientId ? (
           <div
             ref={googleBtnRef}
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              minHeight: 44,
-            }}
-            aria-label={t('continueWithGoogleAria')}
+            style={{ display: 'flex', justifyContent: 'center', minHeight: 44 }}
+            aria-label={tl('continueWithGoogleAria')}
           />
         ) : (
           <FallbackGoogleButton
             loading={loading === 'google'}
             disabled={loading !== null}
             onClick={() => signIn('google', { callbackUrl })}
-            loadingLabel={t('redirecting')}
-            label={t('continueWithGoogle')}
+            loadingLabel={tl('redirecting')}
+            label={tl('continueWithGoogle')}
           />
         )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', margin: 'var(--space-6) 0' }}>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-        <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('or')}</span>
+        <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tl('or')}</span>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
 
-      <form onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         <div>
-          <label htmlFor="email" style={labelCss}>{t('emailLabel')}</label>
+          <label htmlFor="name" style={labelCss}>{t('nameLabel')}</label>
+          <input
+            id="name"
+            type="text"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('namePlaceholder')}
+            className="field"
+            disabled={loading !== null}
+          />
+        </div>
+        <div>
+          <label htmlFor="email" style={labelCss}>{tl('emailLabel')}</label>
           <input
             id="email"
             type="email"
@@ -272,33 +252,28 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder={t('emailPlaceholder')}
+            placeholder={tl('emailPlaceholder')}
             className="field"
             disabled={loading !== null}
           />
         </div>
         <div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-            <label htmlFor="password" style={labelCss}>{t('passwordLabel')}</label>
-            <a
-              href="#"
-              style={{ fontSize: 'var(--fs-xs)', color: 'var(--accent)', fontWeight: 600 }}
-            >
-              {t('forgot')}
-            </a>
-          </div>
+          <label htmlFor="password" style={labelCss}>{tl('passwordLabel')}</label>
           <input
             id="password"
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             required
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={t('passwordPlaceholder')}
+            placeholder={tl('passwordPlaceholder')}
             className="field"
             disabled={loading !== null}
           />
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-2)' }}>
+            {t('passwordHint')}
+          </p>
         </div>
 
         {error && (
@@ -313,14 +288,14 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
           disabled={loading !== null}
           style={{ width: '100%', justifyContent: 'center' }}
         >
-          {loading === 'email' ? t('signingIn') : t('signIn')}
+          {loading === 'email' ? t('creating') : t('createAccount')}
         </button>
       </form>
 
       <p style={{ textAlign: 'center', marginTop: 'var(--space-6)', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
-        {t('dontHaveAccount')}{' '}
-        <Link href="/signup" style={{ color: 'var(--accent)', fontWeight: 600 }}>
-          {t('signUpFree')}
+        {t('haveAccount')}{' '}
+        <Link href="/login" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+          {t('signIn')}
         </Link>
       </p>
 
@@ -337,9 +312,9 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
         }}
       >
         {[
-          { label: t('badgeSoc'), icon: '🛡️' },
-          { label: t('badgeSsl'), icon: '🔒' },
-          { label: t('badgeFree'), icon: '🎁' },
+          { label: tl('badgeSoc'), icon: '🛡️' },
+          { label: tl('badgeSsl'), icon: '🔒' },
+          { label: tl('badgeFree'), icon: '🎁' },
         ].map((badge) => (
           <li key={badge.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontWeight: 500 }}>
             <span aria-hidden="true">{badge.icon}</span>

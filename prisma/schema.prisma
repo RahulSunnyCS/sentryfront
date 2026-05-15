@@ -19,6 +19,7 @@ model User {
   email            String?   @unique
   emailVerified    DateTime?
   image            String?
+  passwordHash     String?
   tier             String    @default("free")
   stripeCustomerId String?
   createdAt        DateTime  @default(now())
