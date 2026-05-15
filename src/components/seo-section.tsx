@@ -54,17 +54,13 @@ export function SEOSection({ seoGrade, seoScore, seoMetrics }: SEOSectionProps) 
         </div>
       </div>
 
-      {issueCount === 0 ? (
+      {issueCount === 0 && (
         <div className="mt-6 p-6 bg-green-50 border border-green-200 rounded-lg text-center">
           <div className="text-green-700 font-semibold mb-2">No SEO issues detected</div>
           <div className="text-sm text-green-600">
             Your site is well-optimized for search engines. Continue monitoring SEO metrics regularly.
           </div>
         </div>
-      ) : (
-        <p className="mt-6 text-xs text-gray-500">
-          Specific SEO findings appear in the Security tab&apos;s All view under the SEO category.
-        </p>
       )}
     </section>
   );

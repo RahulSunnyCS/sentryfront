@@ -54,6 +54,23 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
     [scanData.moduleResults],
   );
 
+  const securityFindings = useMemo(
+    () => findings.filter((f) => f.module.startsWith('P1-')),
+    [findings],
+  );
+  const performanceFindings = useMemo(
+    () => findings.filter((f) => f.module.startsWith('P2-')),
+    [findings],
+  );
+  const accessibilityFindings = useMemo(
+    () => findings.filter((f) => f.module.startsWith('P3-')),
+    [findings],
+  );
+  const seoFindings = useMemo(
+    () => findings.filter((f) => f.module.startsWith('P4-')),
+    [findings],
+  );
+
   const [activeTab, setActiveTab] = useState<Tab>('security');
   const [view, setView] = useState<View>(criticalCount > 0 ? 'critical' : 'all');
 
@@ -73,11 +90,11 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
     : scanData.grade === 'B' ? 'A'
     : 'A';
 
-  const criticalFindings = findings.filter((f) => f.severity === 'CRITICAL');
+  const criticalFindings = securityFindings.filter((f) => f.severity === 'CRITICAL');
 
   const findingsByCategory = useMemo(() => {
     const groups: Record<string, Finding[]> = {};
-    for (const f of findings) {
+    for (const f of securityFindings) {
       const key = f.category || 'Other';
       (groups[key] ??= []).push(f);
     }
@@ -85,7 +102,9 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
       list.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
     }
     return Object.entries(groups);
-  }, [findings]);
+  }, [securityFindings]);
+
+  const securityFindingsCount = securityFindings.length;
 
   const execSummary =
     scanData.grade === 'D' || scanData.grade === 'F'
@@ -279,7 +298,7 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
                 view={view}
                 setView={setView}
                 criticalCount={criticalCount}
-                totalFindings={totalFindings}
+                totalFindings={securityFindingsCount}
                 passedModules={passedModules}
                 criticalFindings={criticalFindings}
                 findingsByCategory={findingsByCategory}
@@ -288,20 +307,50 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
               />
             )}
             {activeTab === 'performance' && scanData.performanceData && scanData.id && (
-              <PerformanceSection
-                scanId={scanData.id}
-                performanceData={scanData.performanceData}
-              />
+              <>
+                <PerformanceSection
+                  scanId={scanData.id}
+                  performanceData={scanData.performanceData}
+                />
+                <TabFindingsList
+                  findings={performanceFindings}
+                  scanId={scanData.id}
+                  authed={authed}
+                  expandedId={expandedId}
+                  setExpandedId={setExpandedId}
+                  emptyMessage="No performance findings detected."
+                />
+              </>
             )}
             {activeTab === 'accessibility' && scanData.accessibilityData && (
-              <AccessibilitySection accessibilityData={scanData.accessibilityData} />
+              <>
+                <AccessibilitySection accessibilityData={scanData.accessibilityData} />
+                <TabFindingsList
+                  findings={accessibilityFindings}
+                  scanId={scanData.id ?? ''}
+                  authed={authed}
+                  expandedId={expandedId}
+                  setExpandedId={setExpandedId}
+                  emptyMessage="No accessibility findings detected."
+                />
+              </>
             )}
             {activeTab === 'seo' && scanData.seoData && (
-              <SEOSection
-                seoGrade={scanData.seoData.seoGrade}
-                seoScore={scanData.seoData.seoScore}
-                seoMetrics={scanData.seoData.seoMetrics}
-              />
+              <>
+                <SEOSection
+                  seoGrade={scanData.seoData.seoGrade}
+                  seoScore={scanData.seoData.seoScore}
+                  seoMetrics={scanData.seoData.seoMetrics}
+                />
+                <TabFindingsList
+                  findings={seoFindings}
+                  scanId={scanData.id ?? ''}
+                  authed={authed}
+                  expandedId={expandedId}
+                  setExpandedId={setExpandedId}
+                  emptyMessage="No SEO findings detected."
+                />
+              </>
             )}
             {activeTab === 'compliance' && <CompliancePlaceholder />}
           </div>
@@ -714,6 +763,78 @@ function UpgradePrompt({ totalFindings, grade }: { totalFindings: number; grade:
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 14 }}>
         Credits never expire · Stripe-secured · 30-day refund guarantee
       </div>
+    </div>
+  );
+}
+
+function TabFindingsList({
+  findings, scanId, authed, expandedId, setExpandedId, emptyMessage,
+}: {
+  findings: Finding[];
+  scanId: string;
+  authed: boolean;
+  expandedId: string | null;
+  setExpandedId: (id: string | null) => void;
+  emptyMessage?: string;
+}) {
+  const byCategory = useMemo(() => {
+    const groups: Record<string, Finding[]> = {};
+    for (const f of findings) {
+      const key = f.category || 'Other';
+      (groups[key] ??= []).push(f);
+    }
+    for (const list of Object.values(groups)) {
+      list.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+    }
+    return Object.entries(groups);
+  }, [findings]);
+
+  if (byCategory.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-tertiary)', fontSize: 14 }}>
+        {emptyMessage ?? 'No findings.'}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+        {findings.length} {findings.length === 1 ? 'issue' : 'issues'} found.
+      </div>
+      {byCategory.map(([category, list]) => (
+        <div key={category} style={{ marginBottom: 24 }}>
+          <div style={{
+            display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+            margin: '20px 0 10px',
+          }}>
+            <div style={{
+              fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.08em', color: 'var(--text-tertiary)',
+            }}>
+              {category}
+            </div>
+            <ModuleMissedLink
+              scanId={scanId}
+              moduleId={list[0]?.module ?? 'unknown'}
+              authed={authed}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {list.map((finding) => (
+              <FindingCard
+                key={finding.id}
+                finding={finding}
+                isExpanded={expandedId === finding.id}
+                onToggle={() => setExpandedId(expandedId === finding.id ? null : finding.id)}
+                cardStyle="elevated"
+                scanId={scanId}
+                authed={authed}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

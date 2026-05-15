@@ -48,9 +48,6 @@ export function AccessibilitySection({ accessibilityData }: AccessibilitySection
               ? 'Accessibility needs attention. Significant barriers exist for users with disabilities.'
               : 'Critical accessibility issues detected. Many users will struggle to use this site.'}
           </p>
-          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '8px 0 0' }}>
-            Specific accessibility findings appear in the Security tab&apos;s All view under the Accessibility category.
-          </p>
         </div>
       </div>
 
