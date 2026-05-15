@@ -17,8 +17,8 @@ describe('P2-03: Network Efficiency Module', () => {
             id: 'uses-text-compression',
             title: 'Enable text compression',
             description: 'Text resources should be compressed with gzip or brotli',
-            wastedBytes: 320 * 1024, // 320 KB savings
-            wastedMs: 800,
+            overallSavingsBytes: 320 * 1024, // 320 KB savings
+            overallSavingsMs: 800,
           },
         ],
       };
@@ -64,8 +64,8 @@ describe('P2-03: Network Efficiency Module', () => {
             id: 'uses-long-cache-ttl',
             title: 'Serve static assets with an efficient cache policy',
             description: 'Static resources should have long cache TTL',
-            wastedBytes: 1200 * 1024,
-            wastedMs: 2000,
+            overallSavingsBytes: 1200 * 1024,
+            overallSavingsMs: 2000,
           },
         ],
       };
@@ -110,15 +110,15 @@ describe('P2-03: Network Efficiency Module', () => {
             id: 'uses-text-compression',
             title: 'Enable text compression',
             description: 'Text resources should be compressed',
-            wastedBytes: 500 * 1024,
-            wastedMs: 1200,
+            overallSavingsBytes: 500 * 1024,
+            overallSavingsMs: 1200,
           },
           {
             id: 'uses-long-cache-ttl',
             title: 'Serve static assets with an efficient cache policy',
             description: 'Static resources should have long cache TTL',
-            wastedBytes: 800 * 1024,
-            wastedMs: 1500,
+            overallSavingsBytes: 800 * 1024,
+            overallSavingsMs: 1500,
           },
         ],
       };
@@ -161,8 +161,8 @@ describe('P2-03: Network Efficiency Module', () => {
             id: 'unused-javascript',
             title: 'Remove unused JavaScript',
             description: 'Other optimization',
-            wastedBytes: 500 * 1024,
-            wastedMs: 1000,
+            overallSavingsBytes: 500 * 1024,
+            overallSavingsMs: 1000,
           },
         ],
       };
