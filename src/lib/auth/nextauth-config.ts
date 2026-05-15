@@ -16,6 +16,7 @@ import { authConfig } from '@/lib/features';
 interface ExtendedUser {
   id: string;
   tier?: string;
+  emailVerified?: boolean;
 }
 
 export const nextAuthConfig: NextAuthOptions = {
@@ -40,9 +41,10 @@ export const nextAuthConfig: NextAuthOptions = {
         // Fetch tier from database
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { tier: true },
+          select: { tier: true, emailVerified: true },
         });
         extendedUser.tier = dbUser?.tier || 'free';
+        extendedUser.emailVerified = !!dbUser?.emailVerified;
       }
       return session;
     },

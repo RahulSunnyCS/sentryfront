@@ -103,7 +103,17 @@ export default async function VerifyEmailSentPage({
 
             <ResendButton />
 
-            <p style={{ marginTop: 'var(--space-6)', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
+            <div style={{ marginTop: 'var(--space-5)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-5)' }}>
+              <a
+                href="/"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500 }}
+              >
+                <span aria-hidden="true">←</span>
+                Continue browsing in the meantime
+              </a>
+            </div>
+
+            <p style={{ marginTop: 'var(--space-4)', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
               Wrong account?{' '}
               <a href="/api/auth/signout" style={{ color: 'var(--accent)', fontWeight: 600 }}>
                 Sign out
