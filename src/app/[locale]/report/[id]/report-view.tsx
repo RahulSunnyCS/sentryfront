@@ -355,7 +355,7 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right' }}>
-              ~8 min · $9<br />Requires domain verify
+              ~8 min · $0<br />Requires domain verify
             </div>
             <Link
               href={`/active-test?url=${encodeURIComponent(scanData.url)}`}
@@ -683,7 +683,7 @@ function UpgradePrompt({ totalFindings, grade }: { totalFindings: number; grade:
         {subtext}
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 20 }}>
-        Equivalent to a $3,200 security audit. Starting at just $9.
+        Equivalent to a $3,200 security audit. Starting at just $0.
       </div>
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
         <Link
@@ -693,7 +693,7 @@ function UpgradePrompt({ totalFindings, grade }: { totalFindings: number; grade:
             borderRadius: 10, fontSize: 15, fontWeight: 700,
           }}
         >
-          Get AI Fix Prompts — $9 →
+          Get AI Fix Prompts — $0 →
         </Link>
         <Link
           href="/checkout?plan=growth"
@@ -702,7 +702,7 @@ function UpgradePrompt({ totalFindings, grade }: { totalFindings: number; grade:
             border: '1px solid var(--border)', borderRadius: 10, fontSize: 15, fontWeight: 600,
           }}
         >
-          Growth: 25 scans for $29
+          Growth: 25 scans for $0
         </Link>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 14 }}>
