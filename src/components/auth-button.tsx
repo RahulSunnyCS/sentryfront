@@ -310,7 +310,21 @@ export function AuthButton() {
 
   if (status === 'loading') {
     return (
-      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--border)' }} aria-hidden="true" />
+      <div
+        role="status"
+        aria-label="Validating session"
+        title="Validating session…"
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          background: 'transparent',
+          border: '2px solid var(--border)',
+          borderTopColor: 'var(--accent)',
+          animation: 'spin 0.8s linear infinite',
+          flexShrink: 0,
+        }}
+      />
     );
   }
 
