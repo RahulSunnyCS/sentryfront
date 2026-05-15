@@ -399,7 +399,15 @@
     "minutesAgo": "{count, plural, one {# मिनट पहले} other {# मिनट पहले}}",
     "hoursAgo": "{count, plural, one {# घंटा पहले} other {# घंटे पहले}}",
     "yesterday": "कल",
-    "daysAgo": "{count} दिन पहले"
+    "daysAgo": "{count} दिन पहले",
+    "comingSoonHeading": "जल्द आ रहा है",
+    "comingSoonBadge": "जल्द आएगा",
+    "dastTitle": "सक्रिय DAST",
+    "dastDesc": "अपने सत्यापित डोमेन पर वास्तविक अटैक प्रोब भेजें और उन लॉजिक त्रुटियों को उजागर करें जो निष्क्रिय स्कैन से छूट जाती हैं।",
+    "githubTitle": "GitHub स्कैनिंग",
+    "githubDesc": "अपना रेपो कनेक्ट करें और हर पुल रिक्वेस्ट पर सीक्रेट, कमज़ोर डिपेंडेंसी और एंटी-पैटर्न पकड़ें।",
+    "extensionTitle": "Chrome एक्सटेंशन",
+    "extensionDesc": "ब्राउज़ करते समय तुरंत सुरक्षा ग्रेड और लाइव अलर्ट पाएं, सीधे अपने ब्राउज़र टूलबार से।"
   },
   "verify": {
     "metaTitle": "डोमेन स्वामित्व सत्यापित करें",

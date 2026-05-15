@@ -399,7 +399,15 @@
     "minutesAgo": "{count, plural, one {# minute ago} other {# minutes ago}}",
     "hoursAgo": "{count, plural, one {# hour ago} other {# hours ago}}",
     "yesterday": "Yesterday",
-    "daysAgo": "{count} days ago"
+    "daysAgo": "{count} days ago",
+    "comingSoonHeading": "Coming soon",
+    "comingSoonBadge": "COMING SOON",
+    "dastTitle": "Active DAST",
+    "dastDesc": "Send real attack probes against your verified domain to uncover logic flaws passive scans miss.",
+    "githubTitle": "GitHub Scanning",
+    "githubDesc": "Connect your repo and catch secrets, vulnerable deps, and anti-patterns on every pull request.",
+    "extensionTitle": "Chrome Extension",
+    "extensionDesc": "Get instant security grades and live alerts as you browse, right from your browser toolbar."
   },
   "verify": {
     "metaTitle": "Verify domain ownership",

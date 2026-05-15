@@ -399,7 +399,15 @@
     "minutesAgo": "{count, plural, one {vor # Minute} other {vor # Minuten}}",
     "hoursAgo": "{count, plural, one {vor # Stunde} other {vor # Stunden}}",
     "yesterday": "Gestern",
-    "daysAgo": "vor {count} Tagen"
+    "daysAgo": "vor {count} Tagen",
+    "comingSoonHeading": "Demnächst verfügbar",
+    "comingSoonBadge": "DEMNÄCHST",
+    "dastTitle": "Aktiver DAST",
+    "dastDesc": "Sende echte Angriffssignale gegen deine verifizierte Domain, um Logikfehler aufzudecken, die passive Scans übersehen.",
+    "githubTitle": "GitHub-Scanning",
+    "githubDesc": "Verbinde dein Repo und erkenne Secrets, verwundbare Abhängigkeiten und Anti-Patterns bei jedem Pull Request.",
+    "extensionTitle": "Chrome-Erweiterung",
+    "extensionDesc": "Erhalte sofortige Sicherheitsbewertungen und Live-Warnungen beim Surfen, direkt in deiner Browser-Symbolleiste."
   },
   "verify": {
     "metaTitle": "Domain-Inhaberschaft verifizieren",
