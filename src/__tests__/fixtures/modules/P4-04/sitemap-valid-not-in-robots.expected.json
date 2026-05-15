@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P4-04",
+      "severity": "LOW",
+      "category": "SEO",
+      "titleIncludes": "sitemap.xml exists but is not referenced in robots.txt"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "findings": [
+    {
+      "moduleId": "P4-01",
+      "severity": "LOW",
+      "category": "SEO",
+      "titleIncludes": "Missing responsive viewport meta tag"
+    },
+    {
+      "moduleId": "P4-01",
+      "severity": "LOW",
+      "category": "SEO",
+      "titleIncludes": "Missing <html lang> attribute"
+    }
+  ]
+}

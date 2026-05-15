@@ -1,0 +1,6 @@
+{
+  "responses": [
+    { "urlMatches": "/sitemap\\.xml$", "status": 200, "body": "<notasitemap><a>1</a></notasitemap>" },
+    { "urlMatches": "/robots\\.txt$", "status": 404, "body": "Not Found" }
+  ]
+}

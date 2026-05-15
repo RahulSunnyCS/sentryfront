@@ -15,8 +15,11 @@
  * - Missing canonical URL
  */
 
-import type { RawFinding } from '../types';
+import * as cheerio from 'cheerio';
+import type { CrawlResult, RawFinding } from '../types';
 import type { LighthouseMetrics } from '../lighthouse';
+import { corroborate, type SourceObservation } from './seo-corroborate';
+import { resolveCanonicalChain } from '../tools/seo-fetch';
 
 export async function runMetaTagsModule(
   metrics: LighthouseMetrics
@@ -124,6 +127,164 @@ export async function runMetaTagsModule(
       ],
       fixAiPrompt: 'My page is returning an unsuccessful HTTP status code.\n\nHelp me diagnose and fix the issue.',
     });
+  }
+
+  return findings;
+}
+
+/**
+ * Phase 3.11 depth checks for P4-01: viewport meta, <html lang>, and canonical
+ * chain resolution. Crawl-driven so they still run when the PageSpeed API is
+ * down; `metrics` is an optional corroboration source only. Returns findings
+ * additive to the legacy Lighthouse-derived ones — never mutates them.
+ */
+export async function runMetaTagsDepthChecks(
+  crawl: CrawlResult,
+  metrics?: LighthouseMetrics,
+): Promise<RawFinding[]> {
+  const findings: RawFinding[] = [];
+  const html =
+    crawl.renderedHtml && crawl.renderMode !== 'fetch-only'
+      ? crawl.renderedHtml
+      : crawl.html;
+  if (!html) return findings;
+
+  const $ = cheerio.load(html);
+
+  // ── <meta name="viewport"> ────────────────────────────────────────────────
+  const viewport = $('meta[name="viewport"]').attr('content')?.trim() ?? null;
+  if (!viewport) {
+    const { severity, confidence } = corroborate(
+      [{ source: 'cheerio', failed: true }],
+      'MEDIUM',
+    );
+    findings.push({
+      moduleId: 'P4-01',
+      severity,
+      confidence,
+      category: 'SEO',
+      title: 'Missing responsive viewport meta tag',
+      location: 'HTML <head> element',
+      evidence: 'No <meta name="viewport"> found in the document head',
+      explanation:
+        'Without a viewport meta tag, mobile browsers render the page at a desktop width and zoom out. Google uses mobile-first indexing, so a non-responsive page is penalised in mobile search.',
+      impact:
+        'Lower mobile search ranking and a poor mobile UX (tiny, zoomed-out text).',
+      fixManual: [
+        'Add <meta name="viewport" content="width=device-width, initial-scale=1"> to <head>.',
+        'Verify the layout is responsive at the resulting widths.',
+      ],
+      fixAiPrompt:
+        'My page has no responsive viewport meta tag. Add the correct <meta name="viewport"> tag and confirm my CSS layout is mobile-responsive.',
+    });
+  } else if (!/width\s*=\s*device-width/i.test(viewport)) {
+    const { severity, confidence } = corroborate(
+      [{ source: 'cheerio', failed: true }],
+      'MEDIUM',
+    );
+    findings.push({
+      moduleId: 'P4-01',
+      severity,
+      confidence,
+      category: 'SEO',
+      title: 'Viewport meta tag is not responsive',
+      location: 'HTML <head> element',
+      evidence: `<meta name="viewport" content="${viewport}">`,
+      explanation:
+        'The viewport tag is present but does not set width=device-width, so mobile browsers will not scale the layout to the device. Google mobile-first indexing expects a responsive viewport.',
+      impact: 'Degraded mobile UX and mobile search ranking.',
+      fixManual: [
+        'Set content to "width=device-width, initial-scale=1".',
+        'Avoid fixed pixel widths or user-scalable=no.',
+      ],
+      fixAiPrompt: `My viewport meta tag is "${viewport}" which is not responsive. Fix it to "width=device-width, initial-scale=1" and check my layout still works.`,
+    });
+  }
+
+  // ── <html lang="…"> ───────────────────────────────────────────────────────
+  const lang = $('html').attr('lang')?.trim() ?? '';
+  if (!lang) {
+    const { severity, confidence } = corroborate(
+      [{ source: 'cheerio', failed: true }],
+      'MEDIUM',
+    );
+    findings.push({
+      moduleId: 'P4-01',
+      severity,
+      confidence,
+      category: 'SEO',
+      title: 'Missing <html lang> attribute',
+      location: '<html> element',
+      evidence: 'The <html> element has no lang attribute',
+      explanation:
+        'The lang attribute tells search engines and assistive tech which language the page is in. It affects language-targeted search results and is a baseline accessibility/SEO signal.',
+      impact:
+        'Search engines may mis-classify the page language; screen readers may use the wrong pronunciation.',
+      fixManual: [
+        'Add a lang attribute to <html>, e.g. <html lang="en">.',
+        'Use a valid BCP-47 code (en, en-US, fr, de-DE, …).',
+      ],
+      fixAiPrompt:
+        'My <html> element is missing the lang attribute. Add the correct BCP-47 language code for my site content.',
+    });
+  }
+
+  // ── Canonical chain resolution ────────────────────────────────────────────
+  const canonicalHref = $('link[rel="canonical"]').attr('href')?.trim();
+  if (canonicalHref) {
+    let canonicalAbs: string | null = null;
+    try {
+      canonicalAbs = new URL(canonicalHref, crawl.finalUrl).href;
+    } catch {
+      canonicalAbs = null;
+    }
+
+    if (canonicalAbs) {
+      const chain = await resolveCanonicalChain(canonicalAbs);
+      const lhCanonicalFailed = !!metrics?.seoIssues?.find(
+        (a) => a.id === 'canonical' && a.score !== null && a.score < 1,
+      );
+
+      let problem: string | null = null;
+      if (chain.loop) problem = 'redirect loop';
+      else if (chain.blocked) problem = 'points to a private/blocked address';
+      else if (
+        chain.finalStatus !== null &&
+        (chain.finalStatus < 200 || chain.finalStatus >= 300)
+      ) {
+        problem = `resolves to HTTP ${chain.finalStatus}`;
+      }
+
+      if (problem) {
+        const observations: SourceObservation[] = [
+          { source: 'cheerio', failed: true },
+          { source: 'direct-fetch', failed: true },
+        ];
+        if (metrics?.seoIssues) {
+          observations.push({ source: 'lighthouse', failed: lhCanonicalFailed });
+        }
+        const { severity, confidence } = corroborate(observations, 'HIGH');
+        findings.push({
+          moduleId: 'P4-01',
+          severity,
+          confidence,
+          category: 'SEO',
+          title: `Canonical URL ${problem}`,
+          location: 'HTML <head> element',
+          evidence: `<link rel="canonical" href="${canonicalHref}"> → ${problem} (after ${chain.hops} hop${chain.hops === 1 ? '' : 's'})`,
+          explanation:
+            'A canonical URL must resolve to a single, stable 2xx page. Loops, redirects to blocked hosts, or non-2xx canonicals leave search engines unable to pick the authoritative URL, splitting or dropping ranking signals.',
+          impact:
+            'Search engines may ignore the canonical and index duplicates, or drop the page entirely.',
+          fixManual: [
+            'Point rel=canonical at the final, self-resolving 2xx URL.',
+            'Remove redirect chains on the canonical target.',
+            'Use an absolute https URL that returns 200.',
+          ],
+          fixAiPrompt: `My canonical URL "${canonicalHref}" ${problem}. Help me set rel=canonical to the correct stable 200 URL and remove the redirect chain.`,
+        });
+      }
+    }
   }
 
   return findings;

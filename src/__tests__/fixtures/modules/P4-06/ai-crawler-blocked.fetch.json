@@ -1,0 +1,10 @@
+{
+  "responses": [
+    {
+      "urlMatches": "/robots\\.txt$",
+      "status": 200,
+      "body": "User-agent: GPTBot\nDisallow: /\n\nUser-agent: ClaudeBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n"
+    }
+  ],
+  "default": { "status": 404, "body": "Not Found" }
+}

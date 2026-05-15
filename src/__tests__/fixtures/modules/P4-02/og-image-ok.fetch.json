@@ -1,0 +1,10 @@
+{
+  "responses": [
+    {
+      "urlMatches": "card\\.png$",
+      "status": 200,
+      "headers": { "content-type": "image/png" }
+    }
+  ],
+  "default": { "status": 200 }
+}

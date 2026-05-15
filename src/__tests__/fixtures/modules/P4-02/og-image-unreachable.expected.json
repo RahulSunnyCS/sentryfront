@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P4-02",
+      "severity": "LOW",
+      "category": "SEO",
+      "titleIncludes": "Open Graph image is unreachable"
+    }
+  ]
+}

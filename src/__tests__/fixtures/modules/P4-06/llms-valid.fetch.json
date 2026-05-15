@@ -1,0 +1,10 @@
+{
+  "responses": [
+    {
+      "urlMatches": "/llms\\.txt$",
+      "status": 200,
+      "body": "# Example Corp\n\n> Example Corp builds widgets.\n\n## Docs\n- [Getting started](https://example.com/docs): start here\n- [API](https://example.com/api): reference\n"
+    }
+  ],
+  "default": { "status": 404, "body": "Not Found" }
+}

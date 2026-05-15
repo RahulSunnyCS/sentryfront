@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P4-01",
+      "severity": "HIGH",
+      "category": "SEO",
+      "titleIncludes": "Canonical URL redirect loop"
+    }
+  ]
+}

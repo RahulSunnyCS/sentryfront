@@ -33,7 +33,9 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
     "bullmq": "^5.76.6",
+    "cheerio": "^1.2.0",
     "chrome-launcher": "^1.2.1",
+    "fast-xml-parser": "^5.8.0",
     "lighthouse": "^12.8.2",
     "next": "14.2.29",
     "next-auth": "^4.24.11",
@@ -42,6 +44,8 @@
     "react": "^18",
     "react-dom": "^18",
     "redis": "^5.12.1",
+    "robots-parser": "^3.0.1",
+    "schema-dts": "^2.0.0",
     "stripe": "^17.5.0"
   },
   "devDependencies": {

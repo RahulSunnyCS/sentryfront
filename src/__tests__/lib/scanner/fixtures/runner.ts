@@ -29,6 +29,11 @@ import { runRobotsSitemapModule } from '@/lib/scanner/modules/p1-14-robots-sitem
 import { runClientDepsModule } from '@/lib/scanner/modules/p1-16-client-deps';
 import { runServiceWorkerModule } from '@/lib/scanner/modules/p1-17-service-worker';
 import { runWebManifestModule } from '@/lib/scanner/modules/p1-18-web-manifest';
+import { runMetaTagsDepthChecks } from '@/lib/scanner/modules/p4-01-meta-tags';
+import { runSocialMetaDepthChecks } from '@/lib/scanner/modules/p4-02-social-meta';
+import { runStructuredDataDepthChecks } from '@/lib/scanner/modules/p4-03-structured-data';
+import { runCrawlabilityDepthChecks } from '@/lib/scanner/modules/p4-04-crawlability';
+import { runAiDiscoverabilityModule } from '@/lib/scanner/modules/p4-06-ai-discoverability';
 
 type ModuleRunner = (crawl: CrawlResult) => RawFinding[] | Promise<RawFinding[]>;
 
@@ -49,6 +54,11 @@ export const MODULE_REGISTRY: Record<string, ModuleRunner> = {
   'P1-16': runClientDepsModule,
   'P1-17': runServiceWorkerModule,
   'P1-18': runWebManifestModule,
+  'P4-01': (c) => runMetaTagsDepthChecks(c),
+  'P4-02': (c) => runSocialMetaDepthChecks(c),
+  'P4-03': (c) => runStructuredDataDepthChecks(c),
+  'P4-04': (c) => runCrawlabilityDepthChecks(c),
+  'P4-06': runAiDiscoverabilityModule,
 };
 
 export interface ExpectedFinding {

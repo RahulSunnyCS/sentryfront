@@ -1,0 +1,6 @@
+{
+  "responses": [
+    { "urlMatches": "missing\\.png$", "status": 404, "body": "Not Found" }
+  ],
+  "default": { "status": 404 }
+}
