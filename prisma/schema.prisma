@@ -111,6 +111,9 @@ model Scan {
   findings     Finding[]
   events       ScanEvent[]
   dispositions FindingDisposition[]
+
+  @@index([userId, startedAt, id])
+  @@index([userId, grade])
 }
 
 model Finding {
