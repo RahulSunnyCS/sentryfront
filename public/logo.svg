@@ -1,0 +1,23 @@
+<svg viewBox="0 0 280 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Codifie Scan">
+  <defs>
+    <linearGradient id="hoodLg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <radialGradient id="glowLg">
+      <stop offset="0%" stop-color="#7DF9FF"/>
+      <stop offset="60%" stop-color="#00D4FF"/>
+      <stop offset="100%" stop-color="#00D4FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g>
+    <path d="M 32 6 C 14 6, 8 18, 8 32 L 8 52 C 8 56, 10 58, 14 58 L 50 58 C 54 58, 56 56, 56 52 L 56 32 C 56 18, 50 6, 32 6 Z" fill="url(#hoodLg)"/>
+    <ellipse cx="32" cy="34" rx="17" ry="15" fill="#000"/>
+    <circle cx="25" cy="33" r="6" fill="url(#glowLg)"/>
+    <circle cx="39" cy="33" r="6" fill="url(#glowLg)"/>
+    <circle cx="25" cy="33" r="2.4" fill="#7DF9FF"/>
+    <circle cx="39" cy="33" r="2.4" fill="#7DF9FF"/>
+  </g>
+  <text x="76" y="42" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="800" fill="#0F172A" letter-spacing="-0.02em">Codifie</text>
+  <text x="195" y="42" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="600" fill="#00D4FF" letter-spacing="-0.02em">Scan</text>
+</svg>
