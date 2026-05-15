@@ -149,9 +149,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
             )}
           </>
         )}
-        <span className="nav-action-hide-mobile">
-          <VerifyEmailNudge />
-        </span>
+        <VerifyEmailNudge />
         <span className="nav-action-hide-mobile">
           <LocaleSwitcher />
         </span>

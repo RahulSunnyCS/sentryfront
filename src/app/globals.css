@@ -767,6 +767,7 @@ input, textarea, select, button { font: inherit; color: inherit; }
   .nav-desktop { display: none !important; }
   .nav-action-hide-mobile { display: none !important; }
   .nav-hamburger { display: inline-flex; }
+  :root { --nudge-label-display: none; }
 }
 
 @media (min-width: 881px) {

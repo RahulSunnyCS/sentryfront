@@ -13,6 +13,7 @@ export function VerifyEmailNudge() {
   return (
     <Link
       href="/verify-email-sent"
+      title="Verify your email address"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -30,7 +31,8 @@ export function VerifyEmailNudge() {
       }}
     >
       <span aria-hidden="true">✉️</span>
-      Verify email
+      {/* Hide label text on very small screens — icon + tooltip still communicates intent */}
+      <span style={{ display: 'var(--nudge-label-display, inline)' }}>Verify email</span>
     </Link>
   );
 }
