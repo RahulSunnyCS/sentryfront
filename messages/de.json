@@ -501,7 +501,61 @@
     "stageFinalizing": "Bericht wird finalisiert",
     "etaSeconds": "Etwa {seconds} Sekunden verbleibend",
     "errorTitle": "Scan fehlgeschlagen",
-    "errorBody": "Wir konnten diesen Scan nicht abschließen. Bitte erneut versuchen."
+    "errorBody": "Wir konnten diesen Scan nicht abschließen. Bitte erneut versuchen.",
+    "labels": {
+      "target": "ZIEL",
+      "elapsed": "VERGANGEN",
+      "eta": "ETA",
+      "stash": "ABLAGE",
+      "moduleStatus": "MODUL {current} / {total} · EINDRINGEN",
+      "attackChain": "ANGRIFFSKETTE · {total} MODULE",
+      "stashEmpty": "// ablage leer — warten auf erstes modul…",
+      "intel": "// info",
+      "intelUpper": "// INFO",
+      "found": "{count} gefunden",
+      "clean": "sauber"
+    },
+    "pill": {
+      "clean": "[SAUBER]",
+      "owned": "[GEKNACKT · {count}]",
+      "breaching": "EINDRINGEN",
+      "queued": "[WARTET]"
+    },
+    "statusMsg": {
+      "failed": "scan fehlgeschlagen.",
+      "complete": "analyse abgeschlossen — bericht wird geöffnet…",
+      "finalising": "bericht wird finalisiert…",
+      "etaPrefix": "eta:"
+    },
+    "banners": {
+      "overrunTitle": "Dauert länger als üblich",
+      "overrunBody": "Ihr Scan läuft noch. LLM-Anreicherung oder ein langsames Ziel kann die ETA überschreiten — wir leiten weiter, sobald er fertig ist.",
+      "stuckTitle": "Noch in Arbeit…",
+      "stuckBody": "Wir haben seit 30 Sekunden nichts mehr vom Scanner gehört. Die Verbindung könnte abgebrochen sein oder der Scanner hängen.",
+      "startNewScan": "Neuen Scan starten"
+    },
+    "failed": {
+      "matrixHeader": "scan.failed = true",
+      "matrixBody": "etwas ist schiefgelaufen. erneut versuchen oder scan_id={scanId} an den support senden.",
+      "matrixRetry": "$ retry",
+      "matrixDashboard": "$ cd ~/dashboard",
+      "title": "Scan fehlgeschlagen",
+      "body": "Bei uns ist etwas schiefgelaufen und der Scan wurde nicht abgeschlossen. Versuchen Sie es erneut — oder teilen Sie die Scan-ID mit dem Support, falls es weiterhin fehlschlägt.",
+      "startNew": "Neuen Scan starten",
+      "backToDashboard": "Zurück zum Dashboard"
+    },
+    "facts": [
+      "60 % der kleinen Unternehmen schließen innerhalb von 6 Monaten nach einem Cyberangriff — Verizon DBIR",
+      "Die durchschnittlichen Kosten einer Datenpanne betragen 4,45 Mio. $ im Jahr 2024 — IBM Cost of a Data Breach Report",
+      "KI-erstellte Sites legen oft API-Schlüssel in Client-Bundles offen — ein einziges grep findet sie",
+      "Ein falsch konfigurierter CORS-Header ist die Nr. 2-Quelle für Cross-Origin-Angriffe",
+      "43 % der Cyberangriffe zielen auf kleine Unternehmen, doch nur 14 % sind vorbereitet",
+      "Stored XSS lässt Angreifer jede angemeldete Sitzung übernehmen — auch Admins",
+      "Offene S3-Buckets und Firebase-Regeln legen jährlich 18 Mrd.+ Datensätze offen",
+      "Eine einzige geleakte .env-Datei kann einen ganzen Produktions-Stack kompromittieren",
+      "Subdomain-Übernahmen können missbraucht werden, um Nutzer von „Ihrer\" Domain zu phishen",
+      "92 % der Malware wird per E-Mail verbreitet — aber Web-Schwachstellen sind der interne Verteilweg"
+    ]
   },
   "docs": {
     "metaTitle": "Dokumentation",

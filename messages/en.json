@@ -501,7 +501,61 @@
     "stageFinalizing": "Finalizing report",
     "etaSeconds": "About {seconds} seconds left",
     "errorTitle": "Scan failed",
-    "errorBody": "We couldn't complete this scan. Please try again."
+    "errorBody": "We couldn't complete this scan. Please try again.",
+    "labels": {
+      "target": "TARGET",
+      "elapsed": "ELAPSED",
+      "eta": "ETA",
+      "stash": "STASH",
+      "moduleStatus": "MODULE {current} / {total} · BREACHING",
+      "attackChain": "ATTACK CHAIN · {total} MODULES",
+      "stashEmpty": "// stash empty — waiting for first module to land…",
+      "intel": "// intel",
+      "intelUpper": "// INTEL",
+      "found": "{count} found",
+      "clean": "clean"
+    },
+    "pill": {
+      "clean": "[CLEAN]",
+      "owned": "[OWNED · {count}]",
+      "breaching": "BREACHING",
+      "queued": "[QUEUED]"
+    },
+    "statusMsg": {
+      "failed": "scan failed.",
+      "complete": "analysis complete — opening report…",
+      "finalising": "finalising report…",
+      "etaPrefix": "eta:"
+    },
+    "banners": {
+      "overrunTitle": "Taking longer than usual",
+      "overrunBody": "Your scan is still running. LLM enrichment or a slow target can push past the ETA — we'll redirect when it finishes.",
+      "stuckTitle": "Still working…",
+      "stuckBody": "We haven't heard from the scanner in 30 seconds. The connection may have dropped, or the scanner may have stalled.",
+      "startNewScan": "Start a new scan"
+    },
+    "failed": {
+      "matrixHeader": "scan.failed = true",
+      "matrixBody": "something went wrong. retry, or share scan_id={scanId} with support.",
+      "matrixRetry": "$ retry",
+      "matrixDashboard": "$ cd ~/dashboard",
+      "title": "Scan failed",
+      "body": "Something went wrong on our end and the scan didn't finish. Try again — or share the scan ID with support if it keeps failing.",
+      "startNew": "Start a new scan",
+      "backToDashboard": "Back to dashboard"
+    },
+    "facts": [
+      "60% of small businesses fold within 6 months of a cyberattack — Verizon DBIR",
+      "The average data breach costs $4.45M in 2024 — IBM Cost of a Data Breach Report",
+      "AI-built sites often expose API keys in client bundles — a single grep can find them",
+      "A misconfigured CORS header is the #2 source of cross-origin attacks",
+      "43% of cyberattacks target small businesses, yet only 14% are prepared",
+      "Stored XSS lets attackers hijack any logged-in session — including admins",
+      "Open S3 buckets and Firebase rules expose 18B+ records every year",
+      "A single leaked .env file can compromise an entire production stack",
+      "Subdomain takeovers can be weaponized to phish users from \"your\" domain",
+      "92% of malware is delivered via email — but web vulns are how it spreads inside"
+    ]
   },
   "docs": {
     "metaTitle": "Documentation",

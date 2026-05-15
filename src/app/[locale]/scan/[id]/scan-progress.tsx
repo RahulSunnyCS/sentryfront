@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { SCAN_MODULES } from '@/lib/data';
 import { fetchScanEvents } from '@/lib/api';
 
@@ -25,18 +26,7 @@ const MOCK_MODULE_DURATIONS_MS = [
   3800, 3000, 4500, 2200, 6400,
 ];
 
-const SECURITY_FACTS = [
-  '60% of small businesses fold within 6 months of a cyberattack — Verizon DBIR',
-  'The average data breach costs $4.45M in 2024 — IBM Cost of a Data Breach Report',
-  'AI-built sites often expose API keys in client bundles — a single grep can find them',
-  'A misconfigured CORS header is the #2 source of cross-origin attacks',
-  '43% of cyberattacks target small businesses, yet only 14% are prepared',
-  'Stored XSS lets attackers hijack any logged-in session — including admins',
-  'Open S3 buckets and Firebase rules expose 18B+ records every year',
-  'A single leaked .env file can compromise an entire production stack',
-  'Subdomain takeovers can be weaponized to phish users from "your" domain',
-  '92% of malware is delivered via email — but web vulns are how it spreads inside',
-];
+const SECURITY_FACT_COUNT = 10;
 
 const FACT_ROTATE_MS = 4500;
 const ESTIMATED_TOTAL_S = 60;
@@ -156,7 +146,7 @@ export function ScanProgress({ scanId, scanUrl, initialVariant }: Props) {
 
   useEffect(() => {
     const t = setInterval(() => {
-      setFactIdx((i) => (i + 1) % SECURITY_FACTS.length);
+      setFactIdx((i) => (i + 1) % SECURITY_FACT_COUNT);
     }, FACT_ROTATE_MS);
     return () => clearInterval(t);
   }, []);
@@ -372,6 +362,7 @@ function CodeDriftBackground({ density = 14 }: { density?: number }) {
 // Variant A — Center → Stash
 // ─────────────────────────────────────────────────────────────
 function ScanProgressStash(p: ViewProps) {
+  const t = useTranslations('scan');
   const activeMod = SCAN_MODULES[Math.min(p.activeModule, p.total - 1)];
   const activeLogs = useRollingLogs(activeMod?.id);
   const [flying, setFlying] = useState<{ id: string; key: number } | null>(null);
@@ -412,12 +403,12 @@ function ScanProgressStash(p: ViewProps) {
           }}
         >
           <div style={{ wordBreak: 'break-all' }}>
-            <span style={{ color: '#5EEAD4' }}>TARGET</span> ::{' '}
+            <span style={{ color: '#5EEAD4' }}>{t('labels.target')}</span> ::{' '}
             <span style={{ color: '#fff' }}>{p.scanUrl}</span>
           </div>
           <div style={{ display: 'flex', gap: 18, fontVariantNumeric: 'tabular-nums' }}>
-            <span>ELAPSED <span style={{ color: '#fff' }}>{fmtTime(p.elapsed)}</span></span>
-            <span>ETA <span style={{ color: '#fff' }}>{fmtTime(p.etaSeconds)}</span></span>
+            <span>{t('labels.elapsed')} <span style={{ color: '#fff' }}>{fmtTime(p.elapsed)}</span></span>
+            <span>{t('labels.eta')} <span style={{ color: '#fff' }}>{fmtTime(p.etaSeconds)}</span></span>
             <span>{progressPct}%</span>
           </div>
         </div>
@@ -471,7 +462,10 @@ function ScanProgressStash(p: ViewProps) {
                     marginBottom: 10,
                   }}
                 >
-                  MODULE {String(p.activeModule + 1).padStart(2, '0')} / {p.total} · BREACHING
+                  {t('labels.moduleStatus', {
+                    current: String(p.activeModule + 1).padStart(2, '0'),
+                    total: p.total,
+                  })}
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 6 }}>
                   {activeMod.plainName}
@@ -573,7 +567,7 @@ function ScanProgressStash(p: ViewProps) {
                   marginBottom: 12,
                 }}
               >
-                STASH · {p.completedModules}/{p.total}
+                {t('labels.stash')} · {p.completedModules}/{p.total}
               </div>
               <div
                 style={{
@@ -635,7 +629,7 @@ function ScanProgressStash(p: ViewProps) {
                             color: finds > 0 ? '#fb7185' : '#6b7280',
                           }}
                         >
-                          {finds > 0 ? `${finds} found` : 'clean'}
+                          {finds > 0 ? t('labels.found', { count: finds }) : t('labels.clean')}
                         </div>
                       </div>
                     </div>
@@ -650,7 +644,7 @@ function ScanProgressStash(p: ViewProps) {
                       gridColumn: '1 / -1',
                     }}
                   >
-                    {'// stash empty — waiting for first module to land…'}
+                    {t('labels.stashEmpty')}
                   </div>
                 )}
               </div>
@@ -671,6 +665,7 @@ function ScanProgressStash(p: ViewProps) {
 // Variant C — Hacker at Laptop + Code Streams
 // ─────────────────────────────────────────────────────────────
 function ScanProgressHacker(p: ViewProps) {
+  const t = useTranslations('scan');
   const [packets, setPackets] = useState<Array<{ key: number; targetIdx: number }>>([]);
   const completedRef = useRef(0);
 
@@ -765,11 +760,11 @@ function ScanProgressHacker(p: ViewProps) {
             }}
           >
             <div>
-              <span style={{ color: '#5EEAD4' }}>TARGET</span>{' '}
+              <span style={{ color: '#5EEAD4' }}>{t('labels.target')}</span>{' '}
               <span style={{ color: '#fff', wordBreak: 'break-all' }}>{p.scanUrl}</span>
             </div>
             <div style={{ marginTop: 4 }}>
-              ELAPSED <span style={{ color: '#fff' }}>{fmtTime(p.elapsed)}</span> · ETA{' '}
+              {t('labels.elapsed')} <span style={{ color: '#fff' }}>{fmtTime(p.elapsed)}</span> · {t('labels.eta')}{' '}
               <span style={{ color: '#fff' }}>{fmtTime(p.etaSeconds)}</span>
             </div>
           </div>
@@ -801,7 +796,7 @@ function ScanProgressHacker(p: ViewProps) {
                   marginBottom: 12,
                 }}
               >
-                ATTACK CHAIN · 15 MODULES
+                {t('labels.attackChain', { total: p.total })}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {SCAN_MODULES.map((mod, i) => {
@@ -890,6 +885,7 @@ function ScanProgressHacker(p: ViewProps) {
 }
 
 function StatusPill({ done, active, findings }: { done: boolean; active: boolean; findings: number }) {
+  const t = useTranslations('scan.pill');
   if (done) {
     const clean = findings === 0;
     return (
@@ -907,7 +903,7 @@ function StatusPill({ done, active, findings }: { done: boolean; active: boolean
           whiteSpace: 'nowrap',
         }}
       >
-        {clean ? '[CLEAN]' : `[OWNED · ${findings}]`}
+        {clean ? t('clean') : t('owned', { count: findings })}
       </span>
     );
   }
@@ -927,7 +923,7 @@ function StatusPill({ done, active, findings }: { done: boolean; active: boolean
           whiteSpace: 'nowrap',
         }}
       >
-        [BREACHING<span className="dot-1">.</span><span className="dot-2">.</span><span className="dot-3">.</span>]
+        [{t('breaching')}<span className="dot-1">.</span><span className="dot-2">.</span><span className="dot-3">.</span>]
       </span>
     );
   }
@@ -945,7 +941,7 @@ function StatusPill({ done, active, findings }: { done: boolean; active: boolean
         whiteSpace: 'nowrap',
       }}
     >
-      [QUEUED]
+      {t('queued')}
     </span>
   );
 }
@@ -1044,6 +1040,10 @@ function HackerSvg({ activeModule }: { activeModule: number }) {
 // Shared bits
 // ─────────────────────────────────────────────────────────────
 function DidYouKnow({ factIdx, variant }: { factIdx: number; variant: Variant }) {
+  const t = useTranslations('scan');
+  const facts = t.raw('facts') as string[];
+  const safeIdx = facts.length > 0 ? factIdx % facts.length : 0;
+  const fact = facts[safeIdx] ?? '';
   if (variant === 'A') {
     return (
       <div
@@ -1059,9 +1059,9 @@ function DidYouKnow({ factIdx, variant }: { factIdx: number; variant: Variant })
           borderRadius: '0 8px 8px 0',
         }}
       >
-        <span style={{ color: '#5EEAD4' }}>{'// intel'}</span>{' '}
+        <span style={{ color: '#5EEAD4' }}>{t('labels.intel')}</span>{' '}
         <span key={factIdx} className="fact-fade">
-          {SECURITY_FACTS[factIdx]}
+          {fact}
         </span>
       </div>
     );
@@ -1082,16 +1082,17 @@ function DidYouKnow({ factIdx, variant }: { factIdx: number; variant: Variant })
       }}
     >
       <div style={{ color: '#5EEAD4', fontSize: 10, marginBottom: 4, letterSpacing: '1px' }}>
-        {'// INTEL'}
+        {t('labels.intelUpper')}
       </div>
       <div key={factIdx} className="fact-fade">
-        {SECURITY_FACTS[factIdx]}
+        {fact}
       </div>
     </div>
   );
 }
 
 function StatusFooter(p: ViewProps) {
+  const t = useTranslations('scan');
   if (p.scanFailed) {
     return (
       <p
@@ -1103,19 +1104,19 @@ function StatusFooter(p: ViewProps) {
           margin: 0,
         }}
       >
-        scan failed.
+        {t('statusMsg.failed')}
       </p>
     );
   }
   let msg: React.ReactNode;
   if (p.scanCompleted) {
-    msg = 'analysis complete — opening report…';
+    msg = t('statusMsg.complete');
   } else if (p.finalizing) {
-    msg = 'finalising report…';
+    msg = t('statusMsg.finalising');
   } else {
     msg = (
       <>
-        eta: <span>{fmtTime(p.etaSeconds)}</span>
+        {t('statusMsg.etaPrefix')} <span>{fmtTime(p.etaSeconds)}</span>
       </>
     );
   }
@@ -1136,16 +1137,16 @@ function StatusFooter(p: ViewProps) {
       {p.etaOverrun && !p.stuck && (
         <StatusBanner
           tone="info"
-          title="Taking longer than usual"
-          body="Your scan is still running. LLM enrichment or a slow target can push past the ETA — we'll redirect when it finishes."
+          title={t('banners.overrunTitle')}
+          body={t('banners.overrunBody')}
         />
       )}
       {p.stuck && p.usingRealStream && (
         <StatusBanner
           tone="warn"
-          title="Still working…"
-          body="We haven't heard from the scanner in 30 seconds. The connection may have dropped, or the scanner may have stalled."
-          action={{ label: 'Start a new scan', onClick: p.retryNavigateHome }}
+          title={t('banners.stuckTitle')}
+          body={t('banners.stuckBody')}
+          action={{ label: t('banners.startNewScan'), onClick: p.retryNavigateHome }}
         />
       )}
     </div>
@@ -1185,13 +1186,12 @@ function ScanFailedCard({
   onRetry: () => void;
   variant?: 'matrix' | 'hacker';
 }) {
+  const t = useTranslations('scan.failed');
   if (variant === 'matrix') {
     return (
       <div role="alert" style={{ marginTop: 10, color: '#f87171', fontFamily: 'var(--mono)' }}>
-        <div>scan.failed = true</div>
-        <div style={{ opacity: 0.75 }}>
-          something went wrong. retry, or share scan_id={scanId} with support.
-        </div>
+        <div>{t('matrixHeader')}</div>
+        <div style={{ opacity: 0.75 }}>{t('matrixBody', { scanId })}</div>
         <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button
             type="button"
@@ -1207,7 +1207,7 @@ function ScanFailedCard({
               cursor: 'pointer',
             }}
           >
-            $ retry
+            {t('matrixRetry')}
           </button>
           <Link
             href="/dashboard"
@@ -1221,7 +1221,7 @@ function ScanFailedCard({
               textDecoration: 'none',
             }}
           >
-            $ cd ~/dashboard
+            {t('matrixDashboard')}
           </Link>
         </div>
       </div>
@@ -1240,11 +1240,10 @@ function ScanFailedCard({
       }}
     >
       <strong style={{ color: '#fb7185', display: 'block', marginBottom: 6, fontSize: 15 }}>
-        Scan failed
+        {t('title')}
       </strong>
       <p style={{ fontSize: 13, color: '#cbd5e1', margin: '0 0 14px', lineHeight: 1.6 }}>
-        Something went wrong on our end and the scan didn&apos;t finish. Try again — or share the scan ID
-        with support if it keeps failing.
+        {t('body')}
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
         <button
@@ -1253,14 +1252,14 @@ function ScanFailedCard({
           className="btn-primary"
           style={{ padding: '8px 16px', fontSize: 13, minHeight: 0 }}
         >
-          Start a new scan
+          {t('startNew')}
         </button>
         <Link
           href="/dashboard"
           className="btn-secondary"
           style={{ padding: '8px 16px', fontSize: 13, minHeight: 0 }}
         >
-          Back to dashboard
+          {t('backToDashboard')}
         </Link>
         <code
           style={{
