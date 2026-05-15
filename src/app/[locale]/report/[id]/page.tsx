@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
 import { Nav } from '@/components/nav';
 import { ReportView } from './report-view';
+import { LoginGateModal } from './login-gate-modal';
 import { prisma } from '@/lib/prisma';
 import { BAD_SCAN } from '@/lib/data';
 import { getCurrentUser, isAuthEnabled } from '@/lib/auth/helpers';
@@ -119,27 +119,27 @@ async function getReportData(id: string): Promise<ScanData> {
 }
 
 export default async function ReportPage({ params, searchParams }: Props) {
-  // Auth wall: when auth is enabled, viewing a report requires sign-in.
-  // The demo report stays public so the marketing flow keeps working.
+  const callbackUrl = `/report/${params.id}${searchParams.url ? `?url=${encodeURIComponent(searchParams.url)}` : ''}`;
+
   if (isAuthEnabled() && params.id !== 'demo') {
     const user = await getCurrentUser();
-    if (!user) {
-      const callbackUrl = `/report/${params.id}${searchParams.url ? `?url=${encodeURIComponent(searchParams.url)}` : ''}`;
-      redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-    }
 
-    // Opportunistically attach orphan scans to the signed-in user so the
-    // "scan anon, sign in to view" flow leaves the scan in their history.
-    const existing = await prisma.scan.findUnique({
-      where: { id: params.id },
-      select: { userId: true },
-    });
-    if (existing && existing.userId === null) {
-      await prisma.scan.update({
+    if (user) {
+      // Opportunistically attach orphan scans to the signed-in user so the
+      // "scan anon, sign in to view" flow leaves the scan in their history.
+      const existing = await prisma.scan.findUnique({
         where: { id: params.id },
-        data: { userId: user.id },
+        select: { userId: true },
       });
+      if (existing && existing.userId === null) {
+        await prisma.scan.update({
+          where: { id: params.id },
+          data: { userId: user.id },
+        });
+      }
     }
+    // Non-logged-in users fall through: anonymous scans (userId=null) render
+    // with a blur overlay + login modal; owned scans throw in getReportData.
   }
 
   let scanData: ScanData | null = null;
@@ -180,13 +180,24 @@ export default async function ReportPage({ params, searchParams }: Props) {
   }
 
   const scanUrl = searchParams.url ? decodeURIComponent(searchParams.url) : scanData.url;
+  const isAuthed = Boolean(currentUser);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
       <Nav showReportActions scanUrl={scanUrl} scanId={params.id} />
-      <div style={{ paddingTop: 56 }}>
-        <ReportView scanData={scanData} authed={Boolean(currentUser)} />
+      <div
+        style={{
+          paddingTop: 56,
+          ...(isAuthed ? {} : {
+            filter: 'blur(4px) brightness(0.75)',
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }),
+        }}
+      >
+        <ReportView scanData={scanData} authed={isAuthed} />
       </div>
+      {!isAuthed && <LoginGateModal callbackUrl={callbackUrl} />}
     </div>
   );
 }
