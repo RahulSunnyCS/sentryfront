@@ -14,6 +14,7 @@ import {
 } from '@/lib/dashboard-queries';
 import { logger } from '@/lib/logger';
 import { routing, type Locale } from '@/i18n/routing';
+import { prisma } from '@/lib/prisma';
 
 export async function generateMetadata({
   params,
@@ -101,10 +102,13 @@ function formatRelative(iso: string | null, locale: string, t: Translator): stri
 
 export default async function DashboardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams?: Promise<{ verified?: string }>;
 }) {
   const { locale } = await params;
+  const sp = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'dashboard' });
 
@@ -112,6 +116,13 @@ export default async function DashboardPage({
   if (!user) {
     redirect({ href: '/login?next=/dashboard', locale: locale as Locale });
   }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user!.id },
+    select: { emailVerified: true },
+  });
+  const emailVerified = !!dbUser?.emailVerified;
+  const justVerified = sp?.verified === '1';
 
   let stats: DashboardStats | null = null;
   let scans: ScanListItem[] = [];
@@ -136,6 +147,21 @@ export default async function DashboardPage({
       <div style={{ paddingTop: 'var(--nav-h)' }}>
         <main className="section">
           <div className="container">
+
+            {justVerified && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 'var(--space-6)', fontSize: 'var(--fs-sm)', color: '#15803d' }}>
+                <span>✅</span>
+                <span>Email verified — your account is fully activated.</span>
+              </div>
+            )}
+
+            {!emailVerified && !justVerified && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 'var(--space-6)', fontSize: 'var(--fs-sm)', color: '#92400e' }}>
+                <span>✉️</span>
+                <span>Please check your inbox and verify your email address to fully activate your account.</span>
+              </div>
+            )}
+
             <header
               style={{
                 display: 'flex',

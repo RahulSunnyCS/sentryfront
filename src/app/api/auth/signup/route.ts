@@ -8,10 +8,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { authConfig } from '@/lib/features';
 import { hashPassword } from '@/lib/auth/password';
 import { establishSession } from '@/lib/auth/session';
+import { sendVerificationEmail } from '@/lib/email';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LEN = 8;
@@ -61,6 +63,17 @@ export async function POST(req: NextRequest) {
     data: { email, name, passwordHash, tier: 'free' },
     select: { id: true },
   });
+
+  // Store a verification token and email it — non-blocking so a mail
+  // misconfiguration never prevents the account from being created.
+  const token = crypto.randomBytes(32).toString('hex');
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 h
+  try {
+    await prisma.verificationToken.create({ data: { identifier: email, token, expires } });
+    await sendVerificationEmail(email, token);
+  } catch (err) {
+    console.error('[signup] verification email failed:', err);
+  }
 
   const response = NextResponse.json({ ok: true }, { status: 201 });
   await establishSession(req, response, user.id);
