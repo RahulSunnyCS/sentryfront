@@ -10,36 +10,15 @@ interface Message {
 
 const BOT_NAME = 'Codifie Support';
 
-function getBotReply(text: string): string {
-  const t = text.toLowerCase();
-  if (/\b(hi|hello|hey|howdy)\b/.test(t))
-    return "Hi there! 👋 How can I help you today?";
-  if (/\bpric(e|ing|es)\b/.test(t))
-    return "We have a free tier (1 scan/week, no card needed). Paid plans unlock active DAST testing and continuous monitoring. Check out the Pricing page for full details!";
-  if (/\bscan\b/.test(t))
-    return "To start a scan, head to your Dashboard, paste your site URL, and hit Scan. Full results — headers, secrets, CVEs, and more — come back in under a minute.";
-  if (/\b(sign.?up|register|creat.* account)\b/.test(t))
-    return "Signing up is free and takes about 30 seconds — no credit card required. Click 'Sign up for free' from the login page.";
-  if (/\b(sign.?in|log.?in|login)\b/.test(t))
-    return "You can sign in with GitHub, Google, or email/password. Hit 'Sign in' in the top nav to get started.";
-  if (/\b(security|vulnerabilit|owasp|cve|header)\b/.test(t))
-    return "We check OWASP Top 10 vulnerabilities, security headers (CSP, HSTS, X-Frame-Options), exposed secrets, outdated libraries, and more — all in one scan.";
-  if (/\b(dashboard|account|profile)\b/.test(t))
-    return "Your Dashboard shows all past scans, your security grade over time, and your weekly scan quota. Sign in to access it.";
-  if (/\b(bug|issue|problem|broken|error|crash)\b/.test(t))
-    return "Sorry you're running into trouble! Could you describe what happened? Our team reviews all reports and usually responds within 24 hours.";
-  if (/\b(help|support|contact|talk|human|agent)\b/.test(t))
-    return "Happy to help! Ask me anything about features, pricing, or scanning. For complex issues you can also reach us at support@codifie.dev.";
-  if (/\b(free|cost|pay|credit card)\b/.test(t))
-    return "The free tier gives you one full passive scan per week with no credit card required. Active DAST testing and monitoring are available as paid add-ons.";
-  return "Thanks for your message! 🙏 Our team will follow up shortly. Is there anything else I can help clarify in the meantime?";
+function getBotReply(_text: string): string {
+  return "Thanks, we'll look into it! 🙏";
 }
 
 let idCounter = 0;
 function nextId() { return ++idCounter; }
 
 const INITIAL_MESSAGES: Message[] = [
-  { from: 'bot', text: "Hi! I'm here to help. Ask me anything about scanning, pricing, or your account. 👋", id: nextId() },
+  { from: 'bot', text: "Hi! Send us a message and we'll get back to you. 👋", id: nextId() },
 ];
 
 export function ChatWidget() {
