@@ -10,7 +10,7 @@ interface Message {
 
 const BOT_NAME = 'Codifie Support';
 
-function getBotReply(_text: string): string {
+function getBotReply(): string {
   return "Thanks, we'll look into it! 🙏";
 }
 
@@ -45,7 +45,7 @@ export function ChatWidget() {
     setTyping(true);
 
     setTimeout(() => {
-      const reply = getBotReply(text);
+      const reply = getBotReply();
       setMessages((prev) => [...prev, { from: 'bot', text: reply, id: nextId() }]);
       setTyping(false);
     }, 700 + Math.random() * 400);
