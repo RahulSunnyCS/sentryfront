@@ -279,6 +279,8 @@ export default async function DashboardPage({
                 )}
               </section>
             )}
+
+            <ComingSoonSection t={t} />
           </div>
         </main>
         <Footer />
@@ -518,5 +520,98 @@ function Chip({ n, label, color, bg }: { n: number; label: string; color: string
       <span style={{ fontWeight: 700 }}>{n}</span>
       <span>{label}</span>
     </span>
+  );
+}
+
+interface ComingSoonFeature {
+  emoji: string;
+  color: string;
+  bg: string;
+  border: string;
+  titleKey: 'dastTitle' | 'githubTitle' | 'extensionTitle';
+  descKey: 'dastDesc' | 'githubDesc' | 'extensionDesc';
+}
+
+const COMING_SOON_FEATURES: ComingSoonFeature[] = [
+  {
+    emoji: '⚡',
+    color: '#F59E0B',
+    bg: 'rgba(245,158,11,0.07)',
+    border: 'rgba(245,158,11,0.20)',
+    titleKey: 'dastTitle',
+    descKey: 'dastDesc',
+  },
+  {
+    emoji: '🔗',
+    color: '#7C3AED',
+    bg: 'rgba(124,58,237,0.07)',
+    border: 'rgba(124,58,237,0.20)',
+    titleKey: 'githubTitle',
+    descKey: 'githubDesc',
+  },
+  {
+    emoji: '🧩',
+    color: '#0D9488',
+    bg: 'rgba(13,148,136,0.07)',
+    border: 'rgba(13,148,136,0.20)',
+    titleKey: 'extensionTitle',
+    descKey: 'extensionDesc',
+  },
+];
+
+function ComingSoonSection({ t }: { t: Translator }) {
+  return (
+    <section
+      aria-labelledby="coming-soon-heading"
+      style={{ marginTop: 'var(--space-10)' }}
+    >
+      <h2
+        id="coming-soon-heading"
+        className="text-h3"
+        style={{ marginBottom: 'var(--space-6)' }}
+      >
+        {t('comingSoonHeading')}
+      </h2>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: 'var(--space-4)',
+        }}
+      >
+        {COMING_SOON_FEATURES.map(({ emoji, color, bg, border, titleKey, descKey }) => (
+          <article
+            key={titleKey}
+            className="card"
+            style={{ background: bg, borderColor: border, position: 'relative', overflow: 'hidden' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+              <span style={{ fontSize: 28, lineHeight: 1 }}>{emoji}</span>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  color,
+                  background: 'rgba(0,0,0,0.06)',
+                  border: `1px solid ${border}`,
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '3px 8px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {t('comingSoonBadge')}
+              </span>
+            </div>
+            <h3 style={{ fontSize: 'var(--fs-md)', fontWeight: 700, marginBottom: 'var(--space-2)', color: 'var(--text)' }}>
+              {t(titleKey)}
+            </h3>
+            <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
+              {t(descKey)}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }

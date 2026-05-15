@@ -569,6 +569,12 @@ function DeeperScansBox({ scanUrl }: { scanUrl: string }) {
           comingSoon
         />
         <DeeperScanCard
+          emoji="🧩"
+          title="Chrome Extension"
+          desc="Live security grades and alerts as you browse — no scan needed."
+          comingSoon
+        />
+        <DeeperScanCard
           emoji="🎯"
           title="Live exploit probes"
           desc="SQL injection, XSS, API fuzzing — proven by real attacks."

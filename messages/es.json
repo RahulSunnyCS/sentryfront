@@ -399,7 +399,15 @@
     "minutesAgo": "{count, plural, one {hace # minuto} other {hace # minutos}}",
     "hoursAgo": "{count, plural, one {hace # hora} other {hace # horas}}",
     "yesterday": "Ayer",
-    "daysAgo": "hace {count} días"
+    "daysAgo": "hace {count} días",
+    "comingSoonHeading": "Próximamente",
+    "comingSoonBadge": "PRÓXIMAMENTE",
+    "dastTitle": "DAST activo",
+    "dastDesc": "Envía sondas de ataque reales contra tu dominio verificado para descubrir fallos lógicos que los escaneos pasivos no detectan.",
+    "githubTitle": "Escaneo de GitHub",
+    "githubDesc": "Conecta tu repositorio y detecta secretos, dependencias vulnerables y antipatrones en cada pull request.",
+    "extensionTitle": "Extensión de Chrome",
+    "extensionDesc": "Obtén calificaciones de seguridad instantáneas y alertas en tiempo real mientras navegas, directamente desde la barra de herramientas."
   },
   "verify": {
     "metaTitle": "Verificar la propiedad del dominio",
@@ -513,10 +521,10 @@
       "intel": "// intel",
       "intelUpper": "// INTEL",
       "found": "{count} encontrados",
-      "clean": "limpio"
+      "clean": "listo"
     },
     "pill": {
-      "clean": "[LIMPIO]",
+      "clean": "[LISTO]",
       "owned": "[HACKEADO · {count}]",
       "breaching": "INTRUSIÓN",
       "queued": "[EN COLA]"
