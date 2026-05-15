@@ -513,10 +513,10 @@
       "intel": "// intel",
       "intelUpper": "// INTEL",
       "found": "{count} found",
-      "clean": "clean"
+      "clean": "done"
     },
     "pill": {
-      "clean": "[CLEAN]",
+      "clean": "[DONE]",
       "owned": "[OWNED · {count}]",
       "breaching": "BREACHING",
       "queued": "[QUEUED]"

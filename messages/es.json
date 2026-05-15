@@ -513,10 +513,10 @@
       "intel": "// intel",
       "intelUpper": "// INTEL",
       "found": "{count} encontrados",
-      "clean": "limpio"
+      "clean": "listo"
     },
     "pill": {
-      "clean": "[LIMPIO]",
+      "clean": "[LISTO]",
       "owned": "[HACKEADO · {count}]",
       "breaching": "INTRUSIÓN",
       "queued": "[EN COLA]"

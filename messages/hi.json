@@ -513,10 +513,10 @@
       "intel": "// इंटेल",
       "intelUpper": "// इंटेल",
       "found": "{count} मिले",
-      "clean": "साफ़"
+      "clean": "पूर्ण"
     },
     "pill": {
-      "clean": "[साफ़]",
+      "clean": "[पूर्ण]",
       "owned": "[हैक · {count}]",
       "breaching": "सेंध",
       "queued": "[कतार]"

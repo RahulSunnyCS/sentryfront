@@ -227,11 +227,11 @@ export function ScanProgress({ scanId, scanUrl, initialVariant }: Props) {
           }
 
           if (!terminal && !cancelled) {
-            timeoutId = setTimeout(poll, 1500);
+            timeoutId = setTimeout(poll, 5000);
           }
         } catch {
           if (!cancelled) {
-            timeoutId = setTimeout(poll, 3000);
+            timeoutId = setTimeout(poll, 5000);
           }
         }
       };

@@ -513,10 +513,10 @@
       "intel": "// info",
       "intelUpper": "// INFO",
       "found": "{count} gefunden",
-      "clean": "sauber"
+      "clean": "fertig"
     },
     "pill": {
-      "clean": "[SAUBER]",
+      "clean": "[FERTIG]",
       "owned": "[GEKNACKT · {count}]",
       "breaching": "EINDRINGEN",
       "queued": "[WARTET]"
