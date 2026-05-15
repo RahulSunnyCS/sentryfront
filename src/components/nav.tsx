@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
 import { IconExternalLink } from './icons';
@@ -8,6 +9,51 @@ import { Logo } from './logo';
 import { PdfExportButton } from './pdf-export-button';
 import { AuthButton } from './auth-button';
 import { VerifyEmailNudge } from './verify-email-nudge';
+import { useFeature } from '@/lib/client-features';
+
+function SessionValidationBadge() {
+  const authEnabled = useFeature('auth');
+  const { status } = useSession();
+
+  if (!authEnabled || status !== 'loading') return null;
+
+  return (
+    <div
+      role="status"
+      aria-label="Validating session"
+      className="nav-action-hide-mobile"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '4px 10px',
+        borderRadius: 20,
+        background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
+        fontSize: 12,
+        fontWeight: 600,
+        color: 'var(--accent)',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          border: '1.5px solid currentColor',
+          borderTopColor: 'transparent',
+          animation: 'spin 0.8s linear infinite',
+          flexShrink: 0,
+          display: 'inline-block',
+        }}
+      />
+      Validating session…
+    </div>
+  );
+}
 
 interface Props {
   showReportActions?: boolean;
@@ -147,6 +193,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
             )}
           </>
         )}
+        <SessionValidationBadge />
         <VerifyEmailNudge />
         <span className="nav-action-hide-mobile">
           <AuthButton />
