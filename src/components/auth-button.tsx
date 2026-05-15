@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
-import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
-import { ThemeToggle } from './theme-toggle';
-import { LocaleSwitcher } from './locale-switcher';
+import { useTranslations, useLocale } from 'next-intl';
+import { useParams } from 'next/navigation';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
+import { routing, type Locale } from '@/i18n/routing';
 import { signOut, useSession } from 'next-auth/react';
 import { useFeature } from '@/lib/client-features';
 
@@ -39,6 +39,119 @@ function initialsFrom(name?: string | null, email?: string | null): string {
   }
   if (email) return email[0]?.toUpperCase() ?? '?';
   return '?';
+}
+
+const prefRowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  width: '100%',
+  padding: '8px 12px',
+  fontSize: 13,
+  color: 'var(--text-secondary)',
+  border: 'none',
+  background: 'transparent',
+  borderRadius: 6,
+  cursor: 'pointer',
+};
+
+const prefValueStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 13,
+  fontWeight: 600,
+  color: 'var(--text)',
+};
+
+function PreferenceRows() {
+  const tLocale = useTranslations('localeSwitcher');
+  const locale = useLocale() as Locale;
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useParams();
+  const [isPending, startTransition] = useTransition();
+
+  const [isDark, setIsDark] = useState(true);
+  useEffect(() => {
+    setIsDark(document.documentElement.getAttribute('data-theme') !== 'light');
+  }, []);
+
+  const toggleTheme = () => {
+    const next = isDark ? 'light' : 'dark';
+    setIsDark(!isDark);
+    localStorage.setItem('theme', next);
+    if (next === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  };
+
+  const onLocale = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const next = e.target.value as Locale;
+    startTransition(() => {
+      router.replace(
+        // @ts-expect-error -- pathname signature varies per route; next-intl handles it
+        { pathname, params },
+        { locale: next },
+      );
+    });
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={toggleTheme}
+        style={prefRowStyle}
+        onMouseEnter={(e) => (e.currentTarget.style.background = 'color-mix(in srgb, var(--border) 40%, transparent)')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>Theme</span>
+        <span style={prefValueStyle}>
+          <span aria-hidden="true">{isDark ? '🌙' : '☀️'}</span>
+          {isDark ? 'Dark' : 'Light'}
+        </span>
+      </button>
+
+      <div
+        style={{ position: 'relative' }}
+        onMouseEnter={(e) => (e.currentTarget.firstElementChild as HTMLElement).style.background = 'color-mix(in srgb, var(--border) 40%, transparent)'}
+        onMouseLeave={(e) => (e.currentTarget.firstElementChild as HTMLElement).style.background = 'transparent'}
+      >
+        <div style={prefRowStyle}>
+          <span>{tLocale('label')}</span>
+          <span style={prefValueStyle}>
+            {tLocale(locale)}
+            <span aria-hidden="true" style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>▾</span>
+          </span>
+        </div>
+        <select
+          value={locale}
+          onChange={onLocale}
+          disabled={isPending}
+          aria-label={tLocale('label')}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            cursor: 'pointer',
+            border: 'none',
+          }}
+        >
+          {routing.locales.map((l) => (
+            <option key={l} value={l}>
+              {tLocale(l)}
+            </option>
+          ))}
+        </select>
+      </div>
+    </>
+  );
 }
 
 function UserMenu({
@@ -122,14 +235,7 @@ function UserMenu({
 
       <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
 
-      {/* Language + theme inline */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px' }}>
-        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Preferences</span>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <LocaleSwitcher />
-          <ThemeToggle />
-        </div>
-      </div>
+      <PreferenceRows />
 
       <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
 
