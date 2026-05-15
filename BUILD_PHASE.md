@@ -295,7 +295,7 @@ Initial infrastructure shipped: replay-only test harness (`yarn test:corpus`), r
 - [x] CI job that runs the corpus on every backend PR (`.github/workflows/test.yml` step `Run scan-quality corpus (Phase 3.6 replay)`)
 - [ ] Corpus scans run with `INTERNAL_SCAN=true` so they get full LLM enrichment (per 3.14) for free — deferred; LLM output is non-deterministic so baseline pinning needs a separate snapshot layer
 
-### 3.7 Production telemetry for FP measurement
+### 3.7 Production telemetry for FP measurement ✅
 
 The <5% FP-rate target is unfalsifiable without real user signal. Fixtures and corpus are necessary but not sufficient.
 
@@ -303,17 +303,17 @@ The <5% FP-rate target is unfalsifiable without real user signal. Fixtures and c
 - [x] UI: four action buttons on each finding in the expanded report view — Helpful / Dismiss / False positive / Fix didn't help. Disabled with "Sign in to flag" hint when unauthenticated; optimistic with revert on POST failure.
 - [x] Daily aggregate job → per-module FP rate AND helpful rate, four-bucket breakdown by `(moduleId, confidence)`, auto-write to `MODULE_QUALITY.md` between `<!-- BEGIN AUTO-FP-RATES -->` sentinels. Cron at `0 9 * * *` (`vercel.json`); writes only when `FP_RATES_WRITE_LOCAL=1` because Vercel's runtime FS is read-only — production runs return JSON for a CI runner to commit.
 - [x] Confidence field added to `Finding` now (not at 3.11) so the aggregator can key on `(moduleId, confidence)` from day one. Recall guard: only explicit "False positive" clicks count toward `fpRate`; `dismissed` and `fix_didnt_help` are tracked separately so the rate can't be inflated by ambiguous signal.
-- [ ] Internal dashboard `/internal/fp-rates` — **deferred to 3.7.1 below**.
+- [x] Internal dashboard `/internal/fp-rates` — **deferred to 3.7.1 below**.
 
-### 3.7.1 Internal admin console (next substep)
+### 3.7.1 Internal admin console (next substep) ✅
 
 Deferred from 3.7 to keep the telemetry PR focused. Lands the admin-only surfaces that consume 3.7's data + a restricted runtime-toggle API.
 
-- [ ] `isAdminUser(user)` helper in `src/lib/auth/helpers.ts` that reads `ADMIN_EMAILS` (comma-separated). Admin pages return `notFound()` for non-admins so routes don't leak existence.
-- [ ] `/internal/fp-rates` server page + client view + GET API: per-module FP rate over time, sparklines, red flag at `≥5%` **but only when `samples >= 30`** in the bucket — sample-size gate prevents a single angry user from driving a tuning decision that loses real threats.
-- [ ] Restricted feature-toggle API `POST /api/internal/features/:flag` backed by a new `FeatureFlag` Prisma model (`key`, `enabled`, `value Json?`, `updatedBy`, `updatedAt`). In-memory cache + `getFeatureFlag(key)` helper consumed by scanner/report code paths. Append-only `FeatureFlagAudit` rows for every flip.
-- [ ] Admin utilities: user lookup + quota override, re-run a scan from a finding, force-run a cron (`POST /api/internal/cron/run/:name`), dispositions explorer filtered by module/user/scan.
-- [ ] **Recall-side telemetry**: "Report a missed issue" affordance that submits `missed_other` dispositions (schema already accepts this value as of 3.7). Aggregated alongside the FP table so we measure both sides — without this, tuning decisions could silently lose real threats.
+- [x] `isAdminUser(user)` helper in `src/lib/auth/helpers.ts` that reads `ADMIN_EMAILS` (comma-separated). Admin pages return `notFound()` for non-admins so routes don't leak existence.
+- [x] `/internal/fp-rates` server page + client view + GET API: per-module FP rate over time, sparklines, red flag at `≥5%` **but only when `samples >= 30`** in the bucket — sample-size gate prevents a single angry user from driving a tuning decision that loses real threats.
+- [x] Restricted feature-toggle API `POST /api/internal/features/:flag` backed by a new `FeatureFlag` Prisma model (`key`, `enabled`, `value Json?`, `updatedBy`, `updatedAt`). In-memory cache + `getFeatureFlag(key)` helper consumed by scanner/report code paths. Append-only `FeatureFlagAudit` rows for every flip.
+- [x] Admin utilities: user lookup + quota override, re-run a scan from a finding, force-run a cron (`POST /api/internal/cron/run/:name`), dispositions explorer filtered by module/user/scan.
+- [x] **Recall-side telemetry**: "Report a missed issue" affordance that submits `missed_other` dispositions (schema already accepts this value as of 3.7). Aggregated alongside the FP table so we measure both sides — without this, tuning decisions could silently lose real threats.
 
 **Recall floor for any tuning PR opened against 3.7 data:** must run the Phase 3.6 corpus (`yarn corpus` / CI step "Run scan-quality corpus (Phase 3.6 replay)") and show **zero regressions in true-positive count for the module being tuned** before merging. Confidence-aware action: raise the confidence threshold for emission at the lowest-confidence bucket first; weakening the detector is a last resort. Documented in `docs/core/MODULE_QUALITY.md` under "Recall floor (Phase 3.7)".
 
@@ -343,32 +343,33 @@ Applies to existing findings + new findings from 3.2 / 3.8. Severity language mu
 - [ ] No jargon without inline explanation
 - [ ] No findings whose only fix is "install a third-party service"
 
-### 3.10 Per-module fixture tests (continued) ✅
+### 3.10 Per-module fixture tests (continued)
 
-Already in progress on this branch — 95+ cases across 12 P1 modules. Reframed: fixtures are a regression net for known cases, not the primary quality measurement (corpus + telemetry are).
+Already in progress on this branch — 131 cases across 12 P1 modules. Reframed: fixtures are a regression net for known cases, not the primary quality measurement (corpus + telemetry are).
 
 **Current status (2026-05-15):**
-- ✅ **P1-03 (Headers):** 25 fixtures
-- ✅ **P1-04 (TLS):** 8 fixtures
-- ✅ **P1-05 (Cookies):** 7 fixtures
-- ✅ **P1-08 (Mixed Content):** 7 fixtures
-- ✅ **P1-09 (Third-Party Scripts):** 7 fixtures
-- ✅ **P1-12 (Error Disclosure):** 7 fixtures
-- ✅ **P1-14 (robots/sitemap):** 7 fixtures
-- ✅ **P1-15 (Cache):** 7 fixtures
-- ✅ **P1-16 (Client Deps):** 9 fixtures
-- ⚠️ **P1-17 (Service Worker):** 5 fixtures (meets minimum)
-- ⚠️ **P1-18 (Web Manifest):** 6 fixtures (meets minimum)
-- ❌ **P1-06 (Sensitive Paths):** 0 fixtures (directory exists but empty)
+- ✅ **P1-03 (Headers):** 22 cases
+- ✅ **P1-04 (TLS):** 8 cases
+- ✅ **P1-05 (Cookies):** 7 cases
+- ✅ **P1-06 (Sensitive Paths):** 20 cases
+- ✅ **P1-08 (Mixed Content):** 7 cases
+- ✅ **P1-09 (Third-Party Scripts):** 7 cases
+- ✅ **P1-12 (Error Disclosure):** 14 cases
+- ✅ **P1-14 (robots/sitemap):** 14 cases
+- ✅ **P1-15 (Cache):** 7 cases
+- ✅ **P1-16 (Client Deps):** 14 cases
+- ⚠️ **P1-17 (Service Worker):** 5 cases
+- ⚠️ **P1-18 (Web Manifest):** 6 cases
 - ❌ **P1-01, P1-02, P1-07, P1-10, P1-11, P1-13:** No fixture directories yet
+- ❌ **P3-01..P3-05, P4-01..P4-05:** No fixture directories yet
 
-**Note:** Phase 3.10 minimum requirement (≥3 positive, ≥3 negative, ≥1 edge) is met by 10/18 P1 modules. The remaining modules are deferred to ongoing maintenance — they're tested via corpus + production telemetry (3.6 + 3.7). Phase 3 is complete.
+**Note:** No module currently includes an explicit edge-case fixture, so the ≥3 positive / ≥3 negative / ≥1 edge per-module minimum is not yet met. P3/P4 backfill has not started. These items remain open; the rest of Phase 3 ships independently and uncovered modules are still exercised via corpus + production telemetry (3.6 + 3.7).
 
 - [x] Test harness exists: `src/__tests__/fixtures/modules/<module-id>/<case-name>.{input,expected}.{html,json,headers}` ✅ (landed)
-- [x] Continue backfilling to all 15 P1 + 5 P3 + 5 P4 modules (10/15 P1 modules have ≥7 fixtures)
-- [x] Per-module minimum: ≥3 positive, ≥3 negative, ≥1 edge-case fixture (10/15 P1 modules meet this)
-- [x] **Every bug report becomes a new fixture** (regression test forever) — process established
-- [ ] Fixture authoring guide in `docs/core/FIXTURE_GUIDE.md` (deferred to maintenance backlog)
+- [ ] Continue backfilling to all 15 P1 + 5 P3 + 5 P4 modules (12/15 P1 covered; P3/P4 not started)
+- [ ] Per-module minimum: ≥3 positive, ≥3 negative, ≥1 edge-case fixture (no module has an explicit edge fixture yet)
+- [ ] **Every bug report becomes a new fixture** (regression test forever) — ongoing policy
+- [x] Fixture authoring guide in `docs/core/FIXTURE_GUIDE.md`
 - [x] CI job `pnpm test:fixtures` runs in <30s (vitest runs all fixture tests)
 
 ### 3.11 SEO + AI-discoverability bundle (full depth)
