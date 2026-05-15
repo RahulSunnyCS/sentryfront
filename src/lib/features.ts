@@ -26,6 +26,7 @@ const defaultFeatures = {
   pwaSurfaceChecks: true,
   pathCoverageChecks: true,
   seoDepthPass: true,
+  headerStrengthScoring: true,
 };
 
 // Parse FEATURES env variable (JSON object)
@@ -97,6 +98,16 @@ export const features = {
    *  diff. Cross-source corroborated. When off, only the legacy Lighthouse-
    *  derived SEO findings emit, so flag-off output is byte-identical to pre-3.11. */
   seoDepthPass: customFeatures.seoDepthPass ?? defaultFeatures.seoDepthPass,
+
+  /** Phase 3.13: header strength scoring — replaces P1-03's binary CSP
+   *  present/absent check with deep csp_evaluator analysis (unsafe-inline/
+   *  eval, broad allowlists, missing object-src/base-uri), graded HSTS
+   *  scoring, Report-Only-not-enforced detection, an optional Observatory
+   *  INFO grade, and a tailored Report-Only starter fix. When off, P1-03
+   *  emits the exact pre-3.13 binary findings so flag-off output is
+   *  byte-identical (every existing P1-03 fixture + corpus baseline stays
+   *  green by construction). */
+  headerStrengthScoring: customFeatures.headerStrengthScoring ?? defaultFeatures.headerStrengthScoring,
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────
