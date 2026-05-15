@@ -7,12 +7,16 @@ describe('GET /api/health', () => {
     vi.clearAllMocks();
     // Reset environment variables
     delete process.env.REDIS_URL;
-    delete process.env.SENTRY_ENABLED;
+    delete process.env.SENTRY_DSN;
+    delete process.env.PAGESPEED_API_KEY;
     delete process.env.VERCEL_GIT_COMMIT_SHA;
     delete process.env.VERCEL_ENV;
   });
 
   it('should return ok status when database is healthy', async () => {
+    // Route reports 'ok' only when DB is reachable AND all required env vars
+    // are present. PAGESPEED_API_KEY is one of route's requiredEnvVars.
+    process.env.PAGESPEED_API_KEY = 'test-key';
     (prisma.$queryRaw as any).mockResolvedValue([{ result: 1 }]);
 
     const response = await GET();
@@ -25,13 +29,13 @@ describe('GET /api/health', () => {
     expect(data).toHaveProperty('version');
   });
 
-  it('should return degraded status when database fails', async () => {
+  it('should return error status when database fails', async () => {
     (prisma.$queryRaw as any).mockRejectedValue(new Error('Connection failed'));
 
     const response = await GET();
     const data = await response.json();
 
-    expect(data.status).toBe('degraded');
+    expect(data.status).toBe('error');
     expect(data.db.status).toBe('error');
     expect(data.db.error).toBe('Connection failed');
   });
@@ -89,24 +93,24 @@ describe('GET /api/health', () => {
     expect(data.features).toHaveProperty('tierGating');
   });
 
-  it('should include monitoring status', async () => {
+  it('should report sentry integration disabled by default', async () => {
     (prisma.$queryRaw as any).mockResolvedValue([{ result: 1 }]);
 
     const response = await GET();
     const data = await response.json();
 
-    expect(data.monitoring).toBeDefined();
-    expect(data.monitoring.sentry).toBe(false);
+    expect(data.integrations).toBeDefined();
+    expect(data.integrations.sentry).toBe(false);
   });
 
-  it('should detect Sentry when enabled', async () => {
-    process.env.SENTRY_ENABLED = 'true';
+  it('should detect Sentry when SENTRY_DSN is set', async () => {
+    process.env.SENTRY_DSN = 'https://examplePublicKey@o0.ingest.sentry.io/0';
     (prisma.$queryRaw as any).mockResolvedValue([{ result: 1 }]);
 
     const response = await GET();
     const data = await response.json();
 
-    expect(data.monitoring.sentry).toBe(true);
+    expect(data.integrations.sentry).toBe(true);
   });
 
   it('should include git commit SHA when on Vercel', async () => {
