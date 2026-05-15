@@ -345,14 +345,32 @@ Applies to existing findings + new findings from 3.2 / 3.8. Severity language mu
 
 ### 3.10 Per-module fixture tests (continued)
 
-Already in progress on this branch — 58 cases across 8 P1 modules. Reframed: fixtures are a regression net for known cases, not the primary quality measurement (corpus + telemetry are).
+Already in progress on this branch — 131 cases across 12 P1 modules. Reframed: fixtures are a regression net for known cases, not the primary quality measurement (corpus + telemetry are).
 
-- [x] Test harness exists: `src/__tests__/lib/scanner/fixtures/<module-id>/<case-name>.{input,expected}.{html,json,headers}` ✅ (landed)
-- [ ] Continue backfilling to all 15 P1 + 5 P3 + 5 P4 modules
-- [ ] Per-module minimum: ≥3 positive, ≥3 negative, ≥1 edge-case fixture
-- [ ] **Every bug report becomes a new fixture** (regression test forever)
+**Current status (2026-05-15):**
+- ✅ **P1-03 (Headers):** 22 cases
+- ✅ **P1-04 (TLS):** 8 cases
+- ✅ **P1-05 (Cookies):** 7 cases
+- ✅ **P1-06 (Sensitive Paths):** 20 cases
+- ✅ **P1-08 (Mixed Content):** 7 cases
+- ✅ **P1-09 (Third-Party Scripts):** 7 cases
+- ✅ **P1-12 (Error Disclosure):** 14 cases
+- ✅ **P1-14 (robots/sitemap):** 14 cases
+- ✅ **P1-15 (Cache):** 7 cases
+- ✅ **P1-16 (Client Deps):** 14 cases
+- ⚠️ **P1-17 (Service Worker):** 5 cases
+- ⚠️ **P1-18 (Web Manifest):** 6 cases
+- ❌ **P1-01, P1-02, P1-07, P1-10, P1-11, P1-13:** No fixture directories yet
+- ❌ **P3-01..P3-05, P4-01..P4-05:** No fixture directories yet
+
+**Note:** No module currently includes an explicit edge-case fixture, so the ≥3 positive / ≥3 negative / ≥1 edge per-module minimum is not yet met. P3/P4 backfill has not started. These items remain open; the rest of Phase 3 ships independently and uncovered modules are still exercised via corpus + production telemetry (3.6 + 3.7).
+
+- [x] Test harness exists: `src/__tests__/fixtures/modules/<module-id>/<case-name>.{input,expected}.{html,json,headers}` ✅ (landed)
+- [ ] Continue backfilling to all 15 P1 + 5 P3 + 5 P4 modules (12/15 P1 covered; P3/P4 not started)
+- [ ] Per-module minimum: ≥3 positive, ≥3 negative, ≥1 edge-case fixture (no module has an explicit edge fixture yet)
+- [ ] **Every bug report becomes a new fixture** (regression test forever) — ongoing policy
 - [x] Fixture authoring guide in `docs/core/FIXTURE_GUIDE.md`
-- [x] CI job `pnpm test:fixtures` runs in <30s
+- [x] CI job `pnpm test:fixtures` runs in <30s (vitest runs all fixture tests)
 
 ### 3.11 SEO + AI-discoverability bundle (full depth)
 

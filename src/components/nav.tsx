@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
-import { IconShield, IconExternalLink } from './icons';
+import { IconExternalLink } from './icons';
+import { Logo } from './logo';
 import { PdfExportButton } from './pdf-export-button';
 import { AuthButton } from './auth-button';
 import { ThemeToggle } from './theme-toggle';
@@ -70,8 +71,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
         aria-label={t('homeAria')}
       >
-        <IconShield size={20} color="var(--accent)" />
-        <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.01em' }}>VibeSafe</span>
+        <Logo size={22} />
       </Link>
 
       <ul

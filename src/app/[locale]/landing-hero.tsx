@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/navigation';
-import { IconShield, IconGlobe, IconArrowRight } from '@/components/icons';
+import { IconGlobe, IconArrowRight } from '@/components/icons';
+import { LogoMark } from '@/components/logo';
 import { createScan } from '@/lib/api';
 import { HeroHeadlineAnim } from './HeroHeadlineAnim';
 
@@ -130,7 +131,7 @@ function HeroSection({
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
       >
         <span className="pill pill-accent" style={{ marginBottom: 'var(--space-8)' }}>
-          <IconShield size={16} color="var(--accent)" />
+          <LogoMark size={16} />
           {t('pill')}
         </span>
 
@@ -528,7 +529,7 @@ function FeaturesSection() {
               <div className="eyebrow" style={{ color: 'var(--text-tertiary)' }}>{tActive('replaces')}</div>
               <div style={{ fontSize: 24, fontWeight: 800, textDecoration: 'line-through', color: 'var(--text-secondary)' }}>$5,000</div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>{tActive('pentest')}</div>
-              <div className="eyebrow" style={{ color: 'var(--text-tertiary)' }}>VibeSafe</div>
+              <div className="eyebrow" style={{ color: 'var(--text-tertiary)' }}>Codifie Scan</div>
               <div style={{ fontSize: 28, fontWeight: 800, color: '#DC2626' }}>{tActive('credits')}</div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{tActive('perScan')}</div>
             </div>

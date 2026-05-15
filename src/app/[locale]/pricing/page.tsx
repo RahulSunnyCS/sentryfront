@@ -27,7 +27,7 @@ function pricingTiers(t: (key: string) => string): Array<Tier & {
   return [
     {
       id: 'verify',
-      price: 9,
+      price: 0,
       cadence: oneTime,
       featured: false,
       tier: 'one-shot',
@@ -43,7 +43,7 @@ function pricingTiers(t: (key: string) => string): Array<Tier & {
     },
     {
       id: 'activePack',
-      price: 29,
+      price: 0,
       cadence: oneTime,
       featured: true,
       tier: 'pro',
@@ -61,7 +61,7 @@ function pricingTiers(t: (key: string) => string): Array<Tier & {
     },
     {
       id: 'monitor',
-      price: 15,
+      price: 0,
       cadence: perMonth,
       featured: false,
       tier: 'studio',

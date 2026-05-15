@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "VibeSafe",
+    "appName": "Codifie Scan",
     "skipToContent": "Skip to content",
     "loading": "Loading…",
     "saving": "Saving…",
@@ -16,7 +16,7 @@
   },
   "nav": {
     "primary": "Primary",
-    "homeAria": "VibeSafe — home",
+    "homeAria": "Codifie Scan — home",
     "pricing": "Pricing",
     "features": "Features",
     "faq": "FAQ",
@@ -50,7 +50,7 @@
     "security": "Security",
     "abuse": "Report abuse",
     "supportEmail": "Support",
-    "copyright": "© {year} VibeSafe. All rights reserved.",
+    "copyright": "© {year} Codifie Scan. All rights reserved.",
     "community": "Made for the AI coding community."
   },
   "localeSwitcher": {
@@ -62,7 +62,7 @@
     "de": "Deutsch"
   },
   "landing": {
-    "pill": "Enterprise-grade security · Starting at $9",
+    "pill": "Enterprise-grade security · Starting at $0",
     "heroTitleLine1": "Your AI-built site is now",
     "heroTitleInitialLine1": "Your AI-built site is not",
     "heroTitleLine2": "technically solid",
@@ -94,7 +94,7 @@
       "tlsSub": "Modern cipher suites, no mixed content"
     },
     "categories": {
-      "label": "What VibeSafe checks",
+      "label": "What Codifie Scan checks",
       "security": "🛡️ Security",
       "performance": "⚡ Performance",
       "accessibility": "♿ Accessibility",
@@ -148,20 +148,20 @@
       "badge": "New",
       "eyebrow": "Active Security Testing",
       "title": "We try to break your site — so attackers can't",
-      "body": "Beyond passive checks: VibeSafe actually sends attack probes — SQL injection, XSS payloads, API fuzzing — against your verified domain. You get <strong>CONFIRMED exploitable</strong> findings, not guesses.",
+      "body": "Beyond passive checks: Codifie Scan actually sends attack probes — SQL injection, XSS payloads, API fuzzing — against your verified domain. You get <strong>CONFIRMED exploitable</strong> findings, not guesses.",
       "bullet1": "SQL injection probing",
       "bullet2": "XSS payload testing",
       "bullet3": "API endpoint fuzzing",
       "bullet4": "Auth bypass attempts",
       "replaces": "Replaces",
       "pentest": "manual pentest engagement",
-      "perScan": "per active scan (~$3.48)",
+      "perScan": "per active scan (~$0)",
       "credits": "3 credits"
     },
     "codeBanner": {
       "eyebrow": "GitHub Code Scanning",
       "title": "Catch secrets before they ship — in your repo",
-      "body": "Connect your GitHub repo and VibeSafe scans every PR for hardcoded API keys, secrets, and security anti-patterns — before they ever reach production.",
+      "body": "Connect your GitHub repo and Codifie Scan scans every PR for hardcoded API keys, secrets, and security anti-patterns — before they ever reach production.",
       "bullet1": "Gitleaks integration",
       "bullet2": "PR comments",
       "bullet3": "Block merge on critical",
@@ -173,10 +173,10 @@
     },
     "comparison": {
       "eyebrow": "The trade-off",
-      "title": "VibeSafe vs. the old way",
-      "lead": "A manual security audit takes weeks and costs thousands. Traditional SaaS scanners need DNS, agents, and security expertise. VibeSafe takes 90 seconds.",
-      "caption": "Comparison of VibeSafe vs manual audits and traditional scanners",
-      "colVibesafe": "VibeSafe",
+      "title": "Codifie Scan vs. the old way",
+      "lead": "A manual security audit takes weeks and costs thousands. Traditional SaaS scanners need DNS, agents, and security expertise. Codifie Scan takes 90 seconds.",
+      "caption": "Comparison of Codifie Scan vs manual audits and traditional scanners",
+      "colVibesafe": "Codifie Scan",
       "colManual": "Manual audit",
       "colCompetitor": "Traditional SaaS",
       "row1Feature": "Time to first report",
@@ -184,7 +184,7 @@
       "row1Manual": "2–4 weeks",
       "row1Competitor": "4–24 hours",
       "row2Feature": "Starting price",
-      "row2Vibesafe": "$9",
+      "row2Vibesafe": "$0",
       "row2Manual": "$3,200+",
       "row2Competitor": "$99/mo",
       "row3Feature": "AI fix prompts",
@@ -192,7 +192,7 @@
       "row3Manual": "None",
       "row3Competitor": "None",
       "row4Feature": "Active DAST probes",
-      "row4Vibesafe": "$3.48",
+      "row4Vibesafe": "$0",
       "row4Manual": "$5,000",
       "row4Competitor": "$499",
       "row5Feature": "Setup required",
@@ -211,7 +211,7 @@
       "t1Quote": "Caught a Stripe live key in my Lovable export before launch. Worth ten years of subscription fees.",
       "t1Name": "Maya Chen",
       "t1Role": "Indie founder · example.com",
-      "t2Quote": "We replaced a quarterly $4,000 pentest with VibeSafe on every deploy. Findings come with fixes — we just paste them into Cursor.",
+      "t2Quote": "We replaced a quarterly $4,000 pentest with Codifie Scan on every deploy. Findings come with fixes — we just paste them into Cursor.",
       "t2Name": "Daniel R.",
       "t2Role": "CTO · 12-person SaaS",
       "t3Quote": "The AI prompts genuinely fix the issues. I went from F to A in one afternoon without reading a single OWASP doc.",
@@ -221,9 +221,9 @@
     "extension": {
       "eyebrow": "🧩 Coming soon · Chrome Extension",
       "title": "Scan any site in one click — without leaving your browser",
-      "lead": "Pin the VibeSafe extension and audit any page you visit. Instant grade overlay, one-click deep scan, copy-paste fix prompts for your AI assistant.",
+      "lead": "Pin the Codifie Scan extension and audit any page you visit. Instant grade overlay, one-click deep scan, copy-paste fix prompts for your AI assistant.",
       "bullet1": "Live grade badge on every site you visit",
-      "bullet2": "Right-click → \"Scan this page with VibeSafe\"",
+      "bullet2": "Right-click → \"Scan this page with Codifie Scan\"",
       "bullet3": "Detects secrets in network requests in real time",
       "bullet4": "Works offline for client-side checks",
       "emailPlaceholder": "you@example.com",
@@ -243,7 +243,7 @@
       "title": "Common questions",
       "lead": "If you don't see your question here, email support@vibesafe.app — a real human answers.",
       "q1": "Do I need to install anything?",
-      "a1": "No. VibeSafe is a passive black-box scanner — paste a URL and we hit it from the outside, just like a real attacker would. No CLI, no agent, no SDK, no code changes.",
+      "a1": "No. Codifie Scan is a passive black-box scanner — paste a URL and we hit it from the outside, just like a real attacker would. No CLI, no agent, no SDK, no code changes.",
       "q2": "Will scanning my site break anything?",
       "a2": "Passive scans are read-only — they only fetch public URLs your browser already fetches. Active DAST tests are opt-in, rate-limited to 1 request per second, identify themselves with an X-Scanner header, and require you to verify ownership of the domain first.",
       "q3": "Is this useful for AI-built sites specifically?",
@@ -251,7 +251,7 @@
       "q4": "What does each scan check?",
       "a4": "15 security modules (secrets, headers, TLS, cookies, CORS, sourcemaps, mixed content, subdomain takeover, third-party scripts, DNS/email, exposed dev interfaces, error disclosure, robots/sitemap, caching, sensitive paths), 6 performance modules (Core Web Vitals, resources, network, JS, server response, mobile), 5 accessibility modules (contrast, keyboard, screen-reader, semantic HTML, forms), and 5 SEO modules (meta tags, social, structured data, crawlability, mobile SEO).",
       "q5": "How is this different from Lighthouse or Snyk?",
-      "a5": "Lighthouse only measures performance and surface-level SEO. Snyk needs your source code and focuses on dependencies. VibeSafe runs against your live URL, covers security + performance + accessibility + SEO in one report, and writes the fix for you. Think of it as Lighthouse + OWASP ZAP + Gitleaks + a developer-grade AI assistant, in a 90-second pass.",
+      "a5": "Lighthouse only measures performance and surface-level SEO. Snyk needs your source code and focuses on dependencies. Codifie Scan runs against your live URL, covers security + performance + accessibility + SEO in one report, and writes the fix for you. Think of it as Lighthouse + OWASP ZAP + Gitleaks + a developer-grade AI assistant, in a 90-second pass.",
       "q6": "Do credits expire?",
       "a6": "Never. Credits roll over indefinitely and work across any number of domains. If you decide it isn't for you within 30 days, we'll refund any unused credits."
     },
@@ -268,12 +268,12 @@
     "subtitle": "Welcome back. Sign in to access your dashboard.",
     "google": "Continue with Google",
     "github": "Continue with GitHub",
-    "newAccount": "New to VibeSafe?",
+    "newAccount": "New to Codifie Scan?",
     "createAccount": "Create an account",
     "errorOauth": "Sign-in failed. Please try again.",
     "errorGeneric": "Something went wrong. Please try again.",
     "metaTitle": "Sign in",
-    "metaDesc": "Sign in to VibeSafe to manage your scans, buy credits, enable 24/7 monitoring, and track your security grade over time.",
+    "metaDesc": "Sign in to Codifie Scan to manage your scans, buy credits, enable 24/7 monitoring, and track your security grade over time.",
     "loadingFallback": "Loading...",
     "welcomeBack": "Welcome back",
     "welcomeLead": "Sign in to start scanning your sites",
@@ -299,9 +299,9 @@
   },
   "pricing": {
     "metaTitle": "Pricing — One free scan a week, pay for active testing",
-    "metaDesc": "Free tier: 1 fully-unlocked passive scan a week. Verify ($9): one active DAST scan. Active Pack ($29): 5 DAST scans. Monitor ($15/mo): unlimited passive scans + regression alerts.",
-    "ogTitle": "VibeSafe Pricing — Free passive scanning, pay for proof",
-    "ogDesc": "Passive scans are free with login. Active DAST testing (real attack probes) starts at $9. Monitoring at $15/mo per domain.",
+    "metaDesc": "Free tier: 1 fully-unlocked passive scan a week. Verify ($0): one active DAST scan. Active Pack ($0): 5 DAST scans. Monitor ($0/mo): unlimited passive scans + regression alerts.",
+    "ogTitle": "Codifie Scan Pricing — Free passive scanning, pay for proof",
+    "ogDesc": "Passive scans are free with login. Active DAST testing (real attack probes) starts at $0. Monitoring at $0/mo per domain.",
     "eyebrow": "Pricing",
     "heroTitle": "Passive scanning is free. Pay only to prove findings are real.",
     "heroLead": "One full passive scan a week is free (sign-in required). Pay for active DAST testing or continuous monitoring.",
@@ -328,7 +328,7 @@
       "verify": {
         "name": "Verify",
         "desc": "Confirm one finding is real",
-        "btn": "Buy Verify — $9",
+        "btn": "Buy Verify — $0",
         "f1": "1 active DAST scan on a verified domain",
         "f2": "Real SQLi / XSS / auth-bypass probes",
         "f3": "Scan history retention",
@@ -337,7 +337,7 @@
       "activePack": {
         "name": "Active Pack",
         "desc": "Best value for AI builders",
-        "btn": "Buy Active Pack — $29",
+        "btn": "Buy Active Pack — $0",
         "f1": "5 active DAST scans",
         "f2": "Credits never expire",
         "f3": "Priority scan queue",
@@ -346,7 +346,7 @@
       "monitor": {
         "name": "Monitor",
         "desc": "Continuous coverage per domain",
-        "btn": "Subscribe — $15/mo",
+        "btn": "Subscribe — $0/mo",
         "f1": "Unlimited passive scans on the domain",
         "f2": "Daily auto-scan with regression alerts",
         "f3": "Scan diff + email/Slack notifications",
@@ -360,7 +360,7 @@
       "q2": "What counts against the weekly quota?",
       "a2": "Each completed passive scan you start while signed in. Anonymous scans run on a separate IP-based rate limit (10/hour). You need to sign in to view the report.",
       "q3": "What is an active DAST scan?",
-      "a3": "Real attack probes (SQL injection, XSS, auth bypass, API fuzzing) sent against a verified domain. Rate-limited, opt-in, identifies itself with an X-Scanner header. Replaces a $5,000 manual pentest for $9.",
+      "a3": "Real attack probes (SQL injection, XSS, auth bypass, API fuzzing) sent against a verified domain. Rate-limited, opt-in, identifies itself with an X-Scanner header. Replaces a $5,000 manual pentest for $0.",
       "q4": "Why charge for active testing but not passive?",
       "a4": "Passive scanning is HTTP + pattern matching — near-zero marginal cost. Active testing burns real compute and requires domain verification. We charge for the expensive thing.",
       "q5": "Can I get a refund?",
@@ -501,12 +501,66 @@
     "stageFinalizing": "Finalizing report",
     "etaSeconds": "About {seconds} seconds left",
     "errorTitle": "Scan failed",
-    "errorBody": "We couldn't complete this scan. Please try again."
+    "errorBody": "We couldn't complete this scan. Please try again.",
+    "labels": {
+      "target": "TARGET",
+      "elapsed": "ELAPSED",
+      "eta": "ETA",
+      "stash": "STASH",
+      "moduleStatus": "MODULE {current} / {total} · BREACHING",
+      "attackChain": "ATTACK CHAIN · {total} MODULES",
+      "stashEmpty": "// stash empty — waiting for first module to land…",
+      "intel": "// intel",
+      "intelUpper": "// INTEL",
+      "found": "{count} found",
+      "clean": "clean"
+    },
+    "pill": {
+      "clean": "[CLEAN]",
+      "owned": "[OWNED · {count}]",
+      "breaching": "BREACHING",
+      "queued": "[QUEUED]"
+    },
+    "statusMsg": {
+      "failed": "scan failed.",
+      "complete": "analysis complete — opening report…",
+      "finalising": "finalising report…",
+      "etaPrefix": "eta:"
+    },
+    "banners": {
+      "overrunTitle": "Taking longer than usual",
+      "overrunBody": "Your scan is still running. LLM enrichment or a slow target can push past the ETA — we'll redirect when it finishes.",
+      "stuckTitle": "Still working…",
+      "stuckBody": "We haven't heard from the scanner in 30 seconds. The connection may have dropped, or the scanner may have stalled.",
+      "startNewScan": "Start a new scan"
+    },
+    "failed": {
+      "matrixHeader": "scan.failed = true",
+      "matrixBody": "something went wrong. retry, or share scan_id={scanId} with support.",
+      "matrixRetry": "$ retry",
+      "matrixDashboard": "$ cd ~/dashboard",
+      "title": "Scan failed",
+      "body": "Something went wrong on our end and the scan didn't finish. Try again — or share the scan ID with support if it keeps failing.",
+      "startNew": "Start a new scan",
+      "backToDashboard": "Back to dashboard"
+    },
+    "facts": [
+      "60% of small businesses fold within 6 months of a cyberattack — Verizon DBIR",
+      "The average data breach costs $4.45M in 2024 — IBM Cost of a Data Breach Report",
+      "AI-built sites often expose API keys in client bundles — a single grep can find them",
+      "A misconfigured CORS header is the #2 source of cross-origin attacks",
+      "43% of cyberattacks target small businesses, yet only 14% are prepared",
+      "Stored XSS lets attackers hijack any logged-in session — including admins",
+      "Open S3 buckets and Firebase rules expose 18B+ records every year",
+      "A single leaked .env file can compromise an entire production stack",
+      "Subdomain takeovers can be weaponized to phish users from \"your\" domain",
+      "92% of malware is delivered via email — but web vulns are how it spreads inside"
+    ]
   },
   "docs": {
     "metaTitle": "Documentation",
-    "metaDesc": "VibeSafe documentation — quick start, active testing, API reference, webhooks, CI/CD integration, fix prompts, and FAQ. Everything you need to ship a secure AI-built site.",
-    "ogTitle": "VibeSafe documentation",
+    "metaDesc": "Codifie Scan documentation — quick start, active testing, API reference, webhooks, CI/CD integration, fix prompts, and FAQ. Everything you need to ship a secure AI-built site.",
+    "ogTitle": "Codifie Scan documentation",
     "ogDesc": "Quick start, active testing, API reference, webhooks, CI/CD integration, and more.",
     "eyebrow": "📚 Documentation",
     "heroTitle": "Everything you need to ship secure",
@@ -522,7 +576,7 @@
       "faq": "FAQ"
     },
     "quickStart": {
-      "p1": "VibeSafe runs a full passive scan in 90 seconds. No signup is required to test a site — paste a URL and you're scanning.",
+      "p1": "Codifie Scan runs a full passive scan in 90 seconds. No signup is required to test a site — paste a URL and you're scanning.",
       "step1": "Go to the homepage and paste your URL into the scan bar.",
       "step2": "Wait ~90 seconds while we run 15 security modules.",
       "step3": "Review the findings — each ships with a paste-ready AI fix prompt.",
@@ -533,7 +587,7 @@
       "p1": "Active testing sends real attack probes (SQLi, XSS, auth bypass, API fuzzing) against a domain you own. Findings are <strong>CONFIRMED exploitable</strong>, never speculative.",
       "prereqTitle": "Prerequisites",
       "prereq1": "Verify ownership of the target domain (DNS TXT record or HTML meta tag).",
-      "prereq2": "3 credits per active test (~$3.48). Replaces a $5,000 manual pentest.",
+      "prereq2": "3 credits per active test (~$0). Replaces a $5,000 manual pentest.",
       "prereq3": "Probes are rate-limited and run from a fixed IP block so you can allowlist them.",
       "durationTitle": "How long does it take?",
       "durationBody": "~8 minutes on average for a 5-page site. Larger surfaces scale linearly."
@@ -559,7 +613,7 @@
       "payloadTitle": "Payload"
     },
     "cicd": {
-      "p1": "Block merges on regressions. The VibeSafe CLI exits non-zero if your grade drops or new critical findings appear vs. the last main-branch scan.",
+      "p1": "Block merges on regressions. The Codifie Scan CLI exits non-zero if your grade drops or new critical findings appear vs. the last main-branch scan.",
       "ghTitle": "GitHub Actions",
       "glTitle": "GitLab / CircleCI / others"
     },
@@ -586,13 +640,13 @@
   },
   "legal": {
     "termsTitle": "Terms of Service",
-    "termsMetaTitle": "Terms of Service — VibeSafe",
-    "termsMetaDesc": "Terms of Service for VibeSafe security scanner",
+    "termsMetaTitle": "Terms of Service — Codifie Scan",
+    "termsMetaDesc": "Terms of Service for Codifie Scan security scanner",
     "privacyTitle": "Privacy Policy",
-    "privacyMetaTitle": "Privacy Policy — VibeSafe",
-    "privacyMetaDesc": "Privacy Policy for VibeSafe security scanner",
+    "privacyMetaTitle": "Privacy Policy — Codifie Scan",
+    "privacyMetaDesc": "Privacy Policy for Codifie Scan security scanner",
     "contactTitle": "Legal Contact",
-    "contactMetaTitle": "Contact Legal — VibeSafe",
+    "contactMetaTitle": "Contact Legal — Codifie Scan",
     "contactMetaDesc": "Contact information for legal, privacy, and abuse inquiries",
     "lastUpdated": "Last updated: {date}",
     "englishCanonicalNotice": "The authoritative version of this document is in English. Translations are provided for convenience only.",
@@ -602,7 +656,7 @@
     "contactPrivacyTitle": "🔒 Privacy and Data Requests",
     "contactPrivacyDesc": "GDPR/CCPA requests, data deletion, access requests, and privacy concerns",
     "contactSecurityTitle": "🛡️ Security Vulnerabilities",
-    "contactSecurityDesc": "Responsible disclosure of security vulnerabilities in VibeSafe itself",
+    "contactSecurityDesc": "Responsible disclosure of security vulnerabilities in Codifie Scan itself",
     "contactAbuseTitle": "⚠️ Abuse and Violations",
     "contactAbuseDesc": "Report unauthorized scanning, Terms of Service violations, or malicious use of the platform",
     "contactDmcaTitle": "📄 DMCA Takedown Requests",
@@ -666,25 +720,25 @@
   },
   "metadata": {
     "default": {
-      "title": "VibeSafe — Security, performance & quality scanner for AI-built sites",
+      "title": "Codifie Scan — Security, performance & quality scanner for AI-built sites",
       "description": "Paste a URL and get an enterprise-grade security, performance, accessibility, and SEO report in 90 seconds. Every finding ships with a ready-to-paste AI fix prompt for Cursor, Lovable, Bolt, v0, and Replit.",
-      "ogAlt": "VibeSafe — Security scanner for AI-built sites"
+      "ogAlt": "Codifie Scan — Security scanner for AI-built sites"
     },
     "pricing": {
       "title": "Pricing",
-      "description": "Simple credit-based pricing. Start at $9 — credits never expire."
+      "description": "Simple credit-based pricing. Start at $0 — credits never expire."
     },
     "login": {
       "title": "Sign in",
-      "description": "Sign in to your VibeSafe account."
+      "description": "Sign in to your Codifie Scan account."
     },
     "dashboard": {
       "title": "Dashboard",
-      "description": "Your VibeSafe scans and credits."
+      "description": "Your Codifie Scan scans and credits."
     },
     "docs": {
       "title": "Docs",
-      "description": "VibeSafe documentation and integration guides."
+      "description": "Codifie Scan documentation and integration guides."
     },
     "verify": {
       "title": "Verify domain",
@@ -696,15 +750,15 @@
     },
     "legalTerms": {
       "title": "Terms of service",
-      "description": "VibeSafe terms of service."
+      "description": "Codifie Scan terms of service."
     },
     "legalPrivacy": {
       "title": "Privacy policy",
-      "description": "How VibeSafe collects and uses data."
+      "description": "How Codifie Scan collects and uses data."
     },
     "legalContact": {
       "title": "Contact",
-      "description": "Get in touch with the VibeSafe team."
+      "description": "Get in touch with the Codifie Scan team."
     },
     "checkout": {
       "title": "Thanks!",

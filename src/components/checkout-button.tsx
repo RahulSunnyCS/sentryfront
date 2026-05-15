@@ -20,7 +20,7 @@ interface TierDetail {
 const TIER_DETAILS: Record<Tier, TierDetail> = {
   'one-shot': {
     name: 'Verify',
-    price: '$9',
+    price: '$0',
     cadence: 'one-time',
     features: [
       '1 active DAST scan on a verified domain',
@@ -31,7 +31,7 @@ const TIER_DETAILS: Record<Tier, TierDetail> = {
   },
   pro: {
     name: 'Active Pack',
-    price: '$29',
+    price: '$0',
     cadence: 'one-time',
     features: [
       '5 active DAST scans',
@@ -42,7 +42,7 @@ const TIER_DETAILS: Record<Tier, TierDetail> = {
   },
   studio: {
     name: 'Monitor',
-    price: '$15',
+    price: '$0',
     cadence: 'per month, per domain',
     features: [
       'Unlimited passive scans on the domain',

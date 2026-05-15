@@ -1,8 +1,7 @@
 import { getRequestConfig } from 'next-intl/server';
-import type { AbstractIntlMessages } from 'next-intl';
 import { routing } from './routing';
 
-function get(obj: AbstractIntlMessages | undefined, path: string[]): unknown {
+function get(obj: unknown, path: string[]): unknown {
   let cur: unknown = obj;
   for (const segment of path) {
     if (cur && typeof cur === 'object' && segment in (cur as Record<string, unknown>)) {
@@ -20,8 +19,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
     locale = routing.defaultLocale;
   }
 
-  const localeMessages = (await import(`../../messages/${locale}.json`)).default as AbstractIntlMessages;
-  const enMessages = (await import(`../../messages/en.json`)).default as AbstractIntlMessages;
+  const localeMessages = (await import(`../../messages/${locale}.json`)).default;
+  const enMessages = (await import(`../../messages/en.json`)).default;
 
   return {
     locale,

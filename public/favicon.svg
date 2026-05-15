@@ -1,0 +1,20 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Codifie">
+  <defs>
+    <linearGradient id="hood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0%" stop-color="#7DF9FF"/>
+      <stop offset="60%" stop-color="#00D4FF"/>
+      <stop offset="100%" stop-color="#00D4FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="#0F172A"/>
+  <path d="M 32 8 C 16 8, 11 20, 11 32 L 11 50 C 11 54, 13 56, 17 56 L 47 56 C 51 56, 53 54, 53 50 L 53 32 C 53 20, 48 8, 32 8 Z" fill="url(#hood)"/>
+  <ellipse cx="32" cy="34" rx="16" ry="14" fill="#000"/>
+  <circle cx="25" cy="33" r="5" fill="url(#glow)"/>
+  <circle cx="39" cy="33" r="5" fill="url(#glow)"/>
+  <circle cx="25" cy="33" r="2.2" fill="#7DF9FF"/>
+  <circle cx="39" cy="33" r="2.2" fill="#7DF9FF"/>
+</svg>
