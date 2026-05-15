@@ -84,7 +84,7 @@ function MissedDialog({ scanId, source, fixedModule, open, onClose }: DialogProp
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 50,
+        zIndex: 1000,
       }}
       onClick={onClose}
     >

@@ -119,7 +119,7 @@ function UserMenu({
             borderRadius: 10,
             boxShadow: 'var(--shadow-md, 0 8px 24px rgba(0,0,0,0.12))',
             padding: 4,
-            zIndex: 50,
+            zIndex: 1100,
           }}
         >
           <div style={{ padding: '10px 12px' }}>
