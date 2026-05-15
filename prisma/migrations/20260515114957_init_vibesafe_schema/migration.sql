@@ -5,9 +5,13 @@ CREATE TABLE "User" (
     "email" TEXT,
     "emailVerified" DATETIME,
     "image" TEXT,
+    "passwordHash" TEXT,
     "tier" TEXT NOT NULL DEFAULT 'free',
     "stripeCustomerId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "scansThisWeek" INTEGER NOT NULL DEFAULT 0,
+    "scanWeekStart" DATETIME,
+    "activeTestCredits" INTEGER NOT NULL DEFAULT 0
 );
 
 -- CreateTable
@@ -83,7 +87,20 @@ CREATE TABLE "Finding" (
     "impact" TEXT NOT NULL,
     "fixManual" TEXT NOT NULL,
     "fixAiPrompt" TEXT NOT NULL,
+    "confidence" TEXT,
     CONSTRAINT "Finding_scanId_fkey" FOREIGN KEY ("scanId") REFERENCES "Scan" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "FindingDisposition" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "scanId" TEXT NOT NULL,
+    "findingId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "disposition" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FindingDisposition_scanId_fkey" FOREIGN KEY ("scanId") REFERENCES "Scan" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "FindingDisposition_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -108,6 +125,41 @@ CREATE TABLE "DomainVerification" (
     CONSTRAINT "DomainVerification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE "FeatureFlag" (
+    "key" TEXT NOT NULL PRIMARY KEY,
+    "enabled" BOOLEAN NOT NULL DEFAULT false,
+    "value" TEXT,
+    "updatedBy" TEXT,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "FeatureFlagAudit" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "key" TEXT NOT NULL,
+    "enabled" BOOLEAN NOT NULL,
+    "value" TEXT,
+    "updatedBy" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE "FpRateSnapshot" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "snapshotAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "moduleId" TEXT NOT NULL,
+    "confidence" TEXT,
+    "total" INTEGER NOT NULL,
+    "fpCount" INTEGER NOT NULL,
+    "helpfulCount" INTEGER NOT NULL,
+    "dismissedCount" INTEGER NOT NULL,
+    "fixDidntHelpCount" INTEGER NOT NULL,
+    "missedOtherCount" INTEGER NOT NULL,
+    "fpRate" REAL NOT NULL,
+    "helpfulRate" REAL NOT NULL
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -124,4 +176,22 @@ CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token"
 CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
 
 -- CreateIndex
+CREATE INDEX "FindingDisposition_scanId_findingId_userId_idx" ON "FindingDisposition"("scanId", "findingId", "userId");
+
+-- CreateIndex
+CREATE INDEX "FindingDisposition_findingId_idx" ON "FindingDisposition"("findingId");
+
+-- CreateIndex
+CREATE INDEX "FindingDisposition_createdAt_idx" ON "FindingDisposition"("createdAt");
+
+-- CreateIndex
 CREATE INDEX "ScanEvent_scanId_idx" ON "ScanEvent"("scanId");
+
+-- CreateIndex
+CREATE INDEX "FeatureFlagAudit_key_createdAt_idx" ON "FeatureFlagAudit"("key", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "FpRateSnapshot_moduleId_confidence_snapshotAt_idx" ON "FpRateSnapshot"("moduleId", "confidence", "snapshotAt");
+
+-- CreateIndex
+CREATE INDEX "FpRateSnapshot_snapshotAt_idx" ON "FpRateSnapshot"("snapshotAt");

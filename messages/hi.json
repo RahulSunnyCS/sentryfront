@@ -776,5 +776,20 @@
   "jsonld": {
     "orgDescription": "एक URL पेस्ट करें और 90 सेकंड में एंटरप्राइज़-ग्रेड सुरक्षा, प्रदर्शन, सुगम्यता, और SEO रिपोर्ट पाएँ।",
     "appDescription": "एक URL पेस्ट करें और 90 सेकंड में एंटरप्राइज़-ग्रेड सुरक्षा, प्रदर्शन, सुगम्यता, और SEO रिपोर्ट पाएँ।"
+  },
+  "signup": {
+    "metaTitle": "Create your account",
+    "metaDesc": "Create a free Codifie Scan account to run security scans, track your grade over time, and unlock active testing.",
+    "loadingFallback": "Loading...",
+    "title": "Create your free account",
+    "lead": "Start scanning your sites in seconds — no card required.",
+    "nameLabel": "Name",
+    "namePlaceholder": "Jane Doe",
+    "passwordHint": "At least 8 characters.",
+    "createAccount": "Create free account",
+    "creating": "Creating account…",
+    "haveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "signupFailed": "Could not create your account. Please try again."
   }
 }

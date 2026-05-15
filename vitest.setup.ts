@@ -41,6 +41,16 @@ vi.mock('@/lib/prisma', () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      upsert: vi.fn(),
+    },
+    session: {
+      create: vi.fn(),
+    },
+    verificationToken: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
     $queryRaw: vi.fn(),
     $disconnect: vi.fn(),

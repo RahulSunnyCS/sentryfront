@@ -14,6 +14,7 @@ import {
 } from '@/lib/dashboard-queries';
 import { logger } from '@/lib/logger';
 import { routing, type Locale } from '@/i18n/routing';
+import { prisma } from '@/lib/prisma';
 
 export async function generateMetadata({
   params,
@@ -101,16 +102,30 @@ function formatRelative(iso: string | null, locale: string, t: Translator): stri
 
 export default async function DashboardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams?: Promise<{ verified?: string }>;
 }) {
   const { locale } = await params;
+  const sp = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'dashboard' });
 
   const user = await getCurrentUser();
   if (!user) {
     redirect({ href: '/login?next=/dashboard', locale: locale as Locale });
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user!.id },
+    select: { emailVerified: true },
+  });
+  const justVerified = sp?.verified === '1';
+
+  // Block access until email is verified (OAuth users are pre-verified)
+  if (!dbUser?.emailVerified && !justVerified) {
+    redirect({ href: '/verify-email-sent', locale: locale as Locale });
   }
 
   let stats: DashboardStats | null = null;
@@ -136,6 +151,14 @@ export default async function DashboardPage({
       <div style={{ paddingTop: 'var(--nav-h)' }}>
         <main className="section">
           <div className="container">
+
+            {justVerified && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 'var(--space-6)', fontSize: 'var(--fs-sm)', color: '#15803d' }}>
+                <span>✅</span>
+                <span>Email verified — your account is fully activated.</span>
+              </div>
+            )}
+
             <header
               style={{
                 display: 'flex',

@@ -16,6 +16,7 @@ import { authConfig } from '@/lib/features';
 interface ExtendedUser {
   id: string;
   tier?: string;
+  emailVerified?: boolean;
 }
 
 export const nextAuthConfig: NextAuthOptions = {
@@ -40,9 +41,10 @@ export const nextAuthConfig: NextAuthOptions = {
         // Fetch tier from database
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { tier: true },
+          select: { tier: true, emailVerified: true },
         });
         extendedUser.tier = dbUser?.tier || 'free';
+        extendedUser.emailVerified = !!dbUser?.emailVerified;
       }
       return session;
     },
@@ -54,4 +56,17 @@ export const nextAuthConfig: NextAuthOptions = {
   },
 
   secret: authConfig.nextauth.secret,
+
+  events: {
+    async createUser({ user }) {
+      // OAuth sign-ups have already proven their email via the provider.
+      // Mark emailVerified immediately so they bypass the verification gate.
+      if (user.id) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { emailVerified: new Date() },
+        });
+      }
+    },
+  },
 };
