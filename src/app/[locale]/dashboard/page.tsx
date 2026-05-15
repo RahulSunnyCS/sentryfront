@@ -121,8 +121,12 @@ export default async function DashboardPage({
     where: { id: user!.id },
     select: { emailVerified: true },
   });
-  const emailVerified = !!dbUser?.emailVerified;
   const justVerified = sp?.verified === '1';
+
+  // Block access until email is verified (OAuth users are pre-verified)
+  if (!dbUser?.emailVerified && !justVerified) {
+    redirect({ href: '/verify-email-sent', locale: locale as Locale });
+  }
 
   let stats: DashboardStats | null = null;
   let scans: ScanListItem[] = [];
@@ -152,13 +156,6 @@ export default async function DashboardPage({
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 'var(--space-6)', fontSize: 'var(--fs-sm)', color: '#15803d' }}>
                 <span>✅</span>
                 <span>Email verified — your account is fully activated.</span>
-              </div>
-            )}
-
-            {!emailVerified && !justVerified && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 'var(--space-6)', fontSize: 'var(--fs-sm)', color: '#92400e' }}>
-                <span>✉️</span>
-                <span>Please check your inbox and verify your email address to fully activate your account.</span>
               </div>
             )}
 

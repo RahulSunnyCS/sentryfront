@@ -54,4 +54,17 @@ export const nextAuthConfig: NextAuthOptions = {
   },
 
   secret: authConfig.nextauth.secret,
+
+  events: {
+    async createUser({ user }) {
+      // OAuth sign-ups have already proven their email via the provider.
+      // Mark emailVerified immediately so they bypass the verification gate.
+      if (user.id) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { emailVerified: new Date() },
+        });
+      }
+    },
+  },
 };

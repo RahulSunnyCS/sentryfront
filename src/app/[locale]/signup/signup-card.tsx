@@ -166,7 +166,7 @@ export function SignupCard({ googleClientId }: { googleClientId?: string }) {
         setLoading(null);
         return;
       }
-      window.location.href = callbackUrl;
+      router.push(`/verify-email-sent?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('signupFailed'));
       setLoading(null);

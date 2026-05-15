@@ -50,6 +50,7 @@ vi.mock('@/lib/prisma', () => ({
       create: vi.fn(),
       findUnique: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
     $queryRaw: vi.fn(),
     $disconnect: vi.fn(),
