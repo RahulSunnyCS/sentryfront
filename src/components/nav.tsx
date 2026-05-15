@@ -11,48 +11,87 @@ import { AuthButton } from './auth-button';
 import { VerifyEmailNudge } from './verify-email-nudge';
 import { useFeature } from '@/lib/client-features';
 
-function SessionValidationBadge() {
+interface CreditsData {
+  tier: string;
+  activeTestCredits: number;
+  weeklyScansRemaining: number | null;
+  weeklyLimit: number | null;
+}
+
+function CreditsChip() {
   const authEnabled = useFeature('auth');
   const { status } = useSession();
+  const [credits, setCredits] = useState<CreditsData | null>(null);
 
-  if (!authEnabled || status !== 'loading') return null;
+  useEffect(() => {
+    if (!authEnabled || status !== 'authenticated') return;
+    fetch('/api/v1/me/credits')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setCredits(data))
+      .catch(() => {});
+  }, [authEnabled, status]);
 
-  return (
-    <div
-      role="status"
-      aria-label="Validating session"
-      className="nav-action-hide-mobile"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '4px 10px',
-        borderRadius: 20,
-        background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
-        border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
-        fontSize: 12,
-        fontWeight: 600,
-        color: 'var(--accent)',
-        whiteSpace: 'nowrap',
-        flexShrink: 0,
-      }}
-    >
-      <span
-        aria-hidden="true"
+  if (!authEnabled || status !== 'authenticated' || !credits) return null;
+
+  // Free tier: show weekly passive scan quota
+  if (credits.tier === 'free' && credits.weeklyScansRemaining !== null && credits.weeklyLimit !== null) {
+    const remaining = credits.weeklyScansRemaining;
+    const empty = remaining === 0;
+    return (
+      <div
+        className="nav-action-hide-mobile"
+        title={`${remaining} of ${credits.weeklyLimit} free scan${credits.weeklyLimit !== 1 ? 's' : ''} remaining this week`}
         style={{
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-          border: '1.5px solid currentColor',
-          borderTopColor: 'transparent',
-          animation: 'spin 0.8s linear infinite',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '4px 10px',
+          borderRadius: 20,
+          background: empty ? 'rgba(220,38,38,0.08)' : 'color-mix(in srgb, var(--accent) 10%, transparent)',
+          border: `1px solid ${empty ? 'rgba(220,38,38,0.25)' : 'color-mix(in srgb, var(--accent) 30%, transparent)'}`,
+          fontSize: 12,
+          fontWeight: 600,
+          color: empty ? '#DC2626' : 'var(--accent)',
+          whiteSpace: 'nowrap',
           flexShrink: 0,
-          display: 'inline-block',
         }}
-      />
-      Validating session…
-    </div>
-  );
+      >
+        <span style={{ fontWeight: 700 }}>{remaining}</span>
+        <span style={{ opacity: 0.75 }}>/ {credits.weeklyLimit} free scan{credits.weeklyLimit !== 1 ? 's' : ''}</span>
+      </div>
+    );
+  }
+
+  // Paid tiers with active test credits (one-shot, pro)
+  if (credits.tier !== 'free' && credits.tier !== 'studio') {
+    const n = credits.activeTestCredits;
+    const empty = n === 0;
+    return (
+      <div
+        className="nav-action-hide-mobile"
+        title={`${n} active test credit${n !== 1 ? 's' : ''} remaining`}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '4px 10px',
+          borderRadius: 20,
+          background: empty ? 'rgba(220,38,38,0.08)' : 'color-mix(in srgb, var(--accent) 10%, transparent)',
+          border: `1px solid ${empty ? 'rgba(220,38,38,0.25)' : 'color-mix(in srgb, var(--accent) 30%, transparent)'}`,
+          fontSize: 12,
+          fontWeight: 600,
+          color: empty ? '#DC2626' : 'var(--accent)',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}
+      >
+        <span style={{ fontWeight: 700 }}>{n}</span>
+        <span style={{ opacity: 0.75 }}>credit{n !== 1 ? 's' : ''}</span>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 interface Props {
@@ -193,7 +232,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
             )}
           </>
         )}
-        <SessionValidationBadge />
+        <CreditsChip />
         <VerifyEmailNudge />
         <span className="nav-action-hide-mobile">
           <AuthButton />
