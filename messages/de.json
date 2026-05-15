@@ -249,7 +249,7 @@
       "q3": "Ist das speziell für KI-erstellte Sites nützlich?",
       "a3": "Ja — KI-Coding-Tools neigen dazu, Secrets inline einzubetten, Sourcemaps auszuliefern und Sicherheits-Header zu überspringen. Unser Scanner ist auf die Muster abgestimmt, die wir in Lovable, Bolt, v0, Cursor und Replit-Exports sehen. Jeder Befund enthält einen KI-Fix-Prompt, den Sie direkt zurück in dasselbe Tool einfügen können.",
       "q4": "Was prüft jeder Scan?",
-      "a4": "15 Sicherheitsmodule (Secrets, Header, TLS, Cookies, CORS, Sourcemaps, Mixed Content, Subdomain-Takeover, Drittanbieter-Skripte, DNS/E-Mail, freigelegte Dev-Interfaces, Fehler-Disclosure, robots/sitemap, Caching, sensible Pfade), 6 Performance-Module, 5 Barrierefreiheits-Module und 5 SEO-Module.",
+      "a4": "15 Sicherheitsmodule zur Erkennung offengelegter Geheimnisse (700+ Muster), fehlender Header, TLS/HTTPS, CORS, XSS, CSRF, Subdomain-Übernahme, Drittanbieterrisiken, Sourcemap-Offenlegung, Fehleroffenlegung, Cache-Header, robots.txt, Sitemap und sensiblen Pfaden. Zusätzlich: Lighthouse-Performance-Metriken (Core Web Vitals, Ressourceneffizienz), grundlegende SEO (Meta-Tags, Viewport, hreflang, strukturierte Daten) und KI-Erkennbarkeit (llms.txt-Vorhandensein, KI-Crawler-Robots-Richtlinie).",
       "q5": "Wie unterscheidet sich das von Lighthouse oder Snyk?",
       "a5": "Lighthouse misst nur Performance und oberflächliches SEO. Snyk benötigt Ihren Quellcode und konzentriert sich auf Abhängigkeiten. VibeSafe läuft gegen Ihre Live-URL, deckt Sicherheit + Performance + Barrierefreiheit + SEO in einem Bericht ab und schreibt den Fix für Sie. Wie Lighthouse + OWASP ZAP + Gitleaks + ein KI-Assistent in 90 Sekunden.",
       "q6": "Verfallen Credits?",

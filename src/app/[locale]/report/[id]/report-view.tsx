@@ -89,10 +89,10 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
 
   const execSummary =
     scanData.grade === 'D' || scanData.grade === 'F'
-      ? <>This site has <strong style={{ color: 'var(--text)' }}>critical security issues</strong> that need immediate attention. Exposed secrets and misconfigured access controls put user data and finances at risk.</>
+      ? <>This site has <strong style={{ color: 'var(--text)' }}>critical security issues</strong> that need immediate attention. Exposed secrets and misconfigured access controls put user data and finances at risk. The grade also reflects performance and SEO gaps.</>
       : scanData.grade === 'C'
-      ? <>This site has some security gaps that should be addressed. While no critical issues were found, the medium-severity findings reduce your overall security posture.</>
-      : <>This site has a <strong style={{ color: 'var(--text)' }}>solid security posture</strong>. The remaining findings are minor improvements that would further harden your site.</>;
+      ? <>This site has some security, performance, or SEO gaps that should be addressed. While no critical issues were found, the medium-severity findings reduce your overall grade.</>
+      : <>This site has a <strong style={{ color: 'var(--text)' }}>solid security, performance, and SEO posture</strong>. The remaining findings are minor improvements that would further optimize your site.</>;
 
   const focusCritical = () => {
     setActiveTab('security');
