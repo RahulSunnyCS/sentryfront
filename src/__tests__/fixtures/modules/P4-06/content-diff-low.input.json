@@ -1,0 +1,6 @@
+{
+  "finalUrl": "https://example.com/app",
+  "renderMode": "headless",
+  "html": "<!doctype html><html><head><title>App</title></head><body><div id=\"root\"></div><script src=\"/app.js\"></script></body></html>",
+  "renderedHtml": "<!doctype html><html><head><title>App</title></head><body><main><h1>Quarterly Revenue Report</h1><p>Revenue grew 24% year over year driven by enterprise expansion and improved net retention. The product team shipped fourteen features this quarter, and the support team reduced median response time to under two hours across all regions and tiers.</p></main></body></html>"
+}

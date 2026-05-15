@@ -1,0 +1,17 @@
+{
+  "findings": [
+    {
+      "moduleId": "P4-06",
+      "severity": "LOW",
+      "category": "AI Discoverability",
+      "titleIncludes": "No /llms.txt file found"
+    },
+    {
+      "moduleId": "P4-06",
+      "severity": "INFO",
+      "category": "AI Discoverability",
+      "titleIncludes": "AI-crawler robots.txt policy detected",
+      "evidenceIncludes": "explicitly blocked: GPTBot, ClaudeBot"
+    }
+  ]
+}

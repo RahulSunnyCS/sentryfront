@@ -1,0 +1,10 @@
+{
+  "responses": [
+    {
+      "urlMatches": "/loop$",
+      "status": 301,
+      "headers": { "location": "https://example.com/loop" }
+    }
+  ],
+  "default": { "status": 200 }
+}

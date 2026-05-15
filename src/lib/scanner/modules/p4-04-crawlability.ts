@@ -15,8 +15,17 @@
  * - JavaScript-only navigation
  */
 
-import type { RawFinding } from '../types';
+import * as cheerio from 'cheerio';
+import { XMLValidator, XMLParser } from 'fast-xml-parser';
+import robotsParser from 'robots-parser';
+import type { CrawlResult, RawFinding } from '../types';
 import type { LighthouseMetrics } from '../lighthouse';
+import { corroborate, type SourceObservation } from './seo-corroborate';
+import { fetchTextSafe } from '../tools/seo-fetch';
+
+const SITEMAP_MAX_URLS = 50_000;
+const SITEMAP_MAX_BYTES = 50 * 1024 * 1024;
+const BCP47 = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 
 export async function runCrawlabilityModule(
   metrics: LighthouseMetrics
@@ -124,6 +133,191 @@ export async function runCrawlabilityModule(
       ],
       fixAiPrompt: `I have ${linkCount} link${linkCount !== 1 ? 's' : ''} with generic text.\n\nHelp me write descriptive link text that provides context and includes relevant keywords.`,
     });
+  }
+
+  return findings;
+}
+
+// ── Phase 3.11 depth checks: hreflang, sitemap validity, sitemap-in-robots ──
+
+function parseSitemapStructure(xml: string): {
+  ok: boolean;
+  reason: string;
+  urlCount: number;
+} {
+  if (xml.length > SITEMAP_MAX_BYTES) {
+    return { ok: false, reason: `exceeds ${SITEMAP_MAX_BYTES} bytes`, urlCount: 0 };
+  }
+  if (XMLValidator.validate(xml) !== true) {
+    return { ok: false, reason: 'not well-formed XML', urlCount: 0 };
+  }
+  const parser = new XMLParser({ ignoreAttributes: true });
+  let doc: Record<string, unknown>;
+  try {
+    doc = parser.parse(xml) as Record<string, unknown>;
+  } catch {
+    return { ok: false, reason: 'XML parse failed', urlCount: 0 };
+  }
+  const rootKey = Object.keys(doc).find((k) => k !== '?xml');
+  if (rootKey !== 'urlset' && rootKey !== 'sitemapindex') {
+    return {
+      ok: false,
+      reason: `root element <${rootKey ?? 'none'}> is not <urlset> or <sitemapindex>`,
+      urlCount: 0,
+    };
+  }
+  const root = doc[rootKey] as Record<string, unknown>;
+  const entries = rootKey === 'urlset' ? root.url : root.sitemap;
+  const count = Array.isArray(entries) ? entries.length : entries ? 1 : 0;
+  if (count > SITEMAP_MAX_URLS) {
+    return {
+      ok: false,
+      reason: `${count} entries exceeds the ${SITEMAP_MAX_URLS}-URL sitemap limit`,
+      urlCount: count,
+    };
+  }
+  return { ok: true, reason: '', urlCount: count };
+}
+
+/**
+ * Phase 3.11 depth checks for P4-04. Crawl-driven so they run even when the
+ * PageSpeed API is down; `metrics` is an optional corroboration source for the
+ * hreflang signal. Additive to the legacy Lighthouse-derived findings.
+ */
+export async function runCrawlabilityDepthChecks(
+  crawl: CrawlResult,
+  metrics?: LighthouseMetrics,
+): Promise<RawFinding[]> {
+  const findings: RawFinding[] = [];
+
+  let origin: string;
+  try {
+    origin = new URL(crawl.finalUrl).origin;
+  } catch {
+    return findings;
+  }
+
+  const html =
+    crawl.renderedHtml && crawl.renderMode !== 'fetch-only'
+      ? crawl.renderedHtml
+      : crawl.html;
+
+  // ── hreflang ──────────────────────────────────────────────────────────────
+  const lhHreflang = metrics?.seoIssues?.find(
+    (a) => a.id === 'hreflang' && a.score !== null && a.score < 1,
+  );
+  let cheerioHreflangBad = false;
+  let badCode = '';
+  if (html) {
+    const $ = cheerio.load(html);
+    $('link[rel="alternate"][hreflang]').each((_, el) => {
+      const code = ($(el).attr('hreflang') ?? '').trim();
+      if (code && code.toLowerCase() !== 'x-default' && !BCP47.test(code)) {
+        cheerioHreflangBad = true;
+        if (!badCode) badCode = code;
+      }
+    });
+  }
+  if (lhHreflang || cheerioHreflangBad) {
+    const observations: SourceObservation[] = [];
+    if (metrics?.seoIssues) observations.push({ source: 'lighthouse', failed: !!lhHreflang });
+    if (html) observations.push({ source: 'cheerio', failed: cheerioHreflangBad });
+    const { severity, confidence } = corroborate(observations, 'MEDIUM');
+    findings.push({
+      moduleId: 'P4-04',
+      severity,
+      confidence,
+      category: 'SEO',
+      title: 'hreflang annotations have issues',
+      location: 'HTML <head> / HTTP headers',
+      evidence: cheerioHreflangBad
+        ? `Invalid hreflang value: "${badCode}"`
+        : lhHreflang?.displayValue || 'Lighthouse flagged invalid/incomplete hreflang',
+      explanation:
+        'hreflang tells Google which language/region variant to serve. Invalid BCP-47 codes or missing return links cause Google to ignore the annotations and may surface the wrong variant.',
+      impact:
+        'Wrong-language pages shown in regional search results; duplicate-content dilution across locales.',
+      fixManual: [
+        'Use valid BCP-47 codes (en, en-GB, es-419, x-default).',
+        'Every variant must reference every other variant, including itself.',
+        'Keep hreflang consistent between HTML, headers, and sitemap.',
+      ],
+      fixAiPrompt:
+        'My hreflang annotations are invalid/incomplete. Help me generate a correct, fully reciprocal hreflang set (with x-default) for my locale variants.',
+    });
+  }
+
+  // ── sitemap.xml structural validity + sitemap-in-robots ───────────────────
+  const [sitemapXml, robotsTxt] = await Promise.all([
+    fetchTextSafe(`${origin}/sitemap.xml`),
+    fetchTextSafe(`${origin}/robots.txt`),
+  ]);
+
+  if (sitemapXml) {
+    const structure = parseSitemapStructure(sitemapXml);
+    if (!structure.ok) {
+      const { severity, confidence } = corroborate(
+        [{ source: 'direct-fetch', failed: true }],
+        'MEDIUM',
+      );
+      findings.push({
+        moduleId: 'P4-04',
+        severity,
+        confidence,
+        category: 'SEO',
+        title: 'sitemap.xml is structurally invalid',
+        location: '/sitemap.xml',
+        evidence: `sitemap.xml ${structure.reason}`,
+        explanation:
+          'A sitemap must be well-formed XML with a <urlset> or <sitemapindex> root and at most 50,000 URLs / 50 MB per the sitemaps.org protocol. Search engines reject sitemaps that violate this.',
+        impact:
+          'Search engines may ignore the entire sitemap, slowing discovery of new/updated pages.',
+        fixManual: [
+          'Ensure the root element is <urlset> or <sitemapindex>.',
+          'Split into a sitemap index if over 50,000 URLs or 50 MB.',
+          'Validate the XML is well-formed (no unescaped & or stray tags).',
+        ],
+        fixAiPrompt: `My sitemap.xml is invalid: ${structure.reason}. Help me produce a spec-compliant sitemap (or sitemap index) for my URLs.`,
+      });
+    } else {
+      // sitemap valid → check it is referenced from robots.txt
+      let referenced = false;
+      if (robotsTxt) {
+        try {
+          referenced = robotsParser(`${origin}/robots.txt`, robotsTxt)
+            .getSitemaps()
+            .length > 0;
+        } catch {
+          referenced = /^\s*sitemap:\s*\S+/im.test(robotsTxt);
+        }
+      }
+      if (!referenced) {
+        const { severity, confidence } = corroborate(
+          [{ source: 'direct-fetch', failed: true }],
+          'LOW',
+        );
+        findings.push({
+          moduleId: 'P4-04',
+          severity,
+          confidence,
+          category: 'SEO',
+          title: 'sitemap.xml exists but is not referenced in robots.txt',
+          location: '/robots.txt',
+          evidence: robotsTxt
+            ? 'robots.txt has no "Sitemap:" directive'
+            : 'no robots.txt found to reference the sitemap',
+          explanation:
+            'A valid sitemap.xml was found, but robots.txt does not advertise it via a "Sitemap:" directive. Crawlers that read robots.txt first may not discover the sitemap.',
+          impact:
+            'Slower or incomplete crawl discovery, especially for crawlers that do not probe /sitemap.xml directly.',
+          fixManual: [
+            `Add "Sitemap: ${origin}/sitemap.xml" to robots.txt.`,
+            'Use the absolute URL; multiple Sitemap: lines are allowed.',
+          ],
+          fixAiPrompt: `My sitemap.xml is valid but not referenced in robots.txt. Add the correct "Sitemap:" directive (absolute URL) to my robots.txt.`,
+        });
+      }
+    }
   }
 
   return findings;

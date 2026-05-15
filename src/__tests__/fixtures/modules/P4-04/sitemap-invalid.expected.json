@@ -1,0 +1,11 @@
+{
+  "findings": [
+    {
+      "moduleId": "P4-04",
+      "severity": "LOW",
+      "category": "SEO",
+      "titleIncludes": "sitemap.xml is structurally invalid",
+      "evidenceIncludes": "not <urlset> or <sitemapindex>"
+    }
+  ]
+}

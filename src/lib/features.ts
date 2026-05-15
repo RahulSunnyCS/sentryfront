@@ -25,6 +25,7 @@ const defaultFeatures = {
   headerCoverageChecks: true,
   pwaSurfaceChecks: true,
   pathCoverageChecks: true,
+  seoDepthPass: true,
 };
 
 // Parse FEATURES env variable (JSON object)
@@ -88,6 +89,14 @@ export const features = {
    *  lockfiles (yarn.lock, package-lock.json, Gemfile.lock). The original 32-path probe always runs
    *  regardless of this flag. */
   pathCoverageChecks: customFeatures.pathCoverageChecks ?? defaultFeatures.pathCoverageChecks,
+
+  /** Phase 3.11: SEO + AI-discoverability depth pass — in-house parsing of
+   *  viewport/lang/canonical-chain, og:image reachability, Schema.org
+   *  required-field validation, hreflang surfacing, sitemap structural
+   *  validity, llms.txt + AI-crawler robots policy + rendered/initial content
+   *  diff. Cross-source corroborated. When off, only the legacy Lighthouse-
+   *  derived SEO findings emit, so flag-off output is byte-identical to pre-3.11. */
+  seoDepthPass: customFeatures.seoDepthPass ?? defaultFeatures.seoDepthPass,
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────

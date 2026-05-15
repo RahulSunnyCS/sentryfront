@@ -17,6 +17,8 @@
 
 import type { RawFinding } from '../types';
 import type { CrawlResult } from '../types';
+import { corroborate } from './seo-corroborate';
+import { probeImage } from '../tools/seo-fetch';
 
 interface SocialMetaTags {
   ogTitle?: string;
@@ -144,6 +146,57 @@ export function runSocialMetaModule(crawl: CrawlResult): RawFinding[] {
       });
     }
   }
-  
+
+  return findings;
+}
+
+/**
+ * Phase 3.11 depth check for P4-02: og:image reachability. Only runs when an
+ * absolute og:image is present (the legacy module already flags missing /
+ * relative og:image). Additive — never mutates the legacy findings.
+ */
+export async function runSocialMetaDepthChecks(
+  crawl: CrawlResult,
+): Promise<RawFinding[]> {
+  const findings: RawFinding[] = [];
+  const tags = extractSocialMetaTags(crawl.html);
+  const ogImage = tags.ogImage;
+
+  if (!ogImage) return findings;
+  if (!/^https?:\/\//i.test(ogImage)) return findings; // relative → legacy module owns it
+
+  const probe = await probeImage(ogImage);
+  if (!probe.reachable) {
+    const { severity, confidence } = corroborate(
+      [{ source: 'direct-fetch', failed: true }],
+      'MEDIUM',
+    );
+    const detail =
+      probe.status === null
+        ? 'request failed or timed out'
+        : probe.contentType && !probe.contentType.toLowerCase().startsWith('image/')
+          ? `HTTP ${probe.status}, content-type "${probe.contentType}" (not an image)`
+          : `HTTP ${probe.status}`;
+    findings.push({
+      moduleId: 'P4-02',
+      severity,
+      confidence,
+      category: 'SEO',
+      title: 'Open Graph image is unreachable',
+      location: 'og:image meta tag',
+      evidence: `og:image="${ogImage}" → ${detail}`,
+      explanation:
+        'The og:image URL is absolute but does not return a fetchable image. Social platforms and link-preview bots will drop the image and render a bare text card.',
+      impact:
+        'Shares on social/chat platforms appear without a preview image, sharply reducing click-through.',
+      fixManual: [
+        'Ensure the og:image URL returns HTTP 200 with an image/* content-type.',
+        'Make the image publicly accessible (no auth, no hotlink protection for crawlers).',
+        'Recommended: 1200x630px JP/PNG/WebP.',
+      ],
+      fixAiPrompt: `My og:image "${ogImage}" is unreachable (${detail}). Help me fix the URL/hosting so it returns a public 200 image response.`,
+    });
+  }
+
   return findings;
 }

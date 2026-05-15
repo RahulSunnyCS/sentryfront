@@ -1,0 +1,11 @@
+{
+  "findings": [
+    {
+      "moduleId": "P4-03",
+      "severity": "LOW",
+      "category": "SEO",
+      "titleIncludes": "Schema.org Article is missing required field",
+      "evidenceIncludes": "missing: author"
+    }
+  ]
+}

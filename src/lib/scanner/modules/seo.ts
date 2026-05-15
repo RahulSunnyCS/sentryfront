@@ -9,11 +9,14 @@
 import type { RawFinding, CrawlResult } from '../types';
 import type { LighthouseMetrics } from '../lighthouse';
 import { runLighthouse } from '../lighthouse';
-import { runMetaTagsModule } from './p4-01-meta-tags';
-import { runSocialMetaModule } from './p4-02-social-meta';
-import { runStructuredDataModule } from './p4-03-structured-data';
-import { runCrawlabilityModule } from './p4-04-crawlability';
+import { runMetaTagsModule, runMetaTagsDepthChecks } from './p4-01-meta-tags';
+import { runSocialMetaModule, runSocialMetaDepthChecks } from './p4-02-social-meta';
+import { runStructuredDataModule, runStructuredDataDepthChecks } from './p4-03-structured-data';
+import { runCrawlabilityModule, runCrawlabilityDepthChecks } from './p4-04-crawlability';
 import { runMobileSEOModule } from './p4-05-mobile-seo';
+import { runAiDiscoverabilityModule } from './p4-06-ai-discoverability';
+import { features } from '@/lib/features';
+import { getFeatureFlag } from '@/lib/feature-flags';
 import { logger } from '@/lib/logger';
 
 export interface SEOResult {
@@ -74,10 +77,38 @@ export async function runSEOModules(
     // Run HTML-based modules if crawl result is available
     let socialMetaFindings: RawFinding[] = [];
     let structuredDataFindings: RawFinding[] = [];
-    
+
     if (crawlResult) {
       socialMetaFindings = runSocialMetaModule(crawlResult);
       structuredDataFindings = runStructuredDataModule(crawlResult);
+    }
+
+    // Phase 3.11: SEO + AI-discoverability depth pass. Additive to the legacy
+    // Lighthouse-derived findings — when the flag is off these are skipped and
+    // output is byte-identical to pre-3.11. Build-time default with a runtime
+    // override so a customer hitting unexpected FPs can disable it in place.
+    let depthFindings: RawFinding[] = [];
+    if (crawlResult) {
+      const flag = await getFeatureFlag('seoDepthPass', {
+        enabled: features.seoDepthPass,
+      });
+      if (flag.enabled) {
+        const [meta, social, structured, crawlability, aiDiscover] =
+          await Promise.all([
+            runMetaTagsDepthChecks(crawlResult, metrics),
+            runSocialMetaDepthChecks(crawlResult),
+            Promise.resolve(runStructuredDataDepthChecks(crawlResult)),
+            runCrawlabilityDepthChecks(crawlResult, metrics),
+            runAiDiscoverabilityModule(crawlResult),
+          ]);
+        depthFindings = [
+          ...meta,
+          ...social,
+          ...structured,
+          ...crawlability,
+          ...aiDiscover,
+        ];
+      }
     }
 
     // Combine all findings
@@ -87,6 +118,7 @@ export async function runSEOModules(
       ...structuredDataFindings,
       ...crawlabilityFindings,
       ...mobileSEOFindings,
+      ...depthFindings,
     ];
 
     // Calculate grade from Lighthouse SEO score

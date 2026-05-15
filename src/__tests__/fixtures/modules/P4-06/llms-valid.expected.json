@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "moduleId": "P4-06",
+      "severity": "INFO",
+      "category": "AI Discoverability",
+      "titleIncludes": "llms.txt present and well-formed"
+    }
+  ]
+}

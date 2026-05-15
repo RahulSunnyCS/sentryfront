@@ -1,0 +1,17 @@
+{
+  "findings": [
+    {
+      "moduleId": "P4-06",
+      "severity": "LOW",
+      "category": "AI Discoverability",
+      "titleIncludes": "No /llms.txt file found"
+    },
+    {
+      "moduleId": "P4-06",
+      "severity": "LOW",
+      "category": "AI Discoverability",
+      "titleIncludes": "Initial HTML exposes only",
+      "evidenceIncludes": "Initial (no-JS) visible text 0 chars"
+    }
+  ]
+}
