@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
+export type SortOption = 'date-desc' | 'date-asc' | 'grade' | 'issues';
 
 export interface DashboardStats {
   totalScans: number;
@@ -31,12 +32,14 @@ export interface ScanListItem {
 export interface ScanListResult {
   items: ScanListItem[];
   nextCursor: string | null;
+  hasMore: boolean;
 }
 
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 20;
+const ISSUES_WINDOW = 200;
 
-function scoreToGrade(score: number | null): Grade | null {
+export function scoreToGrade(score: number | null): Grade | null {
   if (score === null) return null;
   if (score >= 90) return 'A';
   if (score >= 80) return 'B';
@@ -45,7 +48,7 @@ function scoreToGrade(score: number | null): Grade | null {
   return 'F';
 }
 
-function parseSeverityCounts(summary: string | null): {
+export function parseSeverityCounts(summary: string | null): {
   critical: number;
   high: number;
   medium: number;
@@ -78,9 +81,45 @@ function decodeCursor(cursor: string): { startedAt: Date; id: string } | null {
     if (Number.isNaN(startedAt.getTime()) || !id) return null;
     return { startedAt, id };
   } catch {
-    return null;
+    return { critical: 0, high: 0, medium: 0 } as never;
   }
 }
+
+function toScanListItem(row: {
+  id: string;
+  targetUrl: string;
+  status: string;
+  grade: string | null;
+  score: number | null;
+  summary: string | null;
+  startedAt: Date;
+  completedAt: Date | null;
+}): ScanListItem {
+  const sev = parseSeverityCounts(row.summary);
+  return {
+    id: row.id,
+    url: row.targetUrl,
+    grade: (row.grade as Grade | null) ?? null,
+    score: row.score,
+    critical: sev.critical,
+    high: sev.high,
+    medium: sev.medium,
+    status: row.status,
+    startedAt: row.startedAt.toISOString(),
+    completedAt: row.completedAt?.toISOString() ?? null,
+  };
+}
+
+const SELECT_FIELDS = {
+  id: true,
+  targetUrl: true,
+  status: true,
+  grade: true,
+  score: true,
+  summary: true,
+  startedAt: true,
+  completedAt: true,
+} as const;
 
 export async function getDashboardStats(userId: string): Promise<DashboardStats> {
   const [totalScans, completedScans, distinctSites] = await Promise.all([
@@ -126,14 +165,100 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
 
 export async function listUserScans(
   userId: string,
-  opts: { cursor?: string | null; limit?: number } = {},
+  opts: {
+    cursor?: string | null;
+    offset?: number;
+    limit?: number;
+    search?: string;
+    grade?: string | null;
+    status?: string | null;
+    sort?: SortOption;
+  } = {},
 ): Promise<ScanListResult> {
   const limit = Math.min(Math.max(opts.limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
+  const sort = opts.sort ?? 'date-desc';
+  const search = opts.search?.trim() ?? '';
+  const gradeFilter = opts.grade ?? null;
+  const statusFilter = opts.status ?? null;
+
+  const baseWhere = {
+    userId,
+    ...(gradeFilter ? { grade: gradeFilter } : {}),
+    ...(statusFilter ? { status: statusFilter } : {}),
+  };
+
+  if (sort === 'issues') {
+    // Fetch a capped window, sort in-memory by issue weight
+    const offset = opts.offset ?? 0;
+    const rows = await prisma.scan.findMany({
+      where: baseWhere,
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      take: ISSUES_WINDOW,
+      select: SELECT_FIELDS,
+    });
+
+    let items = rows.map(toScanListItem);
+    if (search) {
+      const lower = search.toLowerCase();
+      items = items.filter((s) => s.url.toLowerCase().includes(lower));
+    }
+    items.sort((a, b) => {
+      const wa = a.critical * 3 + a.high * 2 + a.medium;
+      const wb = b.critical * 3 + b.high * 2 + b.medium;
+      return wb - wa;
+    });
+
+    const page = items.slice(offset, offset + limit);
+    const hasMore = offset + limit < items.length;
+    return { items: page, nextCursor: null, hasMore };
+  }
+
+  if (sort === 'date-asc') {
+    const offset = opts.offset ?? 0;
+    const rows = await prisma.scan.findMany({
+      where: baseWhere,
+      orderBy: [{ startedAt: 'asc' }, { id: 'asc' }],
+      skip: offset,
+      take: limit + 1,
+      select: SELECT_FIELDS,
+    });
+
+    let items = rows.map(toScanListItem);
+    if (search) {
+      const lower = search.toLowerCase();
+      items = items.filter((s) => s.url.toLowerCase().includes(lower));
+    }
+
+    const hasMore = items.length > limit;
+    return { items: hasMore ? items.slice(0, limit) : items, nextCursor: null, hasMore };
+  }
+
+  if (sort === 'grade') {
+    const offset = opts.offset ?? 0;
+    const rows = await prisma.scan.findMany({
+      where: baseWhere,
+      orderBy: [{ grade: 'asc' }, { startedAt: 'desc' }],
+      skip: offset,
+      take: limit + 1,
+      select: SELECT_FIELDS,
+    });
+
+    let items = rows.map(toScanListItem);
+    if (search) {
+      const lower = search.toLowerCase();
+      items = items.filter((s) => s.url.toLowerCase().includes(lower));
+    }
+
+    const hasMore = items.length > limit;
+    return { items: hasMore ? items.slice(0, limit) : items, nextCursor: null, hasMore };
+  }
+
+  // Default: date-desc with keyset cursor
   const cursorPayload = opts.cursor ? decodeCursor(opts.cursor) : null;
 
   const rows = await prisma.scan.findMany({
     where: {
-      userId,
+      ...baseWhere,
       ...(cursorPayload && {
         OR: [
           { startedAt: { lt: cursorPayload.startedAt } },
@@ -143,37 +268,24 @@ export async function listUserScans(
     },
     orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
     take: limit + 1,
-    select: {
-      id: true,
-      targetUrl: true,
-      status: true,
-      grade: true,
-      score: true,
-      summary: true,
-      startedAt: true,
-      completedAt: true,
-    },
+    select: SELECT_FIELDS,
   });
 
-  const hasMore = rows.length > limit;
-  const visible = hasMore ? rows.slice(0, limit) : rows;
-  const nextCursor = hasMore ? encodeCursor(visible[visible.length - 1]) : null;
+  let items = rows.map(toScanListItem);
+  if (search) {
+    const lower = search.toLowerCase();
+    items = items.filter((s) => s.url.toLowerCase().includes(lower));
+  }
 
-  const items: ScanListItem[] = visible.map((row) => {
-    const sev = parseSeverityCounts(row.summary);
-    return {
-      id: row.id,
-      url: row.targetUrl,
-      grade: (row.grade as Grade | null) ?? null,
-      score: row.score,
-      critical: sev.critical,
-      high: sev.high,
-      medium: sev.medium,
-      status: row.status,
-      startedAt: row.startedAt.toISOString(),
-      completedAt: row.completedAt?.toISOString() ?? null,
-    };
-  });
+  const hasMore = items.length > limit;
+  const visible = hasMore ? items.slice(0, limit) : items;
 
-  return { items, nextCursor };
+  // Re-encode cursor from the raw row (need Date objects)
+  let nextCursor: string | null = null;
+  if (hasMore) {
+    const lastRow = rows[limit - 1];
+    if (lastRow) nextCursor = encodeCursor(lastRow);
+  }
+
+  return { items: visible, nextCursor, hasMore };
 }

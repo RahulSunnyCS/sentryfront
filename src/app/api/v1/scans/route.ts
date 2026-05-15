@@ -4,7 +4,7 @@ import { validateAndNormalize, ValidationError } from '@/lib/url-validator';
 import { runScan } from '@/lib/scan-worker';
 import { getCurrentUser } from '@/lib/auth/helpers';
 import { checkRateLimit, checkWeeklyScanQuota, getRateLimitHeaders } from '@/lib/rate-limiter';
-import { listUserScans } from '@/lib/dashboard-queries';
+import { listUserScans, type SortOption } from '@/lib/dashboard-queries';
 import { logger } from '@/lib/logger';
 
 function describeWait(ms: number): string {
@@ -24,9 +24,20 @@ export async function GET(req: NextRequest) {
   const limitRaw = url.searchParams.get('limit');
   const parsedLimit = limitRaw ? Number.parseInt(limitRaw, 10) : undefined;
   const limit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
+  const offsetRaw = url.searchParams.get('offset');
+  const parsedOffset = offsetRaw ? Number.parseInt(offsetRaw, 10) : undefined;
+  const offset = Number.isFinite(parsedOffset) && parsedOffset! >= 0 ? parsedOffset : undefined;
+  const search = url.searchParams.get('search') ?? undefined;
+  const grade = url.searchParams.get('grade') ?? undefined;
+  const status = url.searchParams.get('status') ?? undefined;
+  const sortRaw = url.searchParams.get('sort');
+  const VALID_SORTS: SortOption[] = ['date-desc', 'date-asc', 'grade', 'issues'];
+  const sort: SortOption | undefined = VALID_SORTS.includes(sortRaw as SortOption)
+    ? (sortRaw as SortOption)
+    : undefined;
 
   try {
-    const result = await listUserScans(user.id, { cursor, limit });
+    const result = await listUserScans(user.id, { cursor, limit, offset, search, grade, status, sort });
     return NextResponse.json(result, {
       headers: { 'Cache-Control': 'private, max-age=15' },
     });
