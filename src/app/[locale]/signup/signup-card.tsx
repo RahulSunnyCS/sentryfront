@@ -6,8 +6,6 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter, Link } from '@/i18n/navigation';
 import { signIn } from 'next-auth/react';
 import { Logo } from '@/components/logo';
-import { ThemeToggle } from '@/components/theme-toggle';
-import { LocaleSwitcher } from '@/components/locale-switcher';
 
 const GOOGLE_CLIENT_ID_FROM_ENV = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
@@ -324,11 +322,6 @@ export function SignupCard({ googleClientId }: { googleClientId?: string }) {
           </li>
         ))}
       </ul>
-
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'var(--space-3)', marginTop: 'var(--space-5)' }}>
-        <LocaleSwitcher />
-        <ThemeToggle />
-      </div>
     </article>
   );
 }

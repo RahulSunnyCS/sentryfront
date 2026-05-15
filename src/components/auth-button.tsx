@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { ThemeToggle } from './theme-toggle';
+import { LocaleSwitcher } from './locale-switcher';
 import { signOut, useSession } from 'next-auth/react';
 import { useFeature } from '@/lib/client-features';
 
@@ -49,29 +52,102 @@ function UserMenu({
 }) {
   const t = useTranslations('auth');
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  // Recalculate dropdown position whenever it opens
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    const onOutside = (e: MouseEvent) => {
+      if (btnRef.current?.contains(e.target as Node)) return;
+      const menu = document.getElementById('user-menu-portal');
+      if (menu?.contains(e.target as Node)) return;
+      setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onClick);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onOutside);
     document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('mousedown', onOutside);
       document.removeEventListener('keydown', onKey);
     };
   }, [open]);
 
   const initials = initialsFrom(name, email);
 
-  return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+  const dropdown = open ? (
+    <div
+      id="user-menu-portal"
+      role="menu"
+      style={{
+        position: 'fixed',
+        top: pos.top,
+        right: pos.right,
+        minWidth: 240,
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 10,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        padding: 4,
+        zIndex: 99999,
+      }}
+    >
+      <div style={{ padding: '10px 12px' }}>
+        {name && (
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
+            {name}
+          </div>
+        )}
+        {email && (
+          <div
+            style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            title={email}
+          >
+            {email}
+          </div>
+        )}
+      </div>
+
+      <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+
+      <Link href="/dashboard" role="menuitem" onClick={() => setOpen(false)} style={menuItemStyle}>
+        {t('dashboard')}
+      </Link>
+
+      <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+
+      {/* Language + theme inline */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px' }}>
+        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Preferences</span>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <LocaleSwitcher />
+          <ThemeToggle />
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+
       <button
+        type="button"
+        role="menuitem"
+        onClick={() => { setOpen(false); signOut(); }}
+        style={{ ...menuItemStyle, width: '100%', textAlign: 'left' }}
+      >
+        {t('signOut')}
+      </button>
+    </div>
+  ) : null;
+
+  return (
+    <>
+      <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={t('accountMenu')}
@@ -93,81 +169,13 @@ function UserMenu({
       >
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={image}
-            alt=""
-            referrerPolicy="no-referrer"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
+          <img src={image} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>
-            {initials}
-          </span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{initials}</span>
         )}
       </button>
-
-      {open && (
-        <div
-          role="menu"
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
-            right: 0,
-            minWidth: 240,
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 10,
-            boxShadow: 'var(--shadow-md, 0 8px 24px rgba(0,0,0,0.12))',
-            padding: 4,
-            zIndex: 1100,
-          }}
-        >
-          <div style={{ padding: '10px 12px' }}>
-            {name && (
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
-                {name}
-              </div>
-            )}
-            {email && (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: 'var(--text-tertiary)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-                title={email}
-              >
-                {email}
-              </div>
-            )}
-          </div>
-
-          <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-
-          <Link
-            href="/dashboard"
-            role="menuitem"
-            onClick={() => setOpen(false)}
-            style={menuItemStyle}
-          >
-            {t('dashboard')}
-          </Link>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              signOut();
-            }}
-            style={{ ...menuItemStyle, width: '100%', textAlign: 'left' }}
-          >
-            {t('signOut')}
-          </button>
-        </div>
-      )}
-    </div>
+      {typeof document !== 'undefined' && dropdown && createPortal(dropdown, document.body)}
+    </>
   );
 }
 
