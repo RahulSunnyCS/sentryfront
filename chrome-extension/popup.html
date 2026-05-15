@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeSafe</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <span class="logo-icon">&#9705;</span>
+        <span class="logo-text">VibeSafe</span>
+      </div>
+      <div id="user-badge" class="user-badge hidden"></div>
+    </div>
+
+    <!-- Not logged in -->
+    <div id="state-login" class="state hidden">
+      <p class="desc">Log in to VibeSafe to scan this page.</p>
+      <button id="btn-login" class="btn btn-primary">Open VibeSafe &rarr;</button>
+    </div>
+
+    <!-- Ready to scan -->
+    <div id="state-ready" class="state hidden">
+      <div class="url-box">
+        <span class="url-label">Current page</span>
+        <span id="current-url" class="url-value"></span>
+      </div>
+      <button id="btn-scan" class="btn btn-primary">Scan This Page</button>
+      <p class="hint">Scans what your browser sees — including authenticated content.</p>
+    </div>
+
+    <!-- Scanning in progress -->
+    <div id="state-scanning" class="state hidden">
+      <div class="spinner-wrap">
+        <div class="spinner"></div>
+      </div>
+      <p id="scan-status-text" class="status-text">Collecting page data&hellip;</p>
+      <div class="progress-modules" id="progress-modules"></div>
+    </div>
+
+    <!-- Results -->
+    <div id="state-results" class="state hidden">
+      <div class="grade-row">
+        <div id="grade-badge" class="grade-badge">–</div>
+        <div class="grade-details">
+          <div class="grade-label">Security Grade</div>
+          <div id="score-text" class="score-text"></div>
+        </div>
+      </div>
+
+      <div class="findings-grid" id="findings-grid"></div>
+
+      <div class="result-actions">
+        <a id="view-report-link" href="#" target="_blank" class="btn btn-secondary">View Full Report &rarr;</a>
+        <button id="btn-rescan" class="btn btn-ghost">Scan Again</button>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="state-error" class="state hidden">
+      <div class="error-icon">&#9888;</div>
+      <p id="error-text" class="error-text">Something went wrong.</p>
+      <button id="btn-retry" class="btn btn-ghost">Try Again</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
