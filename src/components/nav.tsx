@@ -7,8 +7,6 @@ import { IconExternalLink } from './icons';
 import { Logo } from './logo';
 import { PdfExportButton } from './pdf-export-button';
 import { AuthButton } from './auth-button';
-import { ThemeToggle } from './theme-toggle';
-import { LocaleSwitcher } from './locale-switcher';
 import { VerifyEmailNudge } from './verify-email-nudge';
 
 interface Props {
@@ -151,12 +149,6 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
         )}
         <VerifyEmailNudge />
         <span className="nav-action-hide-mobile">
-          <LocaleSwitcher />
-        </span>
-        <span className="nav-action-hide-mobile">
-          <ThemeToggle />
-        </span>
-        <span className="nav-action-hide-mobile">
           <AuthButton />
         </span>
 
@@ -215,10 +207,6 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
           <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
             <VerifyEmailNudge />
             <AuthButton />
-          </div>
-          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-            <LocaleSwitcher />
-            <ThemeToggle />
           </div>
         </div>
       </div>
