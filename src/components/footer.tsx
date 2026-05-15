@@ -37,7 +37,7 @@ export function Footer() {
                 letterSpacing: '0.06em',
               }}
             >
-              VibeSafe
+              Codifie Scan
             </h3>
             <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
               {t('tagline')}

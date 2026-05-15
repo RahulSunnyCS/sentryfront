@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useRouter, Link } from '@/i18n/navigation';
 import { signIn } from 'next-auth/react';
-import { IconShield } from '@/components/icons';
+import { Logo } from '@/components/logo';
 
 declare global {
   interface Window {
@@ -216,8 +216,7 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
     >
       <header style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 'var(--space-4)' }}>
-          <IconShield size={28} color="var(--accent)" />
-          <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em' }}>VibeSafe</span>
+          <Logo size={28} />
         </div>
         <h1 className="text-h3" style={{ marginBottom: 'var(--space-2)' }}>
           {t('welcomeBack')}

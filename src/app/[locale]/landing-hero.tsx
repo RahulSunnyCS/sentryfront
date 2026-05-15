@@ -528,7 +528,7 @@ function FeaturesSection() {
               <div className="eyebrow" style={{ color: 'var(--text-tertiary)' }}>{tActive('replaces')}</div>
               <div style={{ fontSize: 24, fontWeight: 800, textDecoration: 'line-through', color: 'var(--text-secondary)' }}>$5,000</div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>{tActive('pentest')}</div>
-              <div className="eyebrow" style={{ color: 'var(--text-tertiary)' }}>VibeSafe</div>
+              <div className="eyebrow" style={{ color: 'var(--text-tertiary)' }}>Codifie Scan</div>
               <div style={{ fontSize: 28, fontWeight: 800, color: '#DC2626' }}>{tActive('credits')}</div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{tActive('perScan')}</div>
             </div>
