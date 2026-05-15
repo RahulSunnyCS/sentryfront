@@ -1,0 +1,12 @@
+{
+  "name": "Codifie Scan",
+  "short_name": "Codifie",
+  "description": "Scan your AI-built site for security, performance, accessibility & SEO issues in 90 seconds.",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "theme_color": "#0F172A",
+  "background_color": "#020617",
+  "display": "standalone",
+  "start_url": "/"
+}

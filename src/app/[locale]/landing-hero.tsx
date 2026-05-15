@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/navigation';
-import { IconShield, IconGlobe, IconArrowRight } from '@/components/icons';
+import { IconGlobe, IconArrowRight } from '@/components/icons';
+import { LogoMark } from '@/components/logo';
 import { createScan } from '@/lib/api';
 import { HeroHeadlineAnim } from './HeroHeadlineAnim';
 
@@ -130,7 +131,7 @@ function HeroSection({
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
       >
         <span className="pill pill-accent" style={{ marginBottom: 'var(--space-8)' }}>
-          <IconShield size={16} color="var(--accent)" />
+          <LogoMark size={16} />
           {t('pill')}
         </span>
 

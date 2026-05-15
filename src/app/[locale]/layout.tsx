@@ -58,7 +58,7 @@ export async function generateMetadata({
       siteName: SITE_NAME,
       images: [
         {
-          url: '/og-image.png',
+          url: '/og-image.svg',
           width: 1200,
           height: 630,
           alt: t('ogAlt'),
@@ -69,7 +69,7 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title: t('title'),
       description: t('description'),
-      images: ['/og-image.png'],
+      images: ['/og-image.svg'],
       creator: '@vibesafe',
       site: '@vibesafe',
     },
@@ -117,7 +117,7 @@ export default async function LocaleLayout({
     '@type': 'Organization',
     name: SITE_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/logo.png`,
+    logo: `${SITE_URL}/logo.svg`,
     description: t('orgDescription'),
     inLanguage: locale,
     sameAs: ['https://twitter.com/vibesafe', 'https://github.com/vibesafe'],

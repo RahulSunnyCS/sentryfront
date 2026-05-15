@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { Logo } from './logo';
 
 export function Footer() {
   const t = useTranslations('footer');
@@ -27,18 +28,9 @@ export function Footer() {
           }}
         >
           <div>
-            <h3
-              style={{
-                fontSize: 'var(--fs-sm)',
-                fontWeight: 700,
-                color: 'var(--text)',
-                marginBottom: 'var(--space-4)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              Codifie Scan
-            </h3>
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <Logo size={26} />
+            </div>
             <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
               {t('tagline')}
             </p>
