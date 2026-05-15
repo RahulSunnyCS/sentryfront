@@ -178,14 +178,14 @@ function UserMenu({
 
   const dropdown = open ? (
     <div
-      // Full-screen backdrop: guarantees the menu paints above every other
-      // stacking context (opaque mobile nav overlay, chat widget, etc.) and
-      // closes the menu on any outside tap.
+      // Full-screen backdrop: closes the menu on any outside tap.
+      // z-index: 10001 - above mobile nav menu (8000), chat widget (9999),
+      // and even payment modals (10000) since auth is critical
       onClick={() => setOpen(false)}
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 2147483647,
+        zIndex: 10001,
         background: 'rgba(0,0,0,0.35)',
       }}
     >

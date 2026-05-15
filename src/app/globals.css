@@ -757,7 +757,7 @@ input, textarea, select, button { font: inherit; color: inherit; }
   padding: var(--space-6);
   display: none;
   flex-direction: column;
-  z-index: 99;
+  z-index: 8000;
   overflow-y: auto;
   animation: screenEnter 0.2s ease-out both;
 }
