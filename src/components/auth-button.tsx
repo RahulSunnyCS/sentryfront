@@ -294,6 +294,96 @@ const menuItemStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 
+export function MobileAuthSection() {
+  const t = useTranslations('auth');
+  const authEnabled = useFeature('auth');
+  const { data: session, status } = useSession();
+
+  if (!authEnabled) {
+    return (
+      <Link href="/login" style={signInBtnStyle} aria-label={t('signIn')}>
+        <SignInIcon />
+        {t('signIn')}
+      </Link>
+    );
+  }
+
+  if (status === 'loading') {
+    return <div style={{ height: 40 }} />;
+  }
+
+  if (!session) {
+    return (
+      <Link href="/login" style={signInBtnStyle} aria-label={t('signIn')}>
+        <SignInIcon />
+        {t('signIn')}
+      </Link>
+    );
+  }
+
+  const { name, email, image } = session.user ?? {};
+  const initials = initialsFrom(name, email);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px' }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            border: '1px solid var(--border)',
+            overflow: 'hidden',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--surface)',
+            flexShrink: 0,
+          }}
+        >
+          {image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>{initials}</span>
+          )}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          {name && <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{name}</div>}
+          {email && (
+            <div
+              style={{ fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              title={email}
+            >
+              {email}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+
+      <Link href="/dashboard" style={menuItemStyle}>
+        {t('dashboard')}
+      </Link>
+
+      <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+
+      <PreferenceRows />
+
+      <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+
+      <button
+        type="button"
+        onClick={() => signOut()}
+        style={{ ...menuItemStyle, width: '100%', textAlign: 'left' }}
+      >
+        {t('signOut')}
+      </button>
+    </div>
+  );
+}
+
 export function AuthButton() {
   const t = useTranslations('auth');
   const authEnabled = useFeature('auth');

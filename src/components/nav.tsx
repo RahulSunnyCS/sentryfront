@@ -7,7 +7,7 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { IconExternalLink } from './icons';
 import { Logo } from './logo';
 import { PdfExportButton } from './pdf-export-button';
-import { AuthButton } from './auth-button';
+import { AuthButton, MobileAuthSection } from './auth-button';
 import { VerifyEmailNudge } from './verify-email-nudge';
 import { useFeature } from '@/lib/client-features';
 
@@ -283,17 +283,10 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
             marginTop: 'var(--space-6)',
             paddingTop: 'var(--space-6)',
             borderTop: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 'var(--space-3)',
-            flexWrap: 'wrap',
           }}
         >
-          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
-            <VerifyEmailNudge />
-            <AuthButton />
-          </div>
+          <VerifyEmailNudge />
+          <MobileAuthSection />
         </div>
       </div>
     </nav>
