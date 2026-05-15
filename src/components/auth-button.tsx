@@ -165,50 +165,46 @@ function UserMenu({
 }) {
   const t = useTranslations('auth');
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, right: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
-
-  // Recalculate dropdown position whenever it opens
-  useEffect(() => {
-    if (!open || !btnRef.current) return;
-    const r = btnRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
-  }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const onOutside = (e: MouseEvent) => {
-      if (btnRef.current?.contains(e.target as Node)) return;
-      const menu = document.getElementById('user-menu-portal');
-      if (menu?.contains(e.target as Node)) return;
-      setOpen(false);
-    };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', onOutside);
     document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onOutside);
-      document.removeEventListener('keydown', onKey);
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
   const initials = initialsFrom(name, email);
 
   const dropdown = open ? (
     <div
-      id="user-menu-portal"
-      role="menu"
+      // Full-screen backdrop: guarantees the menu paints above every other
+      // stacking context (opaque mobile nav overlay, chat widget, etc.) and
+      // closes the menu on any outside tap.
+      onClick={() => setOpen(false)}
       style={{
         position: 'fixed',
-        top: pos.top,
-        right: pos.right,
-        minWidth: 240,
+        inset: 0,
+        zIndex: 2147483647,
+        background: 'rgba(0,0,0,0.35)',
+      }}
+    >
+    <div
+      id="user-menu-portal"
+      role="menu"
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: 'fixed',
+        top: 'calc(var(--nav-h) + 8px)',
+        right: 12,
+        width: 'min(280px, calc(100vw - 24px))',
+        maxHeight: 'calc(100dvh - var(--nav-h) - 24px)',
+        overflowY: 'auto',
         background: 'var(--surface)',
         border: '1px solid var(--border)',
         borderRadius: 10,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
         padding: 4,
-        zIndex: 99999,
       }}
     >
       <div style={{ padding: '10px 12px' }}>
@@ -247,6 +243,7 @@ function UserMenu({
       >
         {t('signOut')}
       </button>
+    </div>
     </div>
   ) : null;
 
