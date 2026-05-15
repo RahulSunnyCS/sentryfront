@@ -212,8 +212,6 @@ export default async function DashboardPage({
               </section>
             )}
 
-            <ComingSoonSection t={t} />
-
             {!loadError && (
               <section aria-labelledby="recent-heading">
                 <h2 id="recent-heading" className="text-h3" style={{ marginBottom: 'var(--space-6)' }}>
@@ -281,6 +279,8 @@ export default async function DashboardPage({
                 )}
               </section>
             )}
+
+            <ComingSoonSection t={t} />
           </div>
         </main>
         <Footer />
@@ -523,35 +523,47 @@ function Chip({ n, label, color, bg }: { n: number; label: string; color: string
   );
 }
 
-const COMING_SOON_FEATURES = [
+interface ComingSoonFeature {
+  emoji: string;
+  color: string;
+  bg: string;
+  border: string;
+  titleKey: 'dastTitle' | 'githubTitle' | 'extensionTitle';
+  descKey: 'dastDesc' | 'githubDesc' | 'extensionDesc';
+}
+
+const COMING_SOON_FEATURES: ComingSoonFeature[] = [
   {
-    key: 'dast' as const,
     emoji: '⚡',
     color: '#F59E0B',
     bg: 'rgba(245,158,11,0.07)',
     border: 'rgba(245,158,11,0.20)',
+    titleKey: 'dastTitle',
+    descKey: 'dastDesc',
   },
   {
-    key: 'github' as const,
     emoji: '🔗',
     color: '#7C3AED',
     bg: 'rgba(124,58,237,0.07)',
     border: 'rgba(124,58,237,0.20)',
+    titleKey: 'githubTitle',
+    descKey: 'githubDesc',
   },
   {
-    key: 'extension' as const,
     emoji: '🧩',
     color: '#0D9488',
     bg: 'rgba(13,148,136,0.07)',
     border: 'rgba(13,148,136,0.20)',
+    titleKey: 'extensionTitle',
+    descKey: 'extensionDesc',
   },
-] as const;
+];
 
 function ComingSoonSection({ t }: { t: Translator }) {
   return (
     <section
       aria-labelledby="coming-soon-heading"
-      style={{ marginBottom: 'var(--space-10)' }}
+      style={{ marginTop: 'var(--space-10)' }}
     >
       <h2
         id="coming-soon-heading"
@@ -567,9 +579,9 @@ function ComingSoonSection({ t }: { t: Translator }) {
           gap: 'var(--space-4)',
         }}
       >
-        {COMING_SOON_FEATURES.map(({ key, emoji, color, bg, border }) => (
+        {COMING_SOON_FEATURES.map(({ emoji, color, bg, border, titleKey, descKey }) => (
           <article
-            key={key}
+            key={titleKey}
             className="card"
             style={{ background: bg, borderColor: border, position: 'relative', overflow: 'hidden' }}
           >
@@ -581,7 +593,7 @@ function ComingSoonSection({ t }: { t: Translator }) {
                   fontWeight: 700,
                   letterSpacing: '0.08em',
                   color,
-                  background: `rgba(${color === '#F59E0B' ? '245,158,11' : color === '#7C3AED' ? '124,58,237' : '13,148,136'},0.12)`,
+                  background: 'rgba(0,0,0,0.06)',
                   border: `1px solid ${border}`,
                   borderRadius: 'var(--radius-sm)',
                   padding: '3px 8px',
@@ -592,10 +604,10 @@ function ComingSoonSection({ t }: { t: Translator }) {
               </span>
             </div>
             <h3 style={{ fontSize: 'var(--fs-md)', fontWeight: 700, marginBottom: 'var(--space-2)', color: 'var(--text)' }}>
-              {t(`${key}Title` as 'dastTitle' | 'githubTitle' | 'extensionTitle')}
+              {t(titleKey)}
             </h3>
             <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
-              {t(`${key}Desc` as 'dastDesc' | 'githubDesc' | 'extensionDesc')}
+              {t(descKey)}
             </p>
           </article>
         ))}
