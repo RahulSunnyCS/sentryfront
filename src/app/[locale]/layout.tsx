@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { Providers } from '@/components/providers';
+import { ChatWidget } from '@/components/chat-widget';
 import { routing, type Locale } from '@/i18n/routing';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://vibesafe.app';
@@ -170,6 +171,7 @@ export default async function LocaleLayout({
       />
       <LocaleHtmlAttrs locale={locale} />
       <Providers>{children}</Providers>
+      <ChatWidget />
     </NextIntlClientProvider>
   );
 }
