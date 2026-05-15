@@ -6,7 +6,7 @@ import { Providers } from '@/components/providers';
 import { routing, type Locale } from '@/i18n/routing';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://vibesafe.app';
-const SITE_NAME = 'VibeSafe';
+const SITE_NAME = 'Codifie Scan';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -58,7 +58,7 @@ export async function generateMetadata({
       siteName: SITE_NAME,
       images: [
         {
-          url: '/og-image.png',
+          url: '/og-image.svg',
           width: 1200,
           height: 630,
           alt: t('ogAlt'),
@@ -69,7 +69,7 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title: t('title'),
       description: t('description'),
-      images: ['/og-image.png'],
+      images: ['/og-image.svg'],
       creator: '@vibesafe',
       site: '@vibesafe',
     },
@@ -85,9 +85,9 @@ export async function generateMetadata({
       },
     },
     icons: {
-      icon: '/favicon.ico',
-      shortcut: '/favicon.ico',
-      apple: '/apple-touch-icon.png',
+      icon: '/favicon.svg',
+      shortcut: '/favicon.svg',
+      apple: '/favicon.svg',
     },
     manifest: '/site.webmanifest',
     formatDetection: {
@@ -117,7 +117,7 @@ export default async function LocaleLayout({
     '@type': 'Organization',
     name: SITE_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/logo.png`,
+    logo: `${SITE_URL}/logo.svg`,
     description: t('orgDescription'),
     inLanguage: locale,
     sameAs: ['https://twitter.com/vibesafe', 'https://github.com/vibesafe'],
