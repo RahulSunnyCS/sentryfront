@@ -13,7 +13,9 @@
     "db:push": "node scripts/db-config.js production && prisma db push",
     "db:reset": "node scripts/delete-db.js && node scripts/db-config.js development && prisma generate && prisma db push",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:corpus": "node scripts/corpus.js replay",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.709.0",
