@@ -1,0 +1,19 @@
+{
+  "task_id": "T-03",
+  "title": "Add data-testid hooks to landing-hero.tsx (attributes only)",
+  "assigned_to": "implementor",
+  "risk_flags": [],
+  "scope": {
+    "files_to_create": [],
+    "files_to_modify": ["src/app/[locale]/landing-hero.tsx"],
+    "files_forbidden": ["src/app/[locale]/page.tsx", "e2e/**", "package.json", "any other src/** file"]
+  },
+  "acceptance_criteria": [
+    "HeroSection: the <form className=\"url-bar\"> gets data-testid=\"hero-scan-form\"; input#hero-url gets data-testid=\"hero-url-input\"; the submit <button> gets data-testid=\"hero-scan-submit\"",
+    "FinalCTASection: the Link to /pricing gets data-testid=\"final-cta-pricing\"",
+    "ONLY data-testid attributes added — zero behaviour/markup/style/logic changes; no other elements touched",
+    "npm run lint and npm run build pass; existing unit tests unaffected"
+  ],
+  "dependencies": [],
+  "output_format": "code plus plain English explanation of every non-obvious decision"
+}
