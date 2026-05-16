@@ -25,6 +25,9 @@ vi.mock('dns', () => ({
 }));
 
 import { runSubdomainTakeoverModule } from '@/lib/scanner/modules/p1-11-subdomain-takeover';
+import { runSubfinder } from '@/lib/scanner/tools/subfinder';
+
+const mockRunSubfinder = runSubfinder as ReturnType<typeof vi.fn>;
 
 const baseCrawl = (): CrawlResult => ({
   finalUrl: 'https://example.com/',
@@ -136,5 +139,159 @@ describe('P1-11 subdomain takeover — Phase 3.5 body confirmation', () => {
 
     const findings = await runSubdomainTakeoverModule(baseCrawl());
     expect(findings.some((f) => f.location === 'docs.example.com')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Additional branch coverage tests
+// ---------------------------------------------------------------------------
+describe('P1-11 subdomain takeover — crt.sh fallback path', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    resolveCnameMock.mockReset();
+    // Make subfinder return empty so crt.sh fallback is exercised
+    mockRunSubfinder.mockResolvedValue([]);
+  });
+
+  it('falls back to crt.sh when subfinder returns no subdomains', async () => {
+    // crt.sh returns one subdomain; that subdomain has no CNAME
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('crt.sh')) {
+          return {
+            ok: true,
+            json: async () => [{ name_value: 'sub.example.com' }],
+          } as unknown as Response;
+        }
+        // subdomain check fetch — no CNAME so this won't be called
+        return { status: 404, text: async () => '' } as unknown as Response;
+      }),
+    );
+    resolveCnameMock.mockRejectedValue(new Error('NXDOMAIN'));
+
+    const findings = await runSubdomainTakeoverModule(baseCrawl());
+    expect(findings).toHaveLength(0);
+  });
+
+  it('returns no findings when crt.sh returns empty array', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      } as unknown as Response),
+    );
+    resolveCnameMock.mockRejectedValue(new Error('NXDOMAIN'));
+
+    const findings = await runSubdomainTakeoverModule(baseCrawl());
+    expect(findings).toHaveLength(0);
+  });
+
+  it('returns no findings when crt.sh fetch fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('crt.sh timeout')),
+    );
+    resolveCnameMock.mockRejectedValue(new Error('NXDOMAIN'));
+
+    const findings = await runSubdomainTakeoverModule(baseCrawl());
+    expect(findings).toHaveLength(0);
+  });
+
+  it('returns no findings when crt.sh returns non-OK', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: async () => [],
+      } as unknown as Response),
+    );
+    resolveCnameMock.mockRejectedValue(new Error('NXDOMAIN'));
+
+    const findings = await runSubdomainTakeoverModule(baseCrawl());
+    expect(findings).toHaveLength(0);
+  });
+
+  it('crt.sh filters out entries that match the apex or do not end with the apex suffix', async () => {
+    // Entries: apex itself (filtered), wildcard prefix (filtered after strip), valid subdomain
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('crt.sh')) {
+          return {
+            ok: true,
+            json: async () => [
+              { name_value: 'example.com' },          // equals apex — filtered
+              { name_value: '*.example.com' },         // strip wildcard → example.com = apex — filtered
+              { name_value: 'other.net' },             // wrong domain — filtered
+              { name_value: 'valid.example.com' },     // valid subdomain
+            ],
+          } as unknown as Response;
+        }
+        return { status: 404, text: async () => '' } as unknown as Response;
+      }),
+    );
+    resolveCnameMock.mockRejectedValue(new Error('NXDOMAIN'));
+
+    const findings = await runSubdomainTakeoverModule(baseCrawl());
+    // No CNAME found → no findings
+    expect(findings).toHaveLength(0);
+    // Verify crt.sh was called
+    const fetchMock = global.fetch as ReturnType<typeof vi.fn>;
+    expect(fetchMock.mock.calls.some((c: [string]) => c[0].includes('crt.sh'))).toBe(true);
+  });
+});
+
+describe('P1-11 subdomain takeover — apex hostname handling', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    resolveCnameMock.mockReset();
+    mockRunSubfinder.mockResolvedValue([]);
+    // No crt.sh subdomains by default
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      } as unknown as Response),
+    );
+  });
+
+  it('uses full hostname as apex when there are only 2 parts (e.g. example.com)', async () => {
+    // A crawl with only 2-part hostname — parts.length === 2, apex = hostname
+    const crawl: CrawlResult = {
+      finalUrl: 'https://example.com/',
+      statusCode: 200,
+      headers: {},
+      cookies: [],
+      jsBundleUrls: [],
+      inlineScriptContent: '',
+      html: '',
+      tls: null,
+      stack: '',
+    };
+    const findings = await runSubdomainTakeoverModule(crawl);
+    expect(findings).toHaveLength(0);
+  });
+
+  it('extracts apex from a 3-part hostname (sub.example.com → example.com)', async () => {
+    // parts.length > 2 → apex = last two parts
+    const crawl: CrawlResult = {
+      finalUrl: 'https://sub.example.com/',
+      statusCode: 200,
+      headers: {},
+      cookies: [],
+      jsBundleUrls: [],
+      inlineScriptContent: '',
+      html: '',
+      tls: null,
+      stack: '',
+    };
+    const findings = await runSubdomainTakeoverModule(crawl);
+    expect(findings).toHaveLength(0);
+    // runSubfinder should have been called with 'example.com'
+    expect(mockRunSubfinder).toHaveBeenCalledWith('example.com');
   });
 });
