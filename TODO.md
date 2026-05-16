@@ -12,9 +12,10 @@
 > - Source of truth: `pipeline/tasks/*.json`. Phase/gate state:
 >   `pipeline/progress.md`. This file: the at-a-glance view.
 
-**Status:** Phase 2 done — task contracts ready. Awaiting "proceed with implementation?"
+**Status:** Phase 7 — all 8 tasks Done; Gate-2 fix cycle applied & verified; Automation Gate CI-ONLY. Awaiting Human Gate 3.
 **Lane:** feature-fast | **Risk:** MEDIUM | **Tags:** frontend, infra
 **Gate-1:** APPROVED (D1 no-fake · D2 CI+local-or-CI-ONLY acknowledged · D3 data-testid · R1 axe · R2 README badge)
+**Gate-2:** APPROVED — CONDITIONAL PASS; "Fix High + all 4 Low" applied (AR-H1 + 4 Low + SEC-L1)
 
 ## High-Level Tasks
 
