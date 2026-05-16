@@ -38,9 +38,25 @@ FEASIBILITY
 - Is any part of this plan ambiguous enough to cause incorrect implementation?
 - Are there tasks that are too large for a single agent to handle cleanly?
 
+## Three Stances (apply all three in one pass — do not spawn separate agents)
+
+Run the dimensions above through three lenses in the SAME review. They are
+deliberately in tension; surfacing that tension is the point.
+
+- CONSERVATIVE — risk-averse. What is the safest, most defensible approach?
+  What could go catastrophically wrong, and what is the cost of being wrong?
+  Prefer proven, reversible choices.
+- OPTIMIST — efficiency-seeking. Is the plan over-engineered? What is the
+  leanest path that still works if things go reasonably well? What can be
+  cut or deferred without real risk?
+- PESSIMIST — failure-seeking. Assume Murphy's law: what is underestimated,
+  what breaks first under load or attack, what is the realistic worst case?
+
+A criticism only counts if it is specific and actionable under its stance.
+
 ## Output Format
 
-For each weakness found:
+Group findings under the three stance headers. For each weakness found:
 
 FINDING: [Short name]
 Severity: Critical / High / Medium / Low
@@ -49,5 +65,6 @@ What could happen if ignored: [Plain English — one sentence]
 What should be done instead: [Specific actionable recommendation]
 
 End with:
+STANCE SUMMARY: one line each for Conservative / Optimist / Pessimist — the single most important point from each.
 OVERALL VERDICT: Strong / Acceptable / Needs significant revision
-RECOMMENDATION: [One paragraph — should the architect revise before proceeding, and what are the top 3 priorities?]
+RECOMMENDATION: [One paragraph — reconcile the three stances: should the architect revise before proceeding, and what are the top 3 priorities?]

@@ -79,11 +79,87 @@ Create the file pipeline/risk_manifest.json with this structure:
   "risk_level": "HIGH or MEDIUM or LOW",
   "triggers": ["list of what triggered the risk level"],
   "mandatory_agents": ["security-auditor", "performance-reviewer", "architecture-reviewer"],
+  "tags": ["zero or more of: pricing, frontend, backend, infra, product"],
   "sprint_count": 3,
   "human_gates": 3
 }
 
+In the same rule-based pass, set tags — assign only what genuinely applies:
+- pricing  — touches Stripe, tiers, billing, checkout, or PAYMENT_TEST_FLOW
+- frontend — material UI / React / Next.js page or component work
+- backend  — API routes, scanner modules, server logic, data flow
+- infra    — Docker, CI, deploy, queue/Redis, storage, env/config
+- product  — user-facing product/UX or go-to-market scope decisions
+(auth / pii / data remain risk_flags, not tags — do not duplicate them.)
+Tags gate the Conditional Specialists below.
+
 Default to HIGH for any security project. When uncertain, go higher, not lower.
+
+---
+
+## Conditional Specialists (tag-gated — do not spin up unless the tag is set)
+
+risk_manifest.tags decide which extra specialists participate, and in which
+phase. If a tag is absent, its specialist does NOT run — cost scales with
+task size, not a fixed roundtable.
+
+| Tag      | Specialist                                              | Phase(s)                              | Mechanism        |
+|----------|---------------------------------------------------------|---------------------------------------|------------------|
+| pricing  | pricing-reviewer (.claude/agents/pricing-reviewer.md)   | Phase 1 constraints + Phase 4 review  | dedicated agent  |
+| frontend | architecture-reviewer, frontend lens emphasised         | Phase 4                               | instruction only |
+| backend  | architecture-reviewer, backend lens emphasised          | Phase 4                               | instruction only |
+| infra    | architecture-reviewer, infra lens emphasised            | Phase 4                               | instruction only |
+| product  | product/business lens by the orchestrator via .claude/project/business.md | Phase 1             | no agent         |
+
+auth / pii / data are risk_flags (not tags): they already make the
+security-auditor mandatory in Phase 4 — unchanged.
+
+Rules:
+- Never add a standing agent for frontend/backend/infra — the
+  architecture-reviewer applies the relevant lens. Only pricing has a
+  dedicated agent (Stripe tiers, PAYMENT_TEST_FLOW, the May-2026 pivot are
+  specific enough to need a checklist).
+- Conditional specialists run inside the existing phases and BEFORE the
+  relevant Human Gate. They never bypass, replace, or pre-empt a gate.
+
+### Bounded Phase-1 Constraint Round (opt-in escalation)
+
+For a genuinely large, novel, cross-cutting epic — risk_level HIGH **and**
+≥3 tags set (or an explicit user request) — run exactly ONE constraint round
+before the Red Team scoring step and before Human Gate 1:
+
+- The orchestrator collects ONE short written constraint memo from each
+  *tagged* conditional specialist: pricing-reviewer (pricing);
+  architecture-reviewer in Phase-1 constraint-only mode (frontend/backend/
+  infra); product/business lens via .claude/project/business.md (product).
+- No inter-agent messaging — specialists never see or reply to each other.
+- The orchestrator (Opus) is the sole synthesiser; it folds the memos into
+  the plan, then the normal tri-stance Red Team loop continues.
+
+Hard caps: exactly one round, no debate, single synthesiser, Human Gate 1
+unchanged. Cost = (number of tagged specialists) × one memo. If the trigger
+is not met, this round does not run.
+
+---
+
+## Phase 0.5 — Intent Extraction (optional, /grill-me)
+
+Not a gate and not always run. Use it to extract correct intent **before**
+planning when the task is HIGH-risk, large, or ambiguous, or when the user
+runs `/grill-me` or says "grill me". Skip it for trivial tasks (scale cost to
+task size, like the conditional specialists).
+
+Behaviour (see .claude/commands/grill-me.md):
+- Interview the user **one question at a time**, each with a recommended
+  answer, walking the decision tree and resolving dependencies one-by-one.
+- If a question can be answered by exploring the codebase, explore instead of
+  asking.
+- Terminate when no open branch would change the plan, or the user says
+  proceed.
+- Emit a resolved decision record that becomes an input to Phase 1 planning.
+
+This front-loads the questions so Human Gate 1 is a clean yes/no, not a
+renegotiation. It never replaces a Human Gate.
 
 ---
 
@@ -92,7 +168,7 @@ Default to HIGH for any security project. When uncertain, go higher, not lower.
 Model instruction: Use your deepest reasoning for this phase. Think longer than usual. Think adversarially.
 
 Instructions:
-1. Read pipeline/risk_manifest.json
+1. Read pipeline/risk_manifest.json (and the Phase 0.5 grill-me decision record, if one was produced)
 2. Think through the full scope of what needs to be built, changed, or secured
 3. Ask yourself: What would an attacker target first in this system?
 4. Ask yourself: What would a senior engineer regret not doing upfront?
@@ -101,10 +177,12 @@ Instructions:
 
 Then immediately run the Red Team Loop:
 - Hand your plan to the Red Team agent (.claude/agents/red-team.md)
-- Red Team attacks the plan and finds weaknesses
+- Red Team attacks the plan under three stances in one pass — Conservative, Optimist, Pessimist (defined in .claude/agents/red-team.md)
 - You revise based on valid criticisms only
 - Dismiss weak or irrelevant criticisms explicitly and explain why
 - Repeat this loop sprint_count times (from risk_manifest)
+
+If risk_manifest.tags require conditional specialists (see Conditional Specialists), pull their input in here and fold it into the plan before scoring.
 
 After all sprints, score the plan internally:
 - Completeness: Did we cover every part of the system?
@@ -173,16 +251,21 @@ Rules:
 After implementation, run all three reviewers simultaneously:
 1. Security Auditor → .claude/agents/security-auditor.md
 2. Performance Reviewer → .claude/agents/performance-reviewer.md
-3. Architecture Reviewer → .claude/agents/architecture-reviewer.md
+3. Architecture Reviewer → .claude/agents/architecture-reviewer.md (apply the frontend/backend/infra lens for whichever of those risk_manifest.tags are set)
+
+Also run, only when the matching tag is set (see Conditional Specialists):
+4. Pricing Reviewer → .claude/agents/pricing-reviewer.md — only if tags include pricing
 
 Each saves a report to pipeline/reviews/
 
-Then synthesise all three reports:
+Then synthesise all reports:
 - Identify any conflicts between reviewer findings
 - Prioritise by severity: Critical first, then High, Medium, Low
 - Produce a PASS, CONDITIONAL PASS, or FAIL verdict
 
-HUMAN GATE 2: Stop. Present the Synthesis Review Report. Do not proceed to testing until approved.
+Hand the Synthesis Review Report to the Translator agent (.claude/agents/translator.md) for a plain-English pass BEFORE presenting it. Safeguard: the Translator clarifies wording only — it must preserve every severity label, the finding counts, and the PASS / CONDITIONAL PASS / FAIL verdict verbatim (never dilute the security signal).
+
+HUMAN GATE 2: Stop. Present the translated Synthesis Review Report. Do not proceed to testing until approved.
 
 ---
 
@@ -218,9 +301,9 @@ Check:
 
 Before the Final Summary Report, delegate to the Epic Doc Writer agent (.claude/agents/epic-doc-writer.md) to produce the collated epic/large-chunk delivery document at docs/epics/<epic-slug>.md — what was done, how it helps, limitations/tradeoffs and why, the tests the AI ran, manual test cases for humans, and security/risk notes. It reads pipeline artifacts read-only and never writes TODO.md or pipeline/progress.md. Trigger it on demand via /epic-doc when a large chunk completes mid-pipeline, not only at the end.
 
-Produce the Final Summary Report and present to user.
+Produce the Final Summary Report, then hand it to the Translator agent (.claude/agents/translator.md) for a plain-English pass before presenting (preserve the resolved-findings counts, accepted risks, and the final recommendation verbatim).
 
-HUMAN GATE 3: Final approval required before any merge or submit action.
+HUMAN GATE 3: Final approval required before any merge or submit action. Present the translated Final Summary Report.
 
 ---
 
@@ -228,9 +311,11 @@ HUMAN GATE 3: Final approval required before any merge or submit action.
 
 Stop completely at every Human Gate. Do not proceed, do not pre-generate the next phase, do not hint at what is coming. Simply wait.
 
-Gate 1 — After Planning — Present: Plan Report in plain English
-Gate 2 — After Specialist Review — Present: Synthesis Review Report
-Gate 3 — After Final Review — Present: Final Summary Report
+Every gate report passes through the Translator agent before presentation, so the human always reads plain English. The Translator clarifies wording only — structured verdicts, severity labels, finding counts, and recommendations are preserved verbatim.
+
+Gate 1 — After Planning — Present: translated Plan Report
+Gate 2 — After Specialist Review — Present: translated Synthesis Review Report
+Gate 3 — After Final Review — Present: translated Final Summary Report
 
 If user says yes, go ahead, approved, or similar → proceed
 If user asks questions → answer fully before proceeding
@@ -241,7 +326,7 @@ If user says stop or cancel → halt and summarise what was completed
 ## Model Assignment
 
 Planning, Decomposition, Synthesis Review, Final Review → Use deepest reasoning available
-Triage → Sonnet at low effort (short rule-based risk classification — deepest reasoning is wasted here)
+Triage → Haiku at low effort (short rule-based risk classification against a fixed rubric; "default to HIGH when uncertain" makes any misclassification fail-safe, so a fast model is correct here)
 Implementation, Fix cycles → Use fast capable model
 Specialist Reviews → Use fast capable model, EXCEPT the security-auditor, which uses deepest reasoning (Opus): security review is security reasoning
 Documentation, Translation to plain English → Use fastest model
@@ -269,19 +354,21 @@ Recommended default effort per step (model column = current assignment):
 
 | Phase / step                     | Model (current)      | Effort |
 |----------------------------------|----------------------|--------|
-| Phase 0 Triage                   | Sonnet               | low    |
+| Phase 0 Triage                   | Haiku                | low    |
+| Phase 0.5 Intent Extraction      | Opus (grill-me, opt-in) | high   |
 | Phase 1 Planning + Red Team      | Opus / red-team Opus | max    |
-| Phase 1 Translator               | Haiku                | high   |
+| Gate Translator (Gates 1/2/3)    | Haiku                | medium |
 | Phase 2 Decomposition            | Opus                 | high   |
 | Phase 3 Implementation           | Sonnet (implementor) | high   |
 | Phase 4 Security Auditor         | Opus                 | max    |
 | Phase 4 Performance/Architecture | Sonnet               | high   |
 | Phase 4 Synthesis                | Opus                 | high   |
+| Phase 1/4 Pricing Reviewer       | Sonnet (tag-gated)   | low    |
 | Phase 5 Test Writer              | Sonnet (Opus if auth/PII) | medium (high if auth/PII) |
 | Phase 5 Docs Writer              | Haiku                | low    |
 | Phase 6 Fix cycles               | Sonnet (implementor) | high   |
 | Phase 7 Final Review             | Opus                 | high   |
-| Phase 7 Epic Doc Writer          | Sonnet               | high   |
+| Phase 7 Epic Doc Writer          | Sonnet               | medium |
 
 How to instruct effort:
 - Global: "set effort to high" — becomes the default for every step.
@@ -296,6 +383,10 @@ Model versions:
   set `model:` to a full dated model ID instead of the alias. Tradeoff: pinned
   versions must be bumped by hand or they rot. The user may also instruct a
   one-off override ("run this phase on the previous Opus version").
+- **Default policy:** alias for every step; pin a dated ID for **exactly one**
+  — the security-auditor (Phase 4) — so audits are comparable run-to-run.
+  Pinning more only adds upkeep (pinned IDs rot) without benefit, unless a
+  compliance mandate requires full pipeline reproducibility.
 
 ---
 
