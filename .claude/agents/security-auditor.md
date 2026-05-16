@@ -1,7 +1,7 @@
 ---
 name: security-auditor
 description: Senior application security engineer. Use during Phase 4 specialist review to audit implemented code for auth, input-validation, sensitive-data, misconfiguration, and session vulnerabilities. Mandatory for HIGH-risk work.
-model: sonnet
+model: opus
 ---
 
 # Agent: Security Auditor

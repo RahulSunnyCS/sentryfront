@@ -240,8 +240,10 @@ If user says stop or cancel → halt and summarise what was completed
 
 ## Model Assignment
 
-Triage, Planning, Decomposition, Synthesis Review, Final Review → Use deepest reasoning available
-Implementation, Specialist Reviews, Fix cycles → Use fast capable model
+Planning, Decomposition, Synthesis Review, Final Review → Use deepest reasoning available
+Triage → Sonnet at low effort (short rule-based risk classification — deepest reasoning is wasted here)
+Implementation, Fix cycles → Use fast capable model
+Specialist Reviews → Use fast capable model, EXCEPT the security-auditor, which uses deepest reasoning (Opus): security review is security reasoning
 Documentation, Translation to plain English → Use fastest model
 Test writing → Sonnet at medium effort by default; escalate to Opus at high effort when the task's risk_flags include auth or PII (security tests need the strongest reasoning)
 Collated epic/delivery documents (epic-doc-writer) → Use mid-tier model (Sonnet): it synthesises rationale, tradeoffs, and human test cases — not mechanical boilerplate
@@ -267,12 +269,12 @@ Recommended default effort per step (model column = current assignment):
 
 | Phase / step                     | Model (current)      | Effort |
 |----------------------------------|----------------------|--------|
-| Phase 0 Triage                   | Opus                 | low    |
+| Phase 0 Triage                   | Sonnet               | low    |
 | Phase 1 Planning + Red Team      | Opus / red-team Opus | max    |
 | Phase 1 Translator               | Haiku                | high   |
 | Phase 2 Decomposition            | Opus                 | high   |
 | Phase 3 Implementation           | Sonnet (implementor) | high   |
-| Phase 4 Security Auditor         | Sonnet               | max    |
+| Phase 4 Security Auditor         | Opus                 | max    |
 | Phase 4 Performance/Architecture | Sonnet               | high   |
 | Phase 4 Synthesis                | Opus                 | high   |
 | Phase 5 Test Writer              | Sonnet (Opus if auth/PII) | medium (high if auth/PII) |
