@@ -13,7 +13,8 @@
 | 0.5 — Intent Extraction | Skipped | Clarified via AskUserQuestion: Both (E2E+CI) + Full critical-path |
 | 1 — Planning (v2, re-plan round 1/2) | Done | Score 8/10; D1/D2/D3+R1/R2 folded; RT sprint 2 fixes folded; qa-checklist (14/11/4) + translation done; awaiting Gate 1 v2 |
 | 2 — Decomposition | Done | 8 atomic contracts T-01..T-08 (T-05 deps+scripts merged into T-01); no shared-file writes |
-| 3 — Implementation | In progress | T-01,02,03,05,06,07,08 done & verified; T-04 (e2e tests) running |
+| 3 — Implementation | Done | All 8 tasks complete & verified (T-04: 0 TS errors project-wide) |
+| 4 — Specialist Review (security + architecture) | In progress | MEDIUM/feature-fast reviewer set |
 | 4 — Specialist Review (security + architecture) | Pending | |
 | 5 — Test Generation | Pending | |
 | 6 — Test Execution + Automation Gate | Pending | |
