@@ -156,6 +156,7 @@ function HeroSection({
         </p>
 
         <form
+          data-testid="hero-scan-form"
           className="url-bar"
           onSubmit={(e) => {
             e.preventDefault();
@@ -169,6 +170,7 @@ function HeroSection({
             {t('urlLabel')}
           </label>
           <input
+            data-testid="hero-url-input"
             id="hero-url"
             name="url"
             type="text"
@@ -182,7 +184,7 @@ function HeroSection({
             placeholder={t('urlPlaceholder')}
             disabled={loading}
           />
-          <button type="submit" disabled={loading} aria-label={t('scanAriaLabel')}>
+          <button type="submit" data-testid="hero-scan-submit" disabled={loading} aria-label={t('scanAriaLabel')}>
             {loading ? t('starting') : t('scanFree')}
             {!loading && <IconArrowRight size={16} color="#fff" />}
           </button>
@@ -818,7 +820,7 @@ function FinalCTASection() {
             {t('scanButton')}
             <IconArrowRight size={16} color="#fff" />
           </Link>
-          <Link href="/pricing" className="btn-secondary">
+          <Link href="/pricing" data-testid="final-cta-pricing" className="btn-secondary">
             {t('pricingButton')}
           </Link>
         </div>

@@ -44,3 +44,10 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# Playwright / E2E
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+e2e.db*

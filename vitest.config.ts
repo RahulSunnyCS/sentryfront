@@ -46,6 +46,8 @@ export default defineConfig({
     ],
     
     // Exclude patterns
+    // e2e/** and **/e2e/** prevent Playwright *.spec.ts files from being
+    // collected by vitest's include globs, which would crash the unit suite.
     exclude: [
       'node_modules',
       '.next',
@@ -53,6 +55,8 @@ export default defineConfig({
       'dist',
       'coverage',
       '**/*.config.*',
+      'e2e/**',
+      '**/e2e/**',
     ],
     
     // Test timeout
