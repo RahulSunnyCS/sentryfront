@@ -1,5 +1,7 @@
 # VibeSafe 🛡️
 
+[![Tests](https://github.com/rahulsunnycs/sentryfront/actions/workflows/test.yml/badge.svg)](https://github.com/rahulsunnycs/sentryfront/actions/workflows/test.yml)
+
 **Complete Web Quality Platform: Security, Performance, Accessibility & SEO**
 
 Scan any website for security vulnerabilities, performance bottlenecks, accessibility issues (WCAG 2.2 AA criteria via Lighthouse), and SEO problems — with AI-enhanced remediation.
@@ -178,6 +180,8 @@ npm run dev
 # Visit http://localhost:3000
 # Enter a URL and click "Scan"
 ```
+
+The end-to-end (Playwright) run publishes a `playwright-report` artifact that can be downloaded directly from the GitHub Actions run page.
 
 ---
 

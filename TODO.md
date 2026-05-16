@@ -22,13 +22,13 @@ Mirror of `pipeline/tasks/T-XX.json`. Parallel-safe: no two tasks write the same
 
 | Task | Title | Assigned | Status | Deps | Files |
 |------|-------|----------|--------|------|-------|
-| T-01 | Playwright+axe devDeps + test:e2e scripts + lockfile | implementor | Pending | — | package.json, package-lock.json |
-| T-02 | playwright.config.ts (chromium, own server, 180s, reuse:false) | implementor | Pending | T-01 | playwright.config.ts |
-| T-03 | 4 data-testid hooks in landing-hero.tsx (attrs only) | implementor | Pending | — | src/app/[locale]/landing-hero.tsx |
-| T-04 | e2e non-hermetic landing + a11y specs + selectors.ts | implementor | Pending | T-01,02,03 | e2e/** |
-| T-05 | Exclude e2e/** from vitest | implementor | Pending | — | vitest.config.ts |
-| T-06 | CI e2e job (cache+artifact, no continue-on-error) | implementor | Pending | T-01 | .github/workflows/test.yml |
-| T-07 | README CI badge + report-artifact note | implementor | Pending | T-06 | README.md |
-| T-08 | gitignore Playwright outputs + e2e.db* | implementor | Pending | — | .gitignore |
+| T-01 | Playwright+axe devDeps + test:e2e scripts + lockfile | implementor | Done | — | package.json, package-lock.json |
+| T-02 | playwright.config.ts (chromium, own server, 180s, reuse:false) | implementor | Done | T-01 | playwright.config.ts |
+| T-03 | 4 data-testid hooks in landing-hero.tsx (attrs only) | implementor | Done | — | src/app/[locale]/landing-hero.tsx |
+| T-04 | e2e non-hermetic landing + a11y specs + selectors.ts | implementor | In progress | T-01,02,03 | e2e/** |
+| T-05 | Exclude e2e/** from vitest | implementor | Done | — | vitest.config.ts |
+| T-06 | CI e2e job (cache+artifact, no continue-on-error) | implementor | Done | T-01 | .github/workflows/test.yml |
+| T-07 | README CI badge + report-artifact note | implementor | Done | T-06 | README.md |
+| T-08 | gitignore Playwright outputs + e2e.db* | implementor | Done | — | .gitignore |
 
 Status legend: Pending → In progress → In review → Done → Blocked
