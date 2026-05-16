@@ -9,22 +9,28 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Module mocks (declared before any imports of the module under test) ───────
 
-// vi.mock factories are hoisted to the top of the file by Vitest, so variables
-// declared in the test file body are not yet initialised when the factory runs.
-// We use vi.hoisted() to create the mock function in the hoisted scope so it is
-// available both inside the factory and in the test body.
-const { mockGetServerSession } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
-}));
+// All mock functions used inside vi.mock() factories must be created with
+// vi.hoisted() because Vitest hoists vi.mock() calls to the top of the file —
+// before any const/let declarations are initialised. vi.hoisted() runs in the
+// same hoisted scope, so its return value is safely available in the factories.
+const { mockGetServerSession, mockNotFound, mockIsFeatureReady, mockNextResponseJson } =
+  vi.hoisted(() => ({
+    mockGetServerSession: vi.fn(),
+    mockNotFound: vi.fn(),
+    mockIsFeatureReady: vi.fn(),
+    mockNextResponseJson: vi.fn((_body: unknown, init?: { status?: number }) => ({
+      status: init?.status ?? 200,
+    })),
+  }));
+
+// authConfig.provider is a plain object (not a mock function) that we mutate
+// per test. It does not need vi.hoisted() because the factory uses a getter
+// that is evaluated lazily (at call-time), not at factory-construction time.
+const mockAuthConfig = { provider: 'nextauth' as 'nextauth' | 'supabase' };
 
 vi.mock('next-auth', () => ({
   getServerSession: mockGetServerSession,
 }));
-
-// authConfig.provider is read at call-time inside helpers.ts via the imported
-// reference, so we expose a mutable object and swap its fields per test.
-const mockAuthConfig = { provider: 'nextauth' as 'nextauth' | 'supabase' };
-const mockIsFeatureReady = vi.fn();
 
 vi.mock('@/lib/features', () => ({
   get authConfig() {
@@ -35,7 +41,6 @@ vi.mock('@/lib/features', () => ({
 
 // next/navigation.notFound is already mocked by vitest.setup.ts but we need
 // to spy on it to assert it was called.
-const mockNotFound = vi.fn();
 vi.mock('next/navigation', () => ({
   notFound: mockNotFound,
   useRouter: () => ({ push: vi.fn() }),
@@ -45,9 +50,6 @@ vi.mock('next/navigation', () => ({
 }));
 
 // next/server NextResponse.json must return a shape the caller can inspect.
-const mockNextResponseJson = vi.fn((_body: unknown, init?: { status?: number }) => ({
-  status: init?.status ?? 200,
-}));
 vi.mock('next/server', () => ({
   NextResponse: {
     json: mockNextResponseJson,

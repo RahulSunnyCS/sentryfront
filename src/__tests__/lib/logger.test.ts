@@ -21,20 +21,15 @@ import { logger } from '@/lib/logger';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
-
+// vi.stubEnv is the safe Vitest way to temporarily override env vars —
+// it handles the read-only restriction on NODE_ENV and restores automatically
+// when vi.unstubAllEnvs() is called.
 function setEnv(env: string) {
-  // NODE_ENV is read-only in some environments; Object.defineProperty bypasses
-  // the restriction for test purposes.
-  Object.defineProperty(process.env, 'NODE_ENV', { value: env, writable: true, configurable: true });
+  vi.stubEnv('NODE_ENV', env);
 }
 
 function restoreEnv() {
-  Object.defineProperty(process.env, 'NODE_ENV', {
-    value: ORIGINAL_NODE_ENV,
-    writable: true,
-    configurable: true,
-  });
+  vi.unstubAllEnvs();
 }
 
 // ── logger.info ───────────────────────────────────────────────────────────────

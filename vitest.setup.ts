@@ -13,9 +13,11 @@ vi.mock('@/lib/prisma', () => ({
     scan: {
       create: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
       count: vi.fn(),
     },
     finding: {
@@ -24,6 +26,7 @@ vi.mock('@/lib/prisma', () => ({
       findUnique: vi.fn(),
       createMany: vi.fn(),
       delete: vi.fn(),
+      count: vi.fn(),
     },
     findingDisposition: {
       create: vi.fn(),

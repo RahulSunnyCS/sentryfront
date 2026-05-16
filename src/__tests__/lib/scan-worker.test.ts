@@ -5,9 +5,13 @@
  * touch the network. Prisma is mocked in vitest.setup.ts. The logger is also
  * mocked to suppress noise and prevent Sentry calls in test runs.
  *
- * NOTE: scan-worker has a 120 s hard timeout enforced via setTimeout inside
- * runScanWithTimeout. We use vi.useFakeTimers() in the timeout test so we can
- * advance time without actually waiting.
+ * IMPORTANT: scan-worker uses setTimeout internally in two places:
+ *   1. emitPlaceholderProgress — sleeps between per-module progress events
+ *      (~60 s total). Without fake timers this would make every test slow.
+ *   2. runScanWithTimeout — hard-kills after SCAN_TIMEOUT_MS (120 s).
+ *
+ * We use vi.useFakeTimers() for the entire suite, advance time per-test, and
+ * restore real timers after each test to avoid leaking fake timer state.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -49,6 +53,19 @@ import type { RawFinding } from '@/lib/scanner/types';
 
 const SCAN_ID = 'test-scan-id';
 const TARGET_URL = 'https://example.com';
+
+// Override the scan timeout to a small value so tests drain all timers quickly.
+// scan-worker.ts reads SCAN_TIMEOUT_MS at module import time (top-level const),
+// so we cannot change it per-test — but we CAN advance timers past the real
+// 120 s value. In error-path tests we advance past both the placeholder delays
+// AND the 120 s timeout so no pending setTimeouts survive the test boundary.
+const PLACEHOLDER_TOTAL_MS = 70000; // > sum of all placeholder delays (~61 s)
+const SCAN_TIMEOUT_MS = 120000;     // default value from scan-worker.ts
+
+// After each error-path test we drain all remaining fake timers so that the
+// pending timeout promise inside runScanWithTimeout does not fire after the
+// test ends and surface as an unhandled rejection.
+const ALL_TIMERS_MS = SCAN_TIMEOUT_MS + PLACEHOLDER_TOTAL_MS + 5000;
 
 function makeScanRow(overrides: Partial<{ id: string; targetUrl: string; status: string }> = {}) {
   return {
@@ -106,19 +123,51 @@ function makeEnrichmentResult(findings: RawFinding[]) {
 
 describe('runScan()', () => {
   beforeEach(() => {
+    // Fake timers for every test: prevents emitPlaceholderProgress from blocking
+    vi.useFakeTimers();
+
     // Default happy-path: scan exists, scanner succeeds, enrichment passes through
     vi.mocked(prisma.scan.findUnique).mockResolvedValue(makeScanRow() as any);
     vi.mocked(prisma.scan.update).mockResolvedValue({} as any);
     vi.mocked(prisma.finding.createMany).mockResolvedValue({ count: 0 } as any);
     vi.mocked(prisma.finding.count).mockResolvedValue(0);
+    // publishEvent mock is already configured to resolve immediately via the
+    // vi.mock factory above, but reset it here just in case clearAllMocks ran.
+    vi.mocked(publishEvent).mockResolvedValue(undefined);
   });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // Helper: run the scan and advance fake timers past both the placeholder
+  // delays AND the scan timeout so that no pending setTimeouts survive the
+  // test boundary. The catch-before-advance pattern ensures the rejection is
+  // handled before advanceTimersByTimeAsync flushes remaining timers.
+  async function runScanAndDrain(): Promise<void> {
+    const promise = runScan(SCAN_ID);
+    // Advance far enough to drain placeholder sleeps (60 s) plus the timeout
+    // promise (120 s) so no setTimeouts remain when the test ends.
+    await vi.advanceTimersByTimeAsync(ALL_TIMERS_MS);
+    return promise;
+  }
+
+  // Error-path variant: catch BEFORE advancing so the rejection is handled
+  // before timer flush, preventing unhandled-rejection warnings.
+  async function runScanExpectError(expectedMsg?: string): Promise<Error> {
+    const promise = runScan(SCAN_ID).catch((e: Error) => e);
+    await vi.advanceTimersByTimeAsync(ALL_TIMERS_MS);
+    const result = await promise;
+    if (expectedMsg) expect((result as Error).message).toContain(expectedMsg);
+    return result as Error;
+  }
 
   it('updates scan to RUNNING then COMPLETED on success with no findings', async () => {
     const scannerResult = makeScannerResult([]);
     vi.mocked(runScanner).mockResolvedValue(scannerResult as any);
     vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult([]) as any);
 
-    await runScan(SCAN_ID);
+    await runScanAndDrain();
 
     // First update: status = RUNNING
     expect(prisma.scan.update).toHaveBeenCalledWith(
@@ -136,7 +185,7 @@ describe('runScan()', () => {
     vi.mocked(runScanner).mockResolvedValue(makeScannerResult(findings) as any);
     vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult(findings) as any);
 
-    await runScan(SCAN_ID);
+    await runScanAndDrain();
 
     expect(prisma.finding.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -152,16 +201,15 @@ describe('runScan()', () => {
     vi.mocked(runScanner).mockResolvedValue(makeScannerResult([]) as any);
     vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult([]) as any);
 
-    await runScan(SCAN_ID);
+    await runScanAndDrain();
 
     expect(prisma.finding.createMany).not.toHaveBeenCalled();
   });
 
   it('marks scan FAILED and re-throws when scanner throws', async () => {
-    const scanError = new Error('crawler failure');
-    vi.mocked(runScanner).mockRejectedValue(scanError);
+    vi.mocked(runScanner).mockRejectedValue(new Error('crawler failure'));
 
-    await expect(runScan(SCAN_ID)).rejects.toThrow('crawler failure');
+    await runScanExpectError('crawler failure');
 
     expect(prisma.scan.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED' }) }),
@@ -171,7 +219,7 @@ describe('runScan()', () => {
   it('publishes scan_failed event when scanner throws', async () => {
     vi.mocked(runScanner).mockRejectedValue(new Error('boom'));
 
-    await expect(runScan(SCAN_ID)).rejects.toThrow();
+    await runScanExpectError('boom');
 
     expect(publishEvent).toHaveBeenCalledWith(
       SCAN_ID,
@@ -180,16 +228,14 @@ describe('runScan()', () => {
     );
   });
 
-  it('completes successfully even when LLM enrichment throws (graceful degradation)', async () => {
-    // enrichFindingsWithLLM throws — scan should still complete with the raw findings
-    // Actually, the current implementation does NOT catch LLM errors internally;
-    // they propagate up to runScanInternal's catch block, which marks the scan FAILED.
-    // This test documents the actual behaviour: LLM failure = scan FAILED.
+  it('marks scan FAILED when LLM enrichment throws (LLM errors propagate up)', async () => {
+    // enrichFindingsWithLLM throws — the current implementation does NOT catch
+    // LLM errors internally; they propagate up to the catch block marking the scan FAILED.
     const findings = [makeRawFinding('MEDIUM')];
     vi.mocked(runScanner).mockResolvedValue(makeScannerResult(findings) as any);
     vi.mocked(enrichFindingsWithLLM).mockRejectedValue(new Error('LLM quota exceeded'));
 
-    await expect(runScan(SCAN_ID)).rejects.toThrow('LLM quota exceeded');
+    await runScanExpectError('LLM quota exceeded');
 
     expect(prisma.scan.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED' }) }),
@@ -199,14 +245,14 @@ describe('runScan()', () => {
   it('throws when scan record does not exist', async () => {
     vi.mocked(prisma.scan.findUnique).mockResolvedValue(null);
 
-    await expect(runScan(SCAN_ID)).rejects.toThrow(`Scan ${SCAN_ID} not found`);
+    await runScanExpectError(`Scan ${SCAN_ID} not found`);
   });
 
   it('publishes scan_complete event with grade on success', async () => {
     vi.mocked(runScanner).mockResolvedValue(makeScannerResult([]) as any);
     vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult([]) as any);
 
-    await runScan(SCAN_ID);
+    await runScanAndDrain();
 
     expect(publishEvent).toHaveBeenCalledWith(
       SCAN_ID,
@@ -219,7 +265,7 @@ describe('runScan()', () => {
     vi.mocked(runScanner).mockResolvedValue(makeScannerResult([]) as any);
     vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult([]) as any);
 
-    await runScan(SCAN_ID);
+    await runScanAndDrain();
 
     expect(publishEvent).toHaveBeenCalledWith(
       SCAN_ID,
@@ -239,7 +285,7 @@ describe('runScan()', () => {
     vi.mocked(runScanner).mockResolvedValue(makeScannerResult([]) as any);
     vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult([]) as any);
 
-    await runScan(SCAN_ID);
+    await runScanAndDrain();
 
     // grade=A, score=0 should be present in the final scan update
     expect(prisma.scan.update).toHaveBeenCalledWith(
@@ -255,7 +301,7 @@ describe('runScan()', () => {
     vi.mocked(runScanner).mockResolvedValue(makeScannerResult(findings) as any);
     vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult(findings) as any);
 
-    await runScan(SCAN_ID);
+    await runScanAndDrain();
 
     expect(prisma.scan.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -270,7 +316,7 @@ describe('runScan()', () => {
     vi.mocked(runScanner).mockResolvedValue(makeScannerResult(findings) as any);
     vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult(findings) as any);
 
-    await runScan(SCAN_ID);
+    await runScanAndDrain();
 
     expect(prisma.scan.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -282,19 +328,21 @@ describe('runScan()', () => {
   // ── Timeout handling ──────────────────────────────────────────────────────────
 
   it('marks scan TIMEOUT and publishes scan_timeout when the timeout fires', async () => {
-    vi.useFakeTimers();
-
     // Make runScanner hang forever so the timeout races it
     vi.mocked(runScanner).mockReturnValue(new Promise(() => {})); // never resolves
-    vi.mocked(prisma.finding.count).mockResolvedValue(2); // 2 partial findings
+    vi.mocked(prisma.finding.count).mockResolvedValue(2); // 2 partial findings persisted
 
-    const scanPromise = runScan(SCAN_ID);
+    // Attach .catch() BEFORE advancing so the rejection is handled before the
+    // timer flush and never surfaces as an unhandled rejection.
+    const scanPromise = runScan(SCAN_ID).catch((e: Error) => e);
 
-    // Advance past the SCAN_TIMEOUT_MS (default 120000 ms)
-    await vi.advanceTimersByTimeAsync(130000);
+    // Advance past SCAN_TIMEOUT_MS so the timeout promise fires and wins the race.
+    // No placeholder delays fire because runScanner never resolves (never reaches
+    // the Promise.all step), so we only need to exceed the 120 s timeout.
+    await vi.advanceTimersByTimeAsync(SCAN_TIMEOUT_MS + 5000);
 
-    // The scan should reject with the timeout error
-    await expect(scanPromise).rejects.toThrow('Scan timeout');
+    const err = await scanPromise;
+    expect((err as Error).message).toContain('Scan timeout');
 
     expect(prisma.scan.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'TIMEOUT' }) }),
@@ -304,7 +352,5 @@ describe('runScan()', () => {
       'scan_timeout',
       expect.objectContaining({ scan_id: SCAN_ID, partial_findings: 2 }),
     );
-
-    vi.useRealTimers();
   });
 });
