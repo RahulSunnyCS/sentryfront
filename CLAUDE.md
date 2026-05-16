@@ -80,6 +80,7 @@ Create the file pipeline/risk_manifest.json with this structure:
   "triggers": ["list of what triggered the risk level"],
   "mandatory_agents": ["security-auditor", "performance-reviewer", "architecture-reviewer"],
   "tags": ["zero or more of: pricing, frontend, backend, infra, product"],
+  "lane": "express | bugfix-known | bugfix-unknown | feature-fast | feature-full",
   "sprint_count": 3,
   "human_gates": 3
 }
@@ -93,7 +94,58 @@ In the same rule-based pass, set tags — assign only what genuinely applies:
 (auth / pii / data remain risk_flags, not tags — do not duplicate them.)
 Tags gate the Conditional Specialists below.
 
+Also set lane (the task class — see Adaptive Lanes below):
+- express        — typo, rename, comment, formatting, config / dependency-
+                    version bump; no logic change
+- bugfix-known   — clear reproduction, localized, the fix is obvious/known
+- bugfix-unknown — a bug whose root cause is not yet known / no clean repro
+- feature-fast   — small feature, or one whose high-level design already exists
+- feature-full   — novel/cross-cutting, or anything not matching the above
+                    (this is the default)
+
+**Lane fail-safe (non-negotiable):** if risk_level is HIGH, OR any risk_flag
+applies (auth, pii, payment/billing, public-facing API, admin/privileged,
+file upload / user-generated content), Triage MUST set lane = feature-full
+regardless of how small the surface looks. When uncertain between two lanes,
+pick the heavier one. A lane may only *reduce* ceremony for genuinely
+low-risk work — it can never strip a security gate.
+
 Default to HIGH for any security project. When uncertain, go higher, not lower.
+
+---
+
+## Adaptive Lanes (Triage-selected — fail-safe to feature-full)
+
+The lane set in Phase 0 right-sizes the pipeline to the task. Phase
+*definitions* never change — the lane only sets how deep each phase runs,
+which model, how many Red Team sprints, and which Phase-4 reviewers fire. The
+Phase-0 lane fail-safe governs everything here: HIGH risk or any risk_flag ⇒
+feature-full, no exceptions.
+
+- **express** — skip Phase 0.5 / 1 / 2; Haiku implements directly; run
+  `npm run lint` + `npm run test`; no Phase 4; no Phases 5–7. The three Human
+  Gates collapse into ONE lightweight, Translator-passed confirmation (see
+  Human Gate Rules). Permitted ONLY when risk_level is LOW and no risk_flag.
+- **bugfix-known** — skip Phase 0.5; Phase 1 is a one-paragraph fix plan with
+  NO Red Team loop and no score gate; light translated Gate 1; one scoped
+  task contract; implement on Haiku (Sonnet if logic is non-trivial); Phase 4
+  risk-gated; Phase 5 MUST add a regression test that fails before the fix and
+  passes after; Gates 1/2/3 all kept.
+- **bugfix-unknown** — Phase 0.7 Diagnosis runs first (see below); then
+  Phase 1 targets the *confirmed* root cause (sprint_count may drop to 1–2);
+  full Phase 4 (a non-obvious fix can have side effects); mandatory regression
+  test; Gates 1/2/3 all kept.
+- **feature-fast** — Phase 0.5 grill-me optional; Phase 1 runs exactly ONE
+  Red Team sprint (still scored, still Translator-passed); full Gate 1;
+  Phase 2 decomposition; Phase 4 risk-gated; Phases 5–7 normal; Gates 1/2/3
+  all kept.
+- **feature-full** — the full pipeline exactly as documented below.
+  Unchanged. This is the default and the fail-safe target.
+
+The Phase-1 Optional Recommendations block applies only to feature-fast and
+feature-full. It is suppressed for express and the bugfix lanes (a targeted
+fix must not attract scope-expanding suggestions) unless the user explicitly
+asks for recommendations.
 
 ---
 
@@ -160,6 +212,29 @@ Behaviour (see .claude/commands/grill-me.md):
 
 This front-loads the questions so Human Gate 1 is a clean yes/no, not a
 renegotiation. It never replaces a Human Gate.
+
+---
+
+## Phase 0.7 — Diagnosis (bugfix-unknown lane only)
+
+Runs only when lane == bugfix-unknown, or the user explicitly asks to
+"diagnose" something. Read-only and investigative — it makes NO code changes.
+
+Goal: produce a Diagnosis Record at pipeline/diagnosis.md containing:
+- Reproduction steps (or, if it cannot be reproduced, exactly what was tried
+  and why it could not be)
+- The confirmed root cause with concrete evidence (file:line / mechanism —
+  not a guess)
+- Blast radius — what else the same root cause touches
+- Recommended fix direction (handed to Phase 1, not implemented here)
+
+Model: Sonnet; escalate to Opus if the root cause stays elusive after one
+pass. Effort medium, high if escalated.
+
+Phase 1 then plans the fix against the *confirmed* cause. If the root cause
+cannot be confirmed, STOP and report to the user — never let Phase 1 plan a
+speculative fix (General Rule 1). Phase 0.7 is not a Human Gate and never
+replaces one; an alarming root cause is surfaced immediately (General Rule 4).
 
 ---
 
@@ -271,7 +346,19 @@ Rules:
 
 ## Phase 4 — Parallel Specialist Review
 
-After implementation, run all three reviewers simultaneously:
+**Reviewer set is gated by lane × risk_level** (the Phase-0 lane fail-safe
+still governs):
+- feature-full OR risk_level HIGH → all three (security + performance +
+  architecture); security-auditor mandatory at Opus/max.
+- MEDIUM (bugfix-known / bugfix-unknown / feature-fast at MEDIUM) → security +
+  architecture (performance only if the change is performance-relevant).
+- LOW → architecture only.
+- express → no Phase 4 (no code-logic surface).
+security-auditor is **never** gated out when risk_level is HIGH or any
+auth / pii / payment / public-facing-API risk_flag is set — no lane can
+downgrade this. bugfix-unknown always runs the full set (side-effect risk).
+
+Run the selected reviewers simultaneously:
 1. Security Auditor → .claude/agents/security-auditor.md
 2. Performance Reviewer → .claude/agents/performance-reviewer.md
 3. Architecture Reviewer → .claude/agents/architecture-reviewer.md (apply the frontend/backend/infra lens for whichever of those risk_manifest.tags are set)
@@ -344,6 +431,14 @@ If user says yes, go ahead, approved, or similar → proceed
 If user asks questions → answer fully before proceeding
 If user says stop or cancel → halt and summarise what was completed
 
+Express-lane gate collapse: the express lane (and the docs lane, when later
+added) MERGES the three gates into ONE lightweight confirmation, shown — still
+Translator-passed — before the change is finalised. Permitted ONLY when
+risk_level is LOW and no risk_flag is set. The gate is merged, never skipped:
+the human still explicitly approves once. Every other lane keeps all three
+gates. HIGH risk or any risk_flag is never collapse-eligible (see the Phase-0
+lane fail-safe).
+
 At Gate 1 only, the orchestrator may also present optional AI recommendations: capped at 2 AI-initiated recommend→re-plan rounds, never auto-applied, never a replacement for the gate. Requirements the user adds are uncapped and always honored (see Phase 1 → Optional Recommendations).
 
 ---
@@ -351,7 +446,8 @@ At Gate 1 only, the orchestrator may also present optional AI recommendations: c
 ## Model Assignment
 
 Planning, Decomposition, Synthesis Review, Final Review → Use deepest reasoning available
-Triage → Haiku at low effort (short rule-based risk classification against a fixed rubric; "default to HIGH when uncertain" makes any misclassification fail-safe, so a fast model is correct here)
+Triage → Haiku at low effort (short rule-based risk classification + lane selection against a fixed rubric; "default to HIGH when uncertain" and "pick the heavier lane when uncertain" make any misclassification fail-safe, so a fast model is correct here)
+Diagnosis (Phase 0.7, bugfix-unknown) → Sonnet; escalate to Opus if the root cause stays elusive (root-causing is reasoning, not boilerplate)
 Implementation, Fix cycles → Use fast capable model
 Specialist Reviews → Use fast capable model, EXCEPT the security-auditor, which uses deepest reasoning (Opus): security review is security reasoning
 Documentation, Translation to plain English → Use fastest model
@@ -359,6 +455,8 @@ Test writing → Sonnet at medium effort by default; escalate to Opus at high ef
 Collated epic/delivery documents (epic-doc-writer) → Use mid-tier model (Sonnet): it synthesises rationale, tradeoffs, and human test cases — not mechanical boilerplate
 
 Never use a fast model for security reasoning. Never use a slow expensive model for mechanical tasks like boilerplate or documentation.
+
+Lane sizing (see Adaptive Lanes) selects the model per phase: express → Haiku end-to-end; bugfix-known → Haiku/Sonnet; bugfix-unknown → Sonnet diagnosis then normal phase models; feature-fast / feature-full → as per the table. The lane fail-safe overrides any sizing: HIGH risk / any risk_flag ⇒ feature-full models, security-auditor Opus/max.
 
 ---
 
@@ -381,7 +479,8 @@ Recommended default effort per step (model column = current assignment):
 |----------------------------------|----------------------|--------|
 | Phase 0 Triage                   | Haiku                | low    |
 | Phase 0.5 Intent Extraction      | Opus (grill-me, opt-in) | high   |
-| Phase 1 Planning + Red Team (+ optional recommendations) | Opus / red-team Opus | max    |
+| Phase 0.7 Diagnosis (bugfix-unknown) | Sonnet (Opus if elusive) | medium (high if escalated) |
+| Phase 1 Planning + Red Team (+ optional recommendations) | Opus / red-team Opus | max (feature-fast = 1 sprint; feature-full = sprint_count) |
 | Gate Translator (Gates 1/2/3)    | Haiku                | medium |
 | Phase 2 Decomposition            | Opus                 | high   |
 | Phase 3 Implementation           | Sonnet (implementor) | high   |
@@ -520,7 +619,7 @@ FINAL RECOMMENDATION
 ## General Rules
 
 1. Never guess on security decisions. If uncertain, stop and ask.
-2. Never skip a Human Gate even if the next phase seems obvious.
+2. Never skip a Human Gate even if the next phase seems obvious (exception: the express lane merges the three gates into one lightweight confirmation — see Human Gate Rules — it never *skips* the human).
 3. Always explain decisions in plain English alongside any technical output.
 4. If you find something alarming at any phase, surface it immediately. Do not wait for the review phase.
 5. Keep pipeline/progress.md updated after every phase, and regenerate the root TODO.md from pipeline/tasks/ at every phase boundary (orchestrator is the sole writer; agents read-only) so the user can see exactly where the pipeline stands.
