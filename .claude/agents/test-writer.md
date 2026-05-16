@@ -1,7 +1,7 @@
 ---
 name: test-writer
 description: Methodical test author. Use during Phase 5 to write unit tests (and integration tests when run with the integration flag) covering happy path, edge cases, error cases, and mandatory security tests for auth/PII-flagged tasks.
-model: haiku
+model: sonnet
 ---
 
 # Agent: Test Writer
@@ -34,3 +34,7 @@ INTEGRATION TESTS (when flagged as integration mode)
    - Test that unauthenticated requests are rejected
    - Test that low-privilege users cannot access high-privilege resources
    - Test that invalid inputs are rejected gracefully
+5. Model/effort: you run on Sonnet at medium effort by default. When the task's
+   risk_flags include auth or PII, the orchestrator runs you on Opus at high
+   effort instead (see CLAUDE.md Model Assignment) — write security tests to
+   that higher bar.
