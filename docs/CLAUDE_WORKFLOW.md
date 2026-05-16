@@ -31,8 +31,9 @@ This document explains the autonomous AI pipeline defined in `.claude/` and `CLA
 │   ├── epic-doc.md        # /epic-doc  → Phase 7 delivery doc
 │   ├── test.md            # /test      → Phase 5 + Phase 6
 │   ├── diagnose.md        # /diagnose  → Phase 0.7
-│   ├── fix.md             # /fix       → Phase 6 fix cycle only
-│   └── qa-plan.md         # /qa-plan   → QA Planner on demand
+│   ├── fix.md             # /fix         → Phase 6 fix cycle only
+│   ├── qa-plan.md         # /qa-plan     → QA Planner on demand
+│   └── setup-project.md  # /setup-project → Domain owner onboarding interview
 └── project/               # Single-source-of-truth facts (never duplicated)
     ├── overview.md        # What the product does
     ├── business.md        # Tiers, pricing, Stripe facts
@@ -362,22 +363,60 @@ stateDiagram-v2
 | `/test` | Phase 5 + Phase 6 | Generate and run unit + integration tests |
 | `/fix` | Phase 6 only | Drive failing tests to green without re-running the full pipeline |
 | `/qa-plan` | QA Planner (Phase 1 on demand) | Generate or refresh `qa-checklist.md` without running the full pipeline |
+| `/setup-project` | Pre-pipeline (project init) | Interview-driven onboarding — writes all three `.claude/project/` files for a new project |
 | `/epic-doc` | Phase 7 (on demand) | Produce collated delivery doc mid-pipeline or at end |
 
 ---
 
 ## How to Work Properly Within This System
 
+### Onboarding a brand-new project (run once)
+
+`CLAUDE.md` is a generic, reusable pipeline skeleton — it has zero knowledge of your product. Before any planning or implementation can happen, the three `.claude/project/` files must exist:
+
+| File | What it captures |
+|---|---|
+| `overview.md` | What the product does, who uses it, core features |
+| `business.md` | Business model, tiers, pricing, billing rules, compliance |
+| `technical.md` | Framework, DB, auth, commands, patterns, gotchas, test setup |
+
+Run `/setup-project` to generate them via an interview:
+
+```
+1. /setup-project  → Claude explores the codebase first, then grills you
+                     one question at a time across three sections
+                     (Overview · Business · Technical)
+2. Review the three written files, correct anything wrong
+3. /start          → orchestrator reads the repo with full context
+4. Ready to /plan
+```
+
+```mermaid
+flowchart LR
+    A([New repo\nCLAUDE.md copied in]) --> B[/setup-project]
+    B --> B1[Explore codebase\npackage.json · README · schema\n.env.example · source files]
+    B1 --> B2[Interview — one Q at a time\nOverview · Business · Technical\n14 questions, many inferred from code]
+    B2 --> C[".claude/project/\noverview.md\nbusiness.md\ntechnical.md"]
+    C --> D[/start]
+    D --> E[/plan → ready to build]
+
+    style C fill:#d4edda,stroke:#28a745
+```
+
+> `/setup-project` asks **only** what it cannot infer from code. For a well-documented repo with a clear README and `package.json`, you may only answer 3–5 questions.
+
+---
+
 ### Starting a new task
 
 ```
 1. /start          → read the repo state
 2. /plan           → describe your task; Triage classifies it
-3. Review Gate 1   → read the translated Plan Report
+3. Review Gate 1   → read the translated Plan Report + QA Checklist Summary
 4. Accept / reject optional recommendations (capped at 2 AI rounds)
 5. /implement      → after approval; approve task list
 6. /review         → after implementation
-7. Review Gate 2   → check findings; approve or request fixes
+7. Review Gate 2   → check findings + Automation Gate results; approve or request fixes
 8. Gate 3          → final approval before merge
 ```
 
@@ -421,6 +460,39 @@ Human gates never auto-proceed. If you want the pipeline to continue:
 2. Edit that file only.
 3. Commit in the same PR as the code change it describes.
 4. Never duplicate a fact across files — if you find a duplicate, remove one.
+
+### `/setup-project` — interview structure
+
+The command grills you across three sections. For each question it reads the codebase first and offers a recommended answer — you only correct or confirm.
+
+```
+SECTION 1 — Overview (→ overview.md)
+  Q1.1  What does this product do?
+  Q1.2  Who are the target users?
+  Q1.3  What are the core feature areas?
+  Q1.4  Secondary surfaces (CLI, API, mobile, extension)?
+
+SECTION 2 — Business (→ business.md)
+  Q2.1  Business model (free / freemium / paid / usage-based)?
+  Q2.2  Pricing tiers — name, price, billing period, what unlocked?
+  Q2.3  Payment provider (Stripe, Paddle, none)?
+  Q2.4  Billing bypass flags or test-flow overrides?
+  Q2.5  Compliance constraints (PCI, GDPR, SCA)?
+
+SECTION 3 — Technical (→ technical.md)
+  Q3.1  Framework and language?
+  Q3.2  Database and ORM — dev vs prod providers?
+  Q3.3  Auth system and configured providers?
+  Q3.4  Package manager and runtime version?
+  Q3.5  Essential shell commands (dev, build, test, lint, migrate)?
+  Q3.6  External services (AI, storage, email, monitoring, queue)?
+  Q3.7  Key architectural patterns every developer must know?
+  Q3.8  Gotchas — non-obvious traps for new contributors?
+  Q3.9  Test setup (framework, environment, mocking, coverage)?
+  Q3.10 Critical environment variables (misconfiguration = silent pain)?
+```
+
+After the interview it writes all three files and prints a summary of what was inferred from code vs confirmed by you vs skipped. Then suggests running `/start`.
 
 ---
 
