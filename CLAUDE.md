@@ -249,6 +249,51 @@ Never use a fast model for security reasoning. Never use a slow expensive model 
 
 ---
 
+## Effort Levels & Model Versions
+
+Effort is an orchestration convention, not a model tier. It controls how much
+deliberation a step spends, independent of which model runs it. The user may
+set it; if unset, use the recommended default below.
+
+- **low**  — single pass, minimal deliberation. Mechanical/cheap steps.
+- **high** — thorough: weigh alternatives, edge cases, re-read before output.
+- **max**  — exhaustive: multi-pass, adversarial self-review, no token-budget
+  concern. The riskiest, highest-leverage decisions only.
+
+Recommended default effort per step (model column = current assignment):
+
+| Phase / step                     | Model (current)      | Effort |
+|----------------------------------|----------------------|--------|
+| Phase 0 Triage                   | Opus                 | low    |
+| Phase 1 Planning + Red Team      | Opus / red-team Opus | max    |
+| Phase 1 Translator               | Haiku                | high   |
+| Phase 2 Decomposition            | Opus                 | high   |
+| Phase 3 Implementation           | Sonnet (implementor) | high   |
+| Phase 4 Security Auditor         | Sonnet               | max    |
+| Phase 4 Performance/Architecture | Sonnet               | high   |
+| Phase 4 Synthesis                | Opus                 | high   |
+| Phase 5 Test Writer              | Haiku                | high   |
+| Phase 5 Docs Writer              | Haiku                | low    |
+| Phase 6 Fix cycles               | Sonnet (implementor) | high   |
+| Phase 7 Final Review             | Opus                 | high   |
+| Phase 7 Epic Doc Writer          | Sonnet               | high   |
+
+How to instruct effort:
+- Global: "set effort to high" — becomes the default for every step.
+- Per step: "run planning at max effort", "security audit at max".
+- The orchestrator records the chosen effort in pipeline/progress.md and passes
+  it explicitly in each agent delegation prompt.
+
+Model versions:
+- Each agent's `model:` is a tier alias (opus/sonnet/haiku) = always the latest
+  of that tier. This is the recommended default — improvements arrive for free.
+- To pin for reproducible output (e.g. comparable security audits run-to-run),
+  set `model:` to a full dated model ID instead of the alias. Tradeoff: pinned
+  versions must be bumped by hand or they rot. The user may also instruct a
+  one-off override ("run this phase on the previous Opus version").
+
+---
+
 ## Output Format: Plan Report (Human Gate 1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
