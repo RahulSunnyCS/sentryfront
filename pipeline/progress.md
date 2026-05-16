@@ -27,4 +27,4 @@
 |------|--------|----------|
 | Gate 1 — Plan Approval | Approved | User acknowledged D2 advisory-local/CI-enforced tradeoff; plan v2 |
 | Gate 2 — Review Approval | Approved | CONDITIONAL PASS; user chose "Fix High + all 4 Low" — applied & verified |
-| Gate 3 — Final Approval | Pending | |
+| Gate 3 — Final Approval | Awaiting | Final Summary Report presented — READY WITH CONDITIONS |
