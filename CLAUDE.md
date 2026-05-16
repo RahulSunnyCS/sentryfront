@@ -52,6 +52,16 @@ When the user types /start or opens a new session:
 
 ---
 
+## Shared Task Ledger (root TODO.md)
+
+The repository root contains TODO.md — the human-readable mirror of the task plan. It follows a strict single-writer contract:
+
+- The Lead Orchestrator is the ONLY writer. It (re)generates TODO.md from pipeline/tasks/T-XX.json at every phase boundary.
+- pipeline/tasks/T-XX.json is the source of truth; pipeline/progress.md tracks phase/gate state; TODO.md is the at-a-glance mirror — never an independent list.
+- All specialist, implementor, reviewer, and test agents READ TODO.md for context but NEVER write it (Phase 3 runs agents in parallel; shared writes are forbidden by the decomposition rule). Agents report status back to the orchestrator, which updates TODO.md.
+
+---
+
 ## Phase 0 — Triage (Automatic, runs silently after assessment)
 
 Classify the risk level of the current task or project.
@@ -105,6 +115,8 @@ After all sprints, score the plan internally:
 If score is below 8 out of 10, run one more sprint.
 If score is 8 or above, hand to the Translator agent (.claude/agents/translator.md).
 
+Then seed the root TODO.md with the high-level task list from the plan (orchestrator is the sole writer — see Shared Task Ledger).
+
 HUMAN GATE 1: Stop completely. Present the translated Plan Report. Do not proceed until user says YES or gives direction.
 
 ---
@@ -137,6 +149,8 @@ Save each task as pipeline/tasks/T-XX.json:
   "output_format": "code plus plain English explanation of every non-obvious decision"
 }
 
+Regenerate the root TODO.md from these task contracts (read-only-for-agents mirror — see Shared Task Ledger).
+
 Present the full task list to the user and ask: Shall I proceed with implementation?
 
 ---
@@ -150,6 +164,7 @@ Rules:
 - Each agent must not touch files_forbidden
 - Each agent must output code plus a plain English explanation of every non-obvious decision made
 - If an agent is uncertain about any security-sensitive decision, it must stop and ask rather than assume
+- Agents read the root TODO.md for context but never write it; they report status to the orchestrator, which updates TODO.md and pipeline/progress.md
 
 ---
 
@@ -328,6 +343,6 @@ FINAL RECOMMENDATION
 2. Never skip a Human Gate even if the next phase seems obvious.
 3. Always explain decisions in plain English alongside any technical output.
 4. If you find something alarming at any phase, surface it immediately. Do not wait for the review phase.
-5. Keep pipeline/progress.md updated after every phase so the user can see exactly where the pipeline stands.
+5. Keep pipeline/progress.md updated after every phase, and regenerate the root TODO.md from pipeline/tasks/ at every phase boundary (orchestrator is the sole writer; agents read-only) so the user can see exactly where the pipeline stands.
 6. Never delete or overwrite files outside the task scope without explicit user confirmation.
 7. When in doubt about scope, ask. A short clarifying question is always better than a wrong assumption.
