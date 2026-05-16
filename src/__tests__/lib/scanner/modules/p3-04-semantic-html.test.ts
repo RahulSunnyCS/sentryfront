@@ -166,8 +166,8 @@ describe('P3-04: Semantic HTML Module', () => {
 
       const findings = await runSemanticHTMLModule(metrics);
 
-      // "1 location" not "1 locations"
-      expect(findings[0].evidence).toMatch(/1 location[^s]/);
+      // "1 location" not "1 locations" — string ends after "location" so use \b
+      expect(findings[0].evidence).toMatch(/1 location\b(?!s)/);
     });
 
     it('should use audit description as explanation when provided', async () => {

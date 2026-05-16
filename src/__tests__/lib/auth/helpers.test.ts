@@ -9,8 +9,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Module mocks (declared before any imports of the module under test) ───────
 
-// We need getServerSession controllable per-test, so we hoist a spy here.
-const mockGetServerSession = vi.fn();
+// vi.mock factories are hoisted to the top of the file by Vitest, so variables
+// declared in the test file body are not yet initialised when the factory runs.
+// We use vi.hoisted() to create the mock function in the hoisted scope so it is
+// available both inside the factory and in the test body.
+const { mockGetServerSession } = vi.hoisted(() => ({
+  mockGetServerSession: vi.fn(),
+}));
+
 vi.mock('next-auth', () => ({
   getServerSession: mockGetServerSession,
 }));
