@@ -293,6 +293,12 @@ Bounded re-plan loop:
 - This never auto-applies anything and never replaces the gate: "approve
   as-is" and "stop" are always available; the human always decides.
 
+Then run the QA Planner agent (.claude/agents/qa-planner.md) to produce pipeline/qa-checklist.md:
+- Escalate to Opus at high effort when risk_flags include auth or PII; otherwise Sonnet at medium effort.
+- The checklist classifies every test scenario into three tiers: 🔴 Critical (blocks Gate 2 if failing at the Automation Gate), 🟡 Functional (CONDITIONAL PASS condition at Gate 2), 🟢 Non-blocker (informational only).
+- The Translator agent does NOT translate the checklist — it is a machine-readable artifact consumed by the E2E Test Writer (Phase 5) and the Automation Gate (Phase 6).
+- Append the QA checklist tier summary to the Plan Report before presenting at Gate 1 (see Output Format: Plan Report below).
+
 HUMAN GATE 1: Stop completely. Present the translated Plan Report. Do not proceed until user says YES or gives direction.
 
 ---
@@ -385,6 +391,7 @@ Run simultaneously:
 1. Unit Test Agent using .claude/agents/test-writer.md
 2. Integration Test Agent using .claude/agents/test-writer.md with integration flag
 3. Docs Agent using .claude/agents/docs-writer.md
+4. E2E Test Writer using .claude/agents/e2e-test-writer.md — reads pipeline/qa-checklist.md and writes Playwright tests in e2e/ tagged @critical/@functional/@non-blocker. Bootstraps playwright.config.ts and the test:e2e npm script on first run if they do not exist. Only runs for feature-fast and feature-full lanes (skipped for express and bugfix lanes unless explicitly requested).
 
 ---
 
@@ -397,6 +404,20 @@ If tests fail:
 - Maximum 2 automatic retry cycles
 - If still failing after 2 retries: stop immediately and report to user exactly what is failing, why it is failing, and what decision is needed from the user
 - Never silently retry more than twice
+
+### Automation Gate (runs after unit/integration tests pass)
+
+Model: Haiku at low effort — this step classifies command output, not reasoning.
+
+1. Attempt `npm run test:e2e`.
+   - If `test:e2e` script does not exist in package.json: mark Automation Gate as **CI-ONLY** and proceed without blocking. Log: "E2E tests not bootstrapped — run Phase 5 E2E Test Writer first, or they will run in CI."
+   - If the dev server cannot start (port conflict, missing env vars, config error): mark as **CI-ONLY** and proceed without blocking. Log the exact error so the user can investigate.
+2. If the command runs, classify results by tag:
+   - Any test tagged `@critical` that fails → **Automation Gate: FAIL**. Block Gate 2. Report exactly which critical tests failed and the failure output.
+   - Any test tagged `@functional` that fails → **Automation Gate: CONDITIONAL PASS**. Surface these as named conditions alongside the Gate 2 Synthesis Review Report. Do not block.
+   - Any test tagged `@non-blocker` that fails → log in `pipeline/reviews/automation-gate.md`. No gate impact.
+3. Save all results to `pipeline/reviews/automation-gate.md`. Include the result in the Final Summary Report (see Output Format below).
+4. The Automation Gate runs exactly once per pipeline execution — there is no automatic retry loop. Fixing a failing critical E2E test is a code or config change delegated to the Implementor by the user after Gate 2, not an automatic retry.
 
 ---
 
@@ -493,6 +514,9 @@ Recommended default effort per step (model column = current assignment):
 | Phase 6 Fix cycles               | Sonnet (implementor) | high   |
 | Phase 7 Final Review             | Opus                 | high   |
 | Phase 7 Epic Doc Writer          | Sonnet               | medium |
+| Phase 1 QA Planner               | Sonnet (Opus if auth/PII) | medium (high if auth/PII) |
+| Phase 5 E2E Test Writer          | Sonnet               | medium |
+| Phase 6 Automation Gate          | Haiku                | low    |
 
 How to instruct effort:
 - Global: "set effort to high" — becomes the default for every step.
@@ -555,6 +579,12 @@ R1: [Name]
 WHAT HAPPENS NEXT IF YOU APPROVE
 [Exact next steps. No surprises.]
 
+QA CHECKLIST SUMMARY
+🔴 Critical    : [N] test cases — all must pass at Automation Gate for Gate 2
+🟡 Functional  : [N] test cases — failures → CONDITIONAL PASS at Gate 2
+🟢 Non-blocker : [N] test cases — logged only, no gate impact
+(Full checklist: pipeline/qa-checklist.md)
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ---
@@ -606,6 +636,8 @@ SECURITY SIGN-OFF
 TEST RESULTS
 Unit tests        : [X passing / Y total]
 Integration tests : [X passing / Y total]
+E2E tests         : [X passing / Y total] | 🔴 [N] critical | 🟡 [N] functional | 🟢 [N] non-blocker
+Automation Gate   : PASS / CONDITIONAL PASS / FAIL / CI-ONLY
 
 FINAL RECOMMENDATION
 [ ] READY TO MERGE

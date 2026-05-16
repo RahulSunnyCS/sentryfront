@@ -19,14 +19,20 @@ This document explains the autonomous AI pipeline defined in `.claude/` and `CLA
 │   ├── test-writer.md
 │   ├── docs-writer.md
 │   ├── translator.md
-│   └── epic-doc-writer.md
+│   ├── epic-doc-writer.md
+│   ├── qa-planner.md
+│   └── e2e-test-writer.md
 ├── commands/              # Slash commands wired to pipeline phases
-│   ├── start.md           # /start  → Repository Assessment
-│   ├── plan.md            # /plan   → Phase 0 + Phase 1
+│   ├── start.md           # /start     → Repository Assessment
+│   ├── plan.md            # /plan      → Phase 0 + Phase 1
 │   ├── implement.md       # /implement → Phase 2 + Phase 3
-│   ├── review.md          # /review → Phase 4
-│   ├── grill-me.md        # /grill-me → Phase 0.5
-│   └── epic-doc.md        # /epic-doc → Phase 7 delivery doc
+│   ├── review.md          # /review    → Phase 4
+│   ├── grill-me.md        # /grill-me  → Phase 0.5
+│   ├── epic-doc.md        # /epic-doc  → Phase 7 delivery doc
+│   ├── test.md            # /test      → Phase 5 + Phase 6
+│   ├── diagnose.md        # /diagnose  → Phase 0.7
+│   ├── fix.md             # /fix       → Phase 6 fix cycle only
+│   └── qa-plan.md         # /qa-plan   → QA Planner on demand
 └── project/               # Single-source-of-truth facts (never duplicated)
     ├── overview.md        # What the product does
     ├── business.md        # Tiers, pricing, Stripe facts
@@ -49,16 +55,19 @@ flowchart TD
     D05 --> D1
     D07 --> D1
     D0 --> D1[Phase 1 — Planning\nOpus · max effort\nRed Team loop]
-    D1 --> G1{HUMAN GATE 1\nPlan Report}
+    D1 --> QAP[QA Planner\nSonnet/Opus · medium effort\nwrites pipeline/qa-checklist.md]
+    QAP --> G1{HUMAN GATE 1\nPlan Report + QA Checklist Summary}
     G1 -->|Approved| D2[Phase 2 — Decomposition\nOpus · high effort]
     G1 -->|Rejected / questions| D1
     D2 --> D3[Phase 3 — Implementation\nSonnet implementors · high effort\nParallel tasks]
     D3 --> D4[Phase 4 — Specialist Review\nParallel agents · risk-gated]
     D4 --> G2{HUMAN GATE 2\nSynthesis Review Report}
-    G2 -->|Approved| D5[Phase 5 — Test Generation\nSonnet test-writer · medium effort\nParallel: unit + integration + docs]
+    G2 -->|Approved| D5[Phase 5 — Test Generation\nParallel: unit + integration + docs + e2e]
     G2 -->|Fix needed| D6
-    D5 --> D6[Phase 6 — Test Execution Loop\nmax 2 auto-retries]
-    D6 -->|Pass| D7[Phase 7 — Final Review + Epic Doc\nOpus · high effort]
+    D5 --> D6[Phase 6 — Unit/Integration Tests\nmax 2 auto-retries]
+    D6 -->|Pass| AG[Automation Gate\nHaiku · low effort\n@critical / @functional / @non-blocker]
+    AG -->|Critical fail| STOP2([Stop — block Gate 2\nreport failing critical tests])
+    AG -->|Pass or CI-ONLY| D7[Phase 7 — Final Review + Epic Doc\nOpus · high effort]
     D6 -->|Fail after 2 retries| STOP([Stop — report to user])
     D7 --> G3{HUMAN GATE 3\nFinal Summary Report}
     G3 -->|Approved| MERGE([Merge / Submit])
@@ -91,6 +100,7 @@ gantt
     Diagnosis · Sonnet/Opus · MEDIUM  :0, 1
     section Phase 1
     Planning + Red Team · Opus · MAX  :0, 1
+    QA Planner · Sonnet/Opus · MEDIUM :0, 1
     Gate Translator · Haiku · MEDIUM  :0, 1
     section Phase 2
     Decomposition · Opus · HIGH       :0, 1
@@ -103,8 +113,10 @@ gantt
     section Phase 5
     Test Writer · Sonnet · MEDIUM     :0, 1
     Docs Writer · Haiku · LOW         :0, 1
+    E2E Test Writer · Sonnet · MEDIUM :0, 1
     section Phase 6
     Fix Cycles · Sonnet · HIGH        :0, 1
+    Automation Gate · Haiku · LOW     :0, 1
     section Phase 7
     Final Review · Opus · HIGH        :0, 1
     Epic Doc Writer · Sonnet · MEDIUM :0, 1
@@ -131,6 +143,9 @@ Reference table (the canonical source):
 | Phase 6 — Fix Cycles | Sonnet | high |
 | Phase 7 — Final Review | Opus | high |
 | Phase 7 — Epic Doc Writer | Sonnet | medium |
+| Phase 1 — QA Planner | Sonnet → Opus if auth/PII | medium → high |
+| Phase 5 — E2E Test Writer | Sonnet | medium |
+| Phase 6 — Automation Gate | Haiku | low |
 
 > You can override any step: `"run planning at max effort"` or globally `"set effort to high"`. The orchestrator records the chosen effort in `pipeline/progress.md`.
 
@@ -220,6 +235,8 @@ flowchart TD
 | `docs-writer` | Haiku | 5 | Non-obvious comments, API refs, README |
 | `translator` | Haiku | 1, 2, 3 gates | Converts technical reports to plain English |
 | `epic-doc-writer` | Sonnet | 7 | Collated delivery doc at `docs/epics/<slug>.md` |
+| `qa-planner` | Sonnet → Opus if auth/PII | 1 (end, before Gate 1) | Reads the plan; writes `pipeline/qa-checklist.md` with 🔴/🟡/🟢 test tiers |
+| `e2e-test-writer` | Sonnet | 5 | Translates `qa-checklist.md` into tagged Playwright tests; bootstraps config on first run |
 
 ---
 
@@ -344,6 +361,7 @@ stateDiagram-v2
 | `/review` | Phase 4 | Run all specialist reviewers; stops at Gate 2 |
 | `/test` | Phase 5 + Phase 6 | Generate and run unit + integration tests |
 | `/fix` | Phase 6 only | Drive failing tests to green without re-running the full pipeline |
+| `/qa-plan` | QA Planner (Phase 1 on demand) | Generate or refresh `qa-checklist.md` without running the full pipeline |
 | `/epic-doc` | Phase 7 (on demand) | Produce collated delivery doc mid-pipeline or at end |
 
 ---
@@ -892,6 +910,59 @@ sequenceDiagram
 | Ready to build after Gate 1 | `/implement` — decomposes + builds |
 | Want to review existing code | `/review` — runs all Phase 4 specialists |
 | Want delivery documentation | `/epic-doc` — writes `docs/epics/<slug>.md` |
+
+---
+
+## QA Automation Flow
+
+### How the QA Planner + Automation Gate work together
+
+```mermaid
+sequenceDiagram
+    participant O as Orchestrator
+    participant QA as QA Planner (Sonnet/Opus)
+    participant EW as E2E Test Writer (Sonnet)
+    participant AG as Automation Gate (Haiku)
+    participant U as You
+
+    O->>QA: End of Phase 1 — read plan + risk_manifest
+    QA-->>O: pipeline/qa-checklist.md\n🔴 N critical | 🟡 N functional | 🟢 N non-blocker
+    O->>U: Gate 1 Plan Report + QA Checklist Summary
+    U->>O: Approved
+
+    Note over O,EW: Phase 5 — parallel
+    O->>EW: Translate checklist into Playwright tests
+    EW-->>O: e2e/*.spec.ts written\nplaywright.config.ts bootstrapped if missing
+
+    Note over O,AG: Phase 6 — after unit/integration pass
+    O->>AG: npm run test:e2e
+    alt test:e2e not found or server won't start
+        AG-->>O: CI-ONLY — proceed without blocking
+    else tests run
+        AG-->>O: @critical results → PASS / FAIL\n@functional results → PASS / CONDITIONAL\n@non-blocker results → logged only
+    end
+    AG-->>O: pipeline/reviews/automation-gate.md saved
+```
+
+### Severity tier behaviour at each gate
+
+| Tier | Phase 6 Automation Gate | Gate 2 verdict impact | Final Summary |
+|---|---|---|---|
+| 🔴 Critical | Blocks on failure | Fail → must fix before Gate 2 | Always shown |
+| 🟡 Functional | Does not block | Failures → CONDITIONAL PASS conditions | Always shown |
+| 🟢 Non-blocker | Does not block | No impact | Logged in automation-gate.md |
+| CI-ONLY | No gate impact | No impact | Noted as pending CI |
+
+### Automating only what makes sense
+
+The E2E test writer marks items `Automatable: no` with a skip and a reason. Not every QA checklist item should be automated:
+
+| Example | Automation verdict |
+|---|---|
+| "User can complete checkout with a valid card" | yes — Playwright can fill the form and assert redirect |
+| "PDF export renders correctly across browsers" | partial — can assert download, not visual fidelity |
+| "Support team verifies fraud flags in admin panel" | no — requires human judgement |
+| "Payment terminal shows correct charge amount" | no — requires physical hardware |
 
 ---
 
