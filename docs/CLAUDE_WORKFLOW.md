@@ -336,17 +336,106 @@ stateDiagram-v2
 
 ## Pipeline Artifacts (what gets written where)
 
-| File / Path | Writer | Purpose |
-|---|---|---|
-| `pipeline/risk_manifest.json` | Orchestrator (Phase 0) | Risk level, tags, lane, sprint count |
-| `pipeline/diagnosis.md` | Orchestrator (Phase 0.7) | Root cause + blast radius |
-| `pipeline/progress.md` | Orchestrator (every phase boundary) | Live pipeline state, effort overrides |
-| `pipeline/tasks/T-XX.json` | Orchestrator (Phase 2) | Atomic task contracts |
-| `TODO.md` | Orchestrator only (regenerated each phase boundary) | Human-readable mirror of tasks |
-| `pipeline/reviews/*.md` | Specialist reviewers (Phase 4) | Individual audit reports |
-| `docs/epics/<slug>.md` | Epic Doc Writer (Phase 7 or /epic-doc) | Collated delivery document |
+| File / Path | Writer | Deleted after Gate 3? | Purpose |
+|---|---|---|---|
+| `pipeline/risk_manifest.json` | Orchestrator (Phase 0) | ✅ Yes | Risk level, tags, lane, sprint count |
+| `pipeline/diagnosis.md` | Orchestrator (Phase 0.7) | ✅ Yes | Root cause + blast radius |
+| `pipeline/progress.md` | Orchestrator (every phase boundary) | ✅ Yes | Live pipeline state, effort overrides |
+| `pipeline/token-usage.md` | Orchestrator (after each delegation) | ✅ Yes | Per-phase/task token usage log |
+| `pipeline/tasks/T-XX.json` | Orchestrator (Phase 2) | ✅ Yes | Atomic task contracts |
+| `pipeline/qa-checklist.md` | QA Planner (Phase 1) | ✅ Yes | Severity-tiered test scenarios |
+| `pipeline/reviews/*.md` | Specialist reviewers (Phase 4) | ✅ Yes | Individual audit reports |
+| `TODO.md` | Orchestrator only (root, each phase boundary) | ✅ Yes | Human-readable mirror of tasks |
+| `docs/epics/<slug>.md` | Epic Doc Writer (Phase 7 or /epic-doc) | ❌ Kept | Permanent collated delivery document |
 
-> Agents read `TODO.md` for context but **never write it**. The orchestrator is the sole writer. This is strictly enforced to avoid parallel write conflicts in Phase 3.
+> `pipeline/` is **working state only** — it is deleted in full after Gate 3 approval. `docs/epics/<slug>.md` is the permanent record. Agents read `TODO.md` but never write it; the orchestrator is the sole writer.
+
+---
+
+## Token Usage Tracking
+
+The orchestrator logs one row to `pipeline/token-usage.md` after every agent delegation — phase-level steps *and* individual task contracts (T-XX).
+
+### Log format
+
+```
+| Phase | Step | Agent | Model | Effort | Est. Tokens |
+|---|---|---|---|---|---|
+| Phase 0 | Triage | orchestrator | haiku | low | ~2k |
+| Phase 1 | Red Team Sprint 1 | red-team | opus | max | ~50k |
+| Phase 1 | QA Planner | qa-planner | sonnet | medium | ~8k |
+| Phase 2 | Decomposition | orchestrator | opus | high | ~15k |
+| Phase 3 | T-01: Guest session token | implementor | sonnet | high | ~12k |
+| Phase 3 | T-02: Checkout API | implementor | sonnet | high | ~10k |
+| Phase 4 | Security Auditor | security-auditor | opus | max | ~60k |
+| Phase 4 | Performance Reviewer | performance-reviewer | sonnet | high | ~18k |
+| Phase 5 | Test Writer | test-writer | sonnet | medium | ~20k |
+| Phase 7 | Final Review | orchestrator | opus | high | ~20k |
+```
+
+### Estimated token ranges per model × effort
+
+| Model | Effort | Est. tokens (input + output) |
+|---|---|---|
+| Haiku | low | 1k – 4k |
+| Haiku | medium | 3k – 8k |
+| Sonnet | medium | 5k – 15k |
+| Sonnet | high | 10k – 25k |
+| Opus | high | 15k – 40k |
+| Opus | max | 30k – 80k |
+
+### Where you see it
+
+The token log surfaces in the **Gate 3 Final Summary Report** immediately before the FINAL RECOMMENDATION block:
+
+```
+TOKEN USAGE
+Phase 0  Triage                  : haiku  · low    · ~2k tokens
+Phase 1  Planning (×3 sprints)   : opus   · max    · ~150k tokens
+Phase 1  QA Planner              : sonnet · medium · ~8k tokens
+Phase 2  Decomposition           : opus   · high   · ~15k tokens
+Phase 3  T-01: Guest session     : sonnet · high   · ~12k tokens
+Phase 3  T-02: Checkout API      : sonnet · high   · ~10k tokens
+Phase 4  Security Auditor        : opus   · max    · ~60k tokens
+Phase 4  Perf / Arch Reviewers   : sonnet · high   · ~18k tokens
+Phase 5  Tests + Docs + E2E      : sonnet · medium · ~20k tokens
+Phase 7  Final Review            : opus   · high   · ~20k tokens
+──────────────────────────────────────────────────────────────
+Total estimate : ~315k tokens
+  Opus         : ~245k tokens
+  Sonnet       : ~68k tokens
+  Haiku        : ~2k tokens
+Est. cost      : ~$4.60  (estimates only — use /cost for exact billing)
+```
+
+After Gate 3 approval, `pipeline/token-usage.md` is deleted along with the rest of `pipeline/`.
+
+---
+
+## Pipeline Cleanup After Gate 3
+
+After the human approves Gate 3, the orchestrator **immediately** cleans up all working state:
+
+```mermaid
+flowchart LR
+    G3{Gate 3\nApproved} -->|yes| C1[Delete pipeline/ directory\nrisk_manifest · progress · tasks\nreviews · token-usage · qa-checklist\ndiagnosis]
+    C1 --> C2[Delete TODO.md\nfrom repo root]
+    C2 --> C3["Commit: chore: clean up pipeline\nworking state after Gate 3"]
+    C3 --> DONE([Done — docs/epics/ is\nthe permanent record])
+
+    style DONE fill:#d4edda,stroke:#28a745
+```
+
+**What is kept vs deleted:**
+
+| Artifact | After Gate 3 |
+|---|---|
+| `pipeline/` (entire directory) | 🗑️ Deleted |
+| `TODO.md` (repo root) | 🗑️ Deleted |
+| `docs/epics/<slug>.md` | ✅ Kept — permanent record |
+| All code, tests, and docs written during the pipeline | ✅ Kept |
+
+> Cleanup is **only permitted after explicit Gate 3 approval**. Never delete `pipeline/` mid-run.
 
 ---
 

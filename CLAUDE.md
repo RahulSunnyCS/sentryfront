@@ -62,6 +62,32 @@ The repository root contains TODO.md — the human-readable mirror of the task p
 
 ---
 
+## Pipeline Token Log (pipeline/token-usage.md)
+
+The orchestrator maintains a token usage log throughout the pipeline. After delegating each phase, sub-phase, or task to an agent, append one row to `pipeline/token-usage.md`. This is the only place token usage is recorded — never duplicate it into progress.md or elsewhere.
+
+Log format (one row per delegation):
+
+| Phase | Step | Agent | Model | Effort | Est. Tokens |
+|---|---|---|---|---|---|
+| Phase 0 | Triage | orchestrator | haiku | low | ~2k |
+| Phase 1 | Red Team Sprint 1 | red-team | opus | max | ~50k |
+| Phase 3 | T-01: [title] | implementor | sonnet | high | ~12k |
+
+Rules:
+- Log every delegation — phase, sub-phase, and individual task contracts (T-XX). One row per agent call.
+- For parallel Phase 3 tasks, log each task as a separate row.
+- Use these estimated token ranges per model × effort tier (input + output combined):
+  - Haiku + low    : 1k – 4k
+  - Haiku + medium : 3k – 8k
+  - Sonnet + medium: 5k – 15k
+  - Sonnet + high  : 10k – 25k
+  - Opus + high    : 15k – 40k
+  - Opus + max     : 30k – 80k
+- The Phase 7 Final Summary Report reads this file and produces a cost estimate. The log is working state — it is deleted along with the rest of `pipeline/` after Gate 3 approval.
+
+---
+
 ## Phase 0 — Triage (Automatic, runs silently after assessment)
 
 Classify the risk level of the current task or project.
@@ -436,6 +462,14 @@ Produce the Final Summary Report, then hand it to the Translator agent (.claude/
 
 HUMAN GATE 3: Final approval required before any merge or submit action. Present the translated Final Summary Report.
 
+After Gate 3 approval, immediately clean up all pipeline working state:
+1. Delete the entire `pipeline/` directory — this includes risk_manifest.json, progress.md, token-usage.md, qa-checklist.md, tasks/, reviews/, diagnosis.md, and any other files written during the pipeline run.
+2. Delete `TODO.md` from the repository root — it is a mirror of the task list, now permanently superseded by the epic doc at `docs/epics/<slug>.md`.
+3. Commit the cleanup with message: `chore: clean up pipeline working state after Gate 3`.
+4. The permanent record is `docs/epics/<slug>.md`. Never delete that.
+
+This cleanup is only permitted after explicit Gate 3 approval. Never delete pipeline/ mid-run or before the human has confirmed.
+
 ---
 
 ## Human Gate Rules
@@ -639,6 +673,26 @@ Integration tests : [X passing / Y total]
 E2E tests         : [X passing / Y total] | 🔴 [N] critical | 🟡 [N] functional | 🟢 [N] non-blocker
 Automation Gate   : PASS / CONDITIONAL PASS / FAIL / CI-ONLY
 
+TOKEN USAGE (from pipeline/token-usage.md)
+Phase 0  Triage                    : haiku  · low    · ~[N]k tokens
+Phase 1  Planning (×[N] sprints)   : opus   · max    · ~[N]k tokens
+Phase 1  QA Planner                : sonnet · medium · ~[N]k tokens
+Phase 2  Decomposition             : opus   · high   · ~[N]k tokens
+Phase 3  [T-01: title]             : sonnet · high   · ~[N]k tokens
+Phase 3  [T-02: title]             : sonnet · high   · ~[N]k tokens
+[repeat one row per task/step from pipeline/token-usage.md]
+Phase 4  Security Auditor          : opus   · max    · ~[N]k tokens
+Phase 4  Perf / Arch Reviewers     : sonnet · high   · ~[N]k tokens
+Phase 5  Tests + Docs + E2E        : sonnet · medium · ~[N]k tokens
+Phase 6  Fix cycles (×[N])         : sonnet · high   · ~[N]k tokens
+Phase 7  Final Review              : opus   · high   · ~[N]k tokens
+──────────────────────────────────────────────────────────────
+Total estimate : ~[N]k tokens
+  Opus         : ~[N]k tokens
+  Sonnet       : ~[N]k tokens
+  Haiku        : ~[N]k tokens
+Est. cost      : ~$[N]   (estimates only — see session /cost for exact billing)
+
 FINAL RECOMMENDATION
 [ ] READY TO MERGE
 [ ] READY WITH CONDITIONS: [list conditions]
@@ -654,6 +708,6 @@ FINAL RECOMMENDATION
 2. Never skip a Human Gate even if the next phase seems obvious (exception: the express lane merges the three gates into one lightweight confirmation — see Human Gate Rules — it never *skips* the human).
 3. Always explain decisions in plain English alongside any technical output.
 4. If you find something alarming at any phase, surface it immediately. Do not wait for the review phase.
-5. Keep pipeline/progress.md updated after every phase, and regenerate the root TODO.md from pipeline/tasks/ at every phase boundary (orchestrator is the sole writer; agents read-only) so the user can see exactly where the pipeline stands.
-6. Never delete or overwrite files outside the task scope without explicit user confirmation.
+5. Keep pipeline/progress.md updated after every phase, and regenerate the root TODO.md from pipeline/tasks/ at every phase boundary (orchestrator is the sole writer; agents read-only). After each agent delegation, append one row to pipeline/token-usage.md (see Pipeline Token Log).
+6. Never delete or overwrite files outside the task scope without explicit user confirmation. Exception: the pipeline/ cleanup after Gate 3 approval is explicitly authorised (see Phase 7).
 7. When in doubt about scope, ask. A short clarifying question is always better than a wrong assumption.
