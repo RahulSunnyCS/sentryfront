@@ -423,13 +423,42 @@ Run simultaneously:
 
 ## Phase 6 — Test Execution Loop
 
-Run the tests.
+### Change-Scope & Blast-Radius Validation (runs before the tests)
 
-If tests fail:
-- Delegate fixes to Implementor agent
-- Maximum 2 automatic retry cycles
-- If still failing after 2 retries: stop immediately and report to user exactly what is failing, why it is failing, and what decision is needed from the user
-- Never silently retry more than twice
+Model: Haiku at low effort — this step maps changed files to task scopes, not reasoning.
+
+Before running the tests, validate that every change is linked to a declared task:
+
+1. Diff every changed test and source file against the base branch.
+2. Map each changed file to a task in `pipeline/tasks/T-XX.json` (its `files_to_create` / `files_to_modify`).
+3. Every changed file must link to a task. Classify each: `valid` (cleanly inside one task scope), `unlinked` (not in any task scope), or `shared-ripple` (a shared/common component touched by more than one task or whose change reaches beyond the declaring task).
+4. Save the map to `pipeline/reviews/blast-radius-validation.md`: per file → linked task → classification.
+5. For each `shared-ripple`, escalate to the architecture-reviewer (coupling lens) and, if a regression is suspected, to the regression-analyst (.claude/agents/regression-analyst.md). An `unlinked` change is surfaced to the user — a change with no declared task is out of scope by definition.
+
+This step never blocks on its own; it produces the blast-radius record that Regression Triage and the Synthesis Review consume. A common-component change that rippled into many places must be **validated**, not passed silently.
+
+### Run the tests
+
+If tests fail, classify every failure **before** delegating any fix:
+
+### Regression Triage (Haiku, low effort)
+
+For each failing test, classify it against the Change-Scope map:
+
+- **DIRECT** — the failing test's subject is inside a current task's `files_to_modify` / `files_to_create`. The task's own code broke.
+- **COLLATERAL** — the failing test is outside every task scope, and a shared/common component changed this run and broke it. This is a regression, not a fix target.
+
+Save the classification to `pipeline/reviews/regression-triage.md`. Then route:
+
+- **DIRECT** → delegate fixes to the Implementor agent.
+  - Maximum 2 automatic retry cycles.
+  - If still failing after 2 retries: stop immediately and report to the user exactly what is failing, why it is failing, and what decision is needed from the user.
+  - Never silently retry more than twice.
+- **COLLATERAL** → delegate to the regression-analyst agent (.claude/agents/regression-analyst.md) at Opus, high effort. It evaluates the shared-component change and the architecture that let it cascade — it does not just patch the failing test.
+  - Bounded to **one** auto-fix attempt, applied only inside the changed common component, only when the analyst is confident and the fault is the change (not the architecture).
+  - It does **not** consume the DIRECT path's 2-retry budget — that cap applies to DIRECT failures only. COLLATERAL is escalation, not retry; never silently loop it.
+  - If the fault is architectural, or the analyst is not confident, it STOPS and surfaces to the user immediately (General Rule 4) with the full blast radius — do not wait for a gate.
+  - Never modify a failing test to make it pass — a regression is fixed at its cause.
 
 ### Automation Gate (runs after unit/integration tests pass)
 
@@ -442,8 +471,13 @@ Model: Haiku at low effort — this step classifies command output, not reasonin
    - Any test tagged `@critical` that fails → **Automation Gate: FAIL**. Block Gate 2. Report exactly which critical tests failed and the failure output.
    - Any test tagged `@functional` that fails → **Automation Gate: CONDITIONAL PASS**. Surface these as named conditions alongside the Gate 2 Synthesis Review Report. Do not block.
    - Any test tagged `@non-blocker` that fails → log in `pipeline/reviews/automation-gate.md`. No gate impact.
-3. Save all results to `pipeline/reviews/automation-gate.md`. Include the result in the Final Summary Report (see Output Format below).
-4. The Automation Gate runs exactly once per pipeline execution — there is no automatic retry loop. Fixing a failing critical E2E test is a code or config change delegated to the Implementor by the user after Gate 2, not an automatic retry.
+3. **Run Regression Triage on every failing E2E test, before deciding the gate verdict.** A failing E2E test that has nothing to do with the current task must not be reported as a plain critical/functional failure until its cause is classified the same way unit/integration failures are:
+   - **DIRECT** — the E2E test exercises the feature the current task built. Treat as a genuine gate failure per the tag rules above.
+   - **COLLATERAL** — the E2E test is for an unrelated flow and a shared/common component changed this run and broke it. Delegate to the regression-analyst (.claude/agents/regression-analyst.md), same bounded path as the unit/integration COLLATERAL route (one auto-fix attempt inside the changed component; architectural fault → surface immediately). A COLLATERAL E2E regression is reported as a regression, not silently as a `@critical` gate FAIL.
+   - **EXTERNAL** — the failure is an external factor, not the code: flaky test, dev server / port / env / network, missing browser binary, timeout. Mark the test **EXTERNAL** in `pipeline/reviews/automation-gate.md`, do not count it as a gate FAIL, and surface the exact error so the user can investigate (same spirit as the CI-ONLY fallback). Never let an environmental flake block Gate 2.
+   Record each E2E failure's classification (DIRECT / COLLATERAL / EXTERNAL) in `pipeline/reviews/automation-gate.md` alongside the tag verdict.
+4. Save all results to `pipeline/reviews/automation-gate.md`. Include the result in the Final Summary Report (see Output Format below).
+5. The Automation Gate itself runs exactly once per pipeline execution — there is no automatic retry loop. Regression Triage is classification (and, for COLLATERAL, the regression-analyst's single bounded auto-fix), not a retry loop. Fixing a genuine DIRECT critical E2E failure is a code or config change delegated to the Implementor by the user after Gate 2, not an automatic retry.
 
 ---
 
@@ -507,6 +541,7 @@ Implementation, Fix cycles → Use fast capable model
 Specialist Reviews → Use fast capable model, EXCEPT the security-auditor, which uses deepest reasoning (Opus): security review is security reasoning
 Documentation, Translation to plain English → Use fastest model
 Test writing → Sonnet at medium effort by default; escalate to Opus at high effort when the task's risk_flags include auth or PII (security tests need the strongest reasoning)
+Regression analysis (regression-analyst, Phase 6 COLLATERAL path) → Opus at high effort: evaluating a shared-component change and the architecture that let it cascade is regression reasoning, same principle as the security-auditor — never a fast model. The DIRECT-failure fix path stays on the fast model (Implementor).
 Collated epic/delivery documents (epic-doc-writer) → Use mid-tier model (Sonnet): it synthesises rationale, tradeoffs, and human test cases — not mechanical boilerplate
 
 Never use a fast model for security reasoning. Never use a slow expensive model for mechanical tasks like boilerplate or documentation.
@@ -550,6 +585,9 @@ Recommended default effort per step (model column = current assignment):
 | Phase 7 Epic Doc Writer          | Sonnet               | medium |
 | Phase 1 QA Planner               | Sonnet (Opus if auth/PII) | medium (high if auth/PII) |
 | Phase 5 E2E Test Writer          | Sonnet               | medium |
+| Phase 5/6 Blast-Radius Validation | Haiku               | low    |
+| Phase 6 Regression Triage        | Haiku                | low    |
+| Phase 6 Regression Analyst       | Opus (regression-analyst) | high |
 | Phase 6 Automation Gate          | Haiku                | low    |
 
 How to instruct effort:
@@ -641,6 +679,11 @@ PERFORMANCE FINDINGS
 ARCHITECTURE FINDINGS
 [Same format]
 
+REGRESSION & BLAST-RADIUS (from pipeline/reviews/regression-analysis.md + blast-radius-validation.md)
+🔴 Architectural-fault regression : [Finding — the coupling that let one change cascade — what to do]
+🟡 Shared-component regression    : [Auto-fixed or surfaced — blast radius — what to do]
+🟢 Unlinked / shared-ripple change: [Changed file with no clean task link — confirm intended]
+
 CONFLICTS BETWEEN REVIEWERS
 [Any disagreements between security, performance, and architecture — and your recommendation]
 
@@ -672,6 +715,8 @@ Unit tests        : [X passing / Y total]
 Integration tests : [X passing / Y total]
 E2E tests         : [X passing / Y total] | 🔴 [N] critical | 🟡 [N] functional | 🟢 [N] non-blocker
 Automation Gate   : PASS / CONDITIONAL PASS / FAIL / CI-ONLY
+Blast radius      : [N] changed files | [N] valid | [N] unlinked | [N] shared-ripple
+Regressions       : [N] COLLATERAL | [N] auto-fixed | [N] SURFACED (architectural / unconfirmed)
 
 TOKEN USAGE (from pipeline/token-usage.md)
 Phase 0  Triage                    : haiku  · low    · ~[N]k tokens
@@ -699,6 +744,56 @@ FINAL RECOMMENDATION
 [ ] NOT READY: [list blockers]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+---
+
+## Output Format: Blast-Radius Validation (pipeline/reviews/blast-radius-validation.md)
+
+Written by the Change-Scope & Blast-Radius Validation step at the Phase 5→6 boundary.
+
+```
+BLAST-RADIUS VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Base : [base branch / ref the diff is taken against]
+
+| Changed file | Linked task | Classification |
+|---|---|---|
+| [path] | T-XX | valid |
+| [path] | (none) | unlinked |
+| [path] | T-XX (+ reaches T-YY, T-ZZ) | shared-ripple |
+
+ESCALATED
+- shared-ripple [path] → architecture-reviewer (coupling lens)[ + regression-analyst if regression suspected]
+- unlinked [path] → surfaced to user (no declared task)
+
+SUMMARY
+Changed files : [N]
+valid         : [N]
+unlinked      : [N]
+shared-ripple : [N]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+---
+
+## Output Format: Regression Analysis Record (pipeline/reviews/regression-analysis.md)
+
+Written by the regression-analyst — one block per COLLATERAL failure analysed (appended, never overwritten in a run). Full per-block format is defined in .claude/agents/regression-analyst.md:
+
+```
+REGRESSION ANALYSIS — [failing test name]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Classification        : COLLATERAL (shared-component regression) | DIRECT (handed back)
+Changed component     : [file:line — the common component that changed, and for which task]
+Root cause            : [mechanism with file:line evidence — not a guess]
+Blast radius          : [every test / flow / module the same change touches]
+Is the change correct?: YES | NO | PARTIAL — [reasoning]
+Architectural fault?  : YES | NO — [the coupling that let one change cascade, if any]
+Action taken          : AUTO-FIXED (re-ran once, now passing) | SURFACED (no auto-fix)
+Remediation           : [what was changed inside the common component, OR the
+                         decision the user must make if surfaced]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
 
 ---
 
