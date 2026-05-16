@@ -214,6 +214,9 @@ Check:
 - All Critical and High security findings resolved?
 - All tests passing?
 - Documentation updated?
+- Collated epic document written?
+
+Before the Final Summary Report, delegate to the Epic Doc Writer agent (.claude/agents/epic-doc-writer.md) to produce the collated epic/large-chunk delivery document at docs/epics/<epic-slug>.md — what was done, how it helps, limitations/tradeoffs and why, the tests the AI ran, manual test cases for humans, and security/risk notes. It reads pipeline artifacts read-only and never writes TODO.md or pipeline/progress.md. Trigger it on demand via /epic-doc when a large chunk completes mid-pipeline, not only at the end.
 
 Produce the Final Summary Report and present to user.
 
@@ -240,6 +243,7 @@ If user says stop or cancel → halt and summarise what was completed
 Triage, Planning, Decomposition, Synthesis Review, Final Review → Use deepest reasoning available
 Implementation, Specialist Reviews, Fix cycles → Use fast capable model
 Test writing, Documentation, Translation to plain English → Use fastest model
+Collated epic/delivery documents (epic-doc-writer) → Use mid-tier model (Sonnet): it synthesises rationale, tradeoffs, and human test cases — not mechanical boilerplate
 
 Never use a fast model for security reasoning. Never use a slow expensive model for mechanical tasks like boilerplate or documentation.
 
