@@ -403,6 +403,495 @@ Human gates never auto-proceed. If you want the pipeline to continue:
 
 ---
 
+## Real-World Example Scenarios (E-Commerce App)
+
+The examples below use a fictional e-commerce platform — **ShopFlow** — with a product catalogue, cart, guest/registered checkout, Stripe payments, seller image uploads, and an admin order dashboard. Each scenario shows the exact prompt to type, what Triage classifies it as, which agents fire, and what to expect at each gate.
+
+---
+
+### Scenario 1 — Typo fix on the cart page (express lane)
+
+**Situation:** The "Proceed to Checkout" button on the cart page reads "Procced to Checkout".
+
+**Prompt to type:**
+```
+Fix the typo on the cart page — the checkout button says "Procced to Checkout",
+it should say "Proceed to Checkout".
+```
+
+**What Triage assigns:**
+
+| Field | Value |
+|---|---|
+| Lane | express |
+| Risk level | LOW |
+| Tags | frontend |
+| Agents | None (Haiku implements directly) |
+| Gates | 1 lightweight confirmation (gates collapsed) |
+
+**What happens:**
+
+```mermaid
+flowchart LR
+    A[Triage — Haiku] --> B[Locate string in\nsrc/components/cart/CheckoutButton.tsx]
+    B --> C[Haiku fixes typo]
+    C --> D[npm run lint + npm run test]
+    D --> E{Single lightweight\nconfirmation}
+    E -->|Approved| F[Done]
+```
+
+> Express lane — no planning phase, no Red Team, no specialist review. One gate. Permitted only because risk is LOW and no risk flag applies.
+
+---
+
+### Scenario 2 — Known discount-calculation bug (bugfix-known)
+
+**Situation:** When a user applies a discount code AND qualifies for free shipping, the cart total is wrong. The bug is suspected to be in `lib/cart/discounts.ts`.
+
+**Prompt to type:**
+```
+Bug: cart total is wrong when a discount code is applied alongside free shipping.
+The bug is in lib/cart/discounts.ts — looks like discount is applied before the
+shipping credit, causing double-subtraction. Fix it and add a regression test.
+```
+
+**What Triage assigns:**
+
+| Field | Value |
+|---|---|
+| Lane | bugfix-known |
+| Risk level | MEDIUM |
+| Tags | backend |
+| Agents | Implementor (Sonnet), Architecture Reviewer (Phase 4) |
+| Gates | All 3 kept; Gate 1 is lightweight (1-para plan, no Red Team loop) |
+
+**What happens:**
+
+```mermaid
+flowchart TD
+    A[Phase 1 — 1-para fix plan\nNo Red Team loop] --> G1{Gate 1\nlightweight}
+    G1 -->|Approved| B[Phase 2 — 1 task contract\nT-01: fix discounts.ts]
+    B --> C[Phase 3 — Sonnet Implementor\nfix + regression test]
+    C --> D[Phase 4 — Architecture Reviewer only\nSONNET · high]
+    D --> G2{Gate 2}
+    G2 -->|Approved| E[Phase 5 — regression test\nmust fail before fix passes after]
+    E --> F[Phase 6 — run tests]
+    F --> G3{Gate 3}
+```
+
+**Gate 1 plan looks like:**
+> Fix the discount stacking order in `lib/cart/discounts.ts` so shipping credit is applied before percentage discounts. Add one regression test for the combined-discount case.
+
+---
+
+### Scenario 3 — Cart randomly empties after login (bugfix-unknown)
+
+**Situation:** Several users report their cart empties after they log in. It's intermittent and can't be reproduced consistently. Root cause is unknown.
+
+**Prompt to type:**
+```
+Bug report: users say their cart empties after logging in. We can't reproduce it
+reliably — happens maybe 1 in 5 logins. No error in logs. Diagnose first, then fix.
+```
+
+**What Triage assigns:**
+
+| Field | Value |
+|---|---|
+| Lane | bugfix-unknown |
+| Risk level | HIGH (touches auth sessions) |
+| Tags | backend, frontend |
+| Agents | Diagnosis (Phase 0.7), then full Phase 4 set |
+| Gates | All 3 kept; Phase 0.7 runs before any plan |
+
+**What happens:**
+
+```mermaid
+flowchart TD
+    A[Phase 0.7 — Diagnosis\nSonnet reads session merge logic\ncart hydration on login\ncookie/localStorage hand-off] --> DR[Diagnosis Record\npipeline/diagnosis.md]
+    DR --> B{Root cause found?}
+    B -->|Yes — race condition in\ncart hydration on session restore| C[Phase 1 — plan targets\nconfirmed root cause]
+    B -->|No| STOP([Stop — report to user\nnever plan a speculative fix])
+    C --> G1{Gate 1}
+    G1 --> D[Phase 2 — decompose fix]
+    D --> E[Phase 3 — Implementor]
+    E --> F[Phase 4 — Full reviewer set\nSecurity + Perf + Architecture\nbugfix-unknown always runs all three]
+    F --> G2{Gate 2}
+    G2 --> G[Phase 5 — regression test\nreproduces the race, then passes]
+```
+
+**Diagnosis record excerpt (pipeline/diagnosis.md):**
+```
+Root cause: cart state is hydrated from localStorage before the session
+cookie is set, so the post-login session triggers a second hydration with
+an empty server-side cart, overwriting the localStorage cart.
+
+File: src/lib/cart/cart-hydration.ts:88
+Mechanism: useEffect dependency array fires on sessionStatus === 'authenticated'
+before the merge step at line 102 completes.
+
+Blast radius: any flow that transitions unauthenticated → authenticated while
+a cart exists (login, OAuth callback, token refresh).
+```
+
+---
+
+### Scenario 4 — Recently Viewed Products section (feature-fast)
+
+**Situation:** Product managers want a "Recently Viewed" row on the product detail page showing the last 5 items the user browsed, stored in localStorage. No backend change needed.
+
+**Prompt to type:**
+```
+Add a "Recently Viewed Products" section to the product detail page.
+Show the last 5 products the user viewed, stored in localStorage.
+Only show it if there are at least 2 items. No backend changes needed.
+```
+
+**What Triage assigns:**
+
+| Field | Value |
+|---|---|
+| Lane | feature-fast |
+| Risk level | LOW |
+| Tags | frontend |
+| Red Team sprints | 1 (feature-fast always exactly 1) |
+| Agents | Implementor (Sonnet), Architecture Reviewer (Phase 4) |
+| Gates | All 3 kept |
+
+**What happens:**
+
+```mermaid
+flowchart TD
+    A[Phase 0 — Triage] --> B[Phase 1 — 1 Red Team sprint\nOpus · max effort]
+    B --> TR[Translator → Gate 1 plan]
+    TR --> G1{Gate 1}
+    G1 -->|Approved| C[Phase 2 — task contracts\nT-01: useRecentlyViewed hook\nT-02: RecentlyViewedRow component\nT-03: wire into product page]
+    C --> D[Phase 3 — Sonnet Implementors\nparallel]
+    D --> E[Phase 4 — Architecture Reviewer\nfrontend lens · Sonnet · high]
+    E --> G2{Gate 2}
+    G2 --> F[Phase 5 — unit tests for hook\nrender tests for component]
+    F --> G3{Gate 3}
+```
+
+**Gate 1 Plan Report (abbreviated):**
+```
+WHAT WE ARE BUILDING
+A hook that reads/writes a product-ID list in localStorage, capped at 5,
+and a display row component that fetches those product thumbnails and
+renders them. It only appears once 2+ items exist.
+
+WHAT COULD GO WRONG
+Risk: SSR mismatch — localStorage is browser-only; accessing it during
+server render throws. Defence: guard with typeof window !== 'undefined'
+and initialise state lazily.
+
+OPTIONAL RECOMMENDATIONS
+R1: Sync recently viewed across devices via the user's session (backend key).
+    Value: better experience for logged-in users.
+    Tradeoff: requires a DB column + API route — adds backend scope.
+```
+
+---
+
+### Scenario 5 — Guest checkout flow (feature-full · HIGH)
+
+**Situation:** Allow users to buy without creating an account. Capture email for order confirmation. Offer account creation post-purchase.
+
+**Prompt to type:**
+```
+Add guest checkout. Users should be able to complete a purchase without
+registering. We capture their email for the order confirmation. After
+payment succeeds show an optional "Create an account" prompt.
+The existing registered checkout flow must not be affected.
+```
+
+**What Triage assigns:**
+
+| Field | Value |
+|---|---|
+| Lane | feature-full (auth risk flag → fail-safe) |
+| Risk level | HIGH |
+| Risk flags | auth, PII (email captured), payment |
+| Tags | frontend, backend, pricing |
+| Red Team sprints | 3 (from risk_manifest.sprint_count) |
+| Agents | All mandatory: Security Auditor (Opus/max), Performance Reviewer, Architecture Reviewer, Pricing Reviewer |
+| Gates | All 3 kept, no collapse |
+
+**What happens:**
+
+```mermaid
+flowchart TD
+    A[Phase 0 — Triage\nHIGH · feature-full] --> B[Phase 0.5 — Grill-Me optional\nOrchestrator interviews user\non session handling, email storage,\ndata retention policy]
+    B --> C[Phase 1 — Planning\nOpus · max effort\n3 Red Team sprints]
+    C --> D[Bounded Phase-1 constraint round\nrisk HIGH + 3 tags set:\nPricing memo + Architecture memo\norchestrator synthesises]
+    D --> E[Translator → Gate 1 report]
+    E --> G1{GATE 1}
+    G1 --> F[Phase 2 — Decomposition\n6+ task contracts]
+    F --> G[Phase 3 — Parallel Implementors\nSonnet · high]
+    G --> H[Phase 4 — ALL reviewers parallel\nSecurity Auditor Opus MAX\nPerf Reviewer Sonnet HIGH\nArch Reviewer Sonnet HIGH\nPricing Reviewer Sonnet LOW]
+    H --> I[Translator → Gate 2 report]
+    I --> G2{GATE 2}
+    G2 --> J[Phase 5 — Tests + Docs\nTest Writer Opus HIGH\nauth+PII flags escalate model]
+    J --> K[Phase 6 — Test loop\nmax 2 retries]
+    K --> L[Phase 7 — Epic Doc + Final Review]
+    L --> G3{GATE 3}
+```
+
+**Sample Grill-Me questions (Phase 0.5):**
+```
+Q1: Should guest sessions use a signed cookie or a short-lived JWT?
+    Recommended: signed cookie (same mechanism as registered sessions — less surface).
+
+Q2: How long should we retain guest order data if they never create an account?
+    Recommended: 2 years (matches standard e-commerce retention for dispute windows).
+
+Q3: Can a guest apply a discount code?
+    Recommended: yes — applying the existing discount engine with no tier-gate.
+
+Q4: Should the "Create account" prompt pre-fill the captured email?
+    Recommended: yes — reduces friction, data is already in our session.
+```
+
+**Sample task contracts (Phase 2):**
+```
+T-01: Guest session token — create + validate (backend)
+T-02: Checkout API — accept guest payload with email (backend)
+T-03: Guest checkout form component (frontend)
+T-04: Order confirmation email for guests (backend)
+T-05: Post-purchase account creation prompt (frontend)
+T-06: Tier-gate audit — confirm guest orders do not unlock paid tiers (pricing)
+```
+
+**Security Auditor findings (Gate 2 excerpt):**
+```
+🔴 Critical: Guest session token must be signed and scoped to one order —
+   prevent reuse or enumeration. Fix: HMAC-sign with NEXTAUTH_SECRET,
+   embed order ID + expiry, validate on every order status request.
+
+🟡 Medium: Guest email stored in plain-text in the Stripe metadata field —
+   redact before logging. Fix: mask to "j***@example.com" in all log lines.
+
+🟢 Low: "Create account" form re-POSTs the email — safe, but consider
+   pre-filling from the session to avoid a second transmission.
+```
+
+---
+
+### Scenario 6 — Stripe subscription tiers (feature-full · HIGH + pricing)
+
+**Situation:** Add a "VIP Membership" — $14.99/month subscription giving free shipping, early sale access, and priority support. Integrate Stripe billing, webhook handling, and a member-only badge on orders.
+
+**Prompt to type:**
+```
+Add a VIP Membership subscription — $14.99/month via Stripe. Members get:
+free shipping on all orders, early access to sales (24h before public),
+and a "VIP" badge on their profile and order history.
+Handle the Stripe webhook for subscription events (created, cancelled,
+payment failed). Gate the early-access sale page behind the membership.
+```
+
+**What Triage assigns:**
+
+| Field | Value |
+|---|---|
+| Lane | feature-full (payment risk flag → fail-safe) |
+| Risk level | HIGH |
+| Risk flags | payment/billing, auth (session tier update) |
+| Tags | frontend, backend, pricing |
+| Conditional specialists | Pricing Reviewer (mandatory — `pricing` tag set) |
+| Gates | All 3, no collapse |
+
+**Pricing Reviewer constraint memo (Phase 1 input):**
+```
+New tier "vip" must slot into the existing hierarchy:
+free → one-shot → pro → studio
+
+Decision needed: does "vip" sit between pro and studio, or is it
+a parallel track (ship-speed vs quality)?
+
+PAYMENT_TEST_FLOW=true must still work in dev/staging for the new tier.
+The Stripe webhook endpoint must hard-fail if NODE_ENV === 'production'
+and PAYMENT_TEST_FLOW is set — existing guard applies, extend it.
+
+Stripe price ID to add: STRIPE_PRICE_ID_VIP_MONTHLY
+```
+
+**Sample task contracts (Phase 2):**
+```
+T-01: Add "vip" to tier hierarchy in lib/auth/helpers.ts + tier-gating.ts
+T-02: Stripe checkout session for VIP subscription
+T-03: Webhook handler — subscription.created / deleted / payment_failed
+T-04: Update Prisma User model — add subscriptionId, vipSince fields
+T-05: Free-shipping logic gate in checkout API (hasTier 'vip')
+T-06: Early-access sale page — middleware + hasTier guard
+T-07: VIP badge component — profile page + order history
+T-08: PAYMENT_TEST_FLOW extension for new vip tier (dev/staging only)
+```
+
+---
+
+### Scenario 7 — Seller product image upload (feature-full · HIGH)
+
+**Situation:** Sellers can upload up to 5 product images (max 5 MB each, JPEG/PNG/WebP). Store them in Cloudflare R2. Serve via a CDN URL.
+
+**Prompt to type:**
+```
+Sellers need to upload product images — up to 5 images per product,
+max 5 MB each, JPEG/PNG/WebP only. Store in Cloudflare R2, serve via CDN.
+Validate file type server-side (not just by extension). Show an upload
+progress bar. Reject oversized or wrong-type files with a clear error.
+```
+
+**What Triage assigns:**
+
+| Field | Value |
+|---|---|
+| Lane | feature-full (file upload risk flag → fail-safe) |
+| Risk level | HIGH |
+| Risk flags | file upload / user-generated content |
+| Tags | frontend, backend, infra |
+| Agents | All 3 mandatory reviewers; Security Auditor Opus/max |
+| Gates | All 3 kept |
+
+**Red Team attack summary (Phase 1, pessimist stance):**
+```
+PESSIMIST findings:
+- Magic-byte validation can be fooled by polyglot files (JPEG header +
+  embedded SVG with XSS payload). Defence: validate with sharp/file-type
+  library, re-encode via sharp to strip metadata, never serve the raw upload.
+
+- Filename used as R2 key allows path traversal if not sanitised.
+  Defence: always generate a UUID key, discard the original filename.
+
+- 5 MB × 5 images = 25 MB per product; a seller could flood storage with
+  unsaved drafts. Defence: enforce upload only after product draft exists;
+  cron cleanup of orphaned blobs older than 24h.
+
+- Signed R2 upload URL must scope to a single object key and expire
+  within 5 minutes to prevent URL reuse.
+```
+
+**Security Auditor findings (Gate 2 excerpt):**
+```
+🔴 Critical: Raw file stored at upload URL before validation — an attacker
+   can upload a malicious file and share the CDN URL before the server
+   re-encodes it. Fix: upload to a quarantine prefix, re-encode with
+   sharp, then move to public prefix. CDN serves only the public prefix.
+
+🔴 Critical: MIME type read from Content-Type header (client-controlled).
+   Fix: use the `file-type` library to sniff magic bytes server-side;
+   reject if type does not match JPEG/PNG/WebP.
+
+🟡 Medium: No rate limit on presigned URL generation — a seller could
+   request thousands of upload URLs. Fix: 20 upload URLs per seller per hour.
+```
+
+---
+
+### Scenario 8 — Admin order dashboard with refunds (feature-full · HIGH)
+
+**Situation:** Internal admin page listing all orders, allowing staff to search by customer email, issue partial or full refunds via Stripe, and flag accounts for review.
+
+**Prompt to type:**
+```
+Build an admin order dashboard. Admins (from ADMIN_EMAILS) can:
+- View all orders, paginated, searchable by customer email or order ID
+- Issue a full or partial refund for any order via Stripe
+- Flag a user account with a reason (shows a warning on their next login)
+Admin routes should 404 to non-admins (not 403 — don't reveal the route exists).
+```
+
+**What Triage assigns:**
+
+| Field | Value |
+|---|---|
+| Lane | feature-full (admin/privileged + payment risk flags → fail-safe) |
+| Risk level | HIGH |
+| Risk flags | admin/privileged access, payment/billing, PII (customer emails visible) |
+| Tags | frontend, backend, pricing |
+| Agents | All mandatory; Security Auditor Opus/max |
+| Gates | All 3 kept |
+
+**Gate 1 decisions the plan surfaces:**
+```
+DECISIONS YOU NEED TO MAKE
+
+□ Should partial refunds reduce the order total in our DB, or only in Stripe?
+  (Keeping them in sync avoids confusion in the dashboard; requires a schema change.)
+
+□ Should flagged accounts be blocked from checkout immediately, or only shown a warning?
+  (Immediate block is safer but may be too aggressive for a first version.)
+
+□ Audit log: do we need a record of which admin issued each refund and flag action?
+  (Recommended yes — required for dispute handling and SOC 2 if you ever pursue it.)
+```
+
+**Task contracts (Phase 2, abbreviated):**
+```
+T-01: Admin order list API — cursor-paginated, search by email/order ID,
+      assertAdminApi() guard, 404 for non-admins
+T-02: Admin refund API — full/partial, Stripe refund call, update Order row,
+      write audit log entry
+T-03: Admin flag-account API — write UserFlag row + reason, assertAdminApi()
+T-04: Flag warning component — shown on next login if flag exists
+T-05: Admin dashboard page — table + search UI, only reachable by admin session
+T-06: Audit log Prisma model + migration
+```
+
+---
+
+### Scenario 9 — Using /grill-me before planning a complex feature
+
+**Situation:** You want to add a loyalty points system but aren't sure about the business rules, expiry policy, or how it integrates with the existing tier system.
+
+**Prompt to type:**
+```
+/grill-me I want to add a loyalty points system — earn points on purchases,
+redeem for discounts. I haven't decided the rules yet.
+```
+
+**What happens in Phase 0.5:**
+
+```mermaid
+sequenceDiagram
+    participant U as You
+    participant G as Grill-Me (Opus · high)
+
+    G->>U: Q1: Should points expire? If yes, after how long?\n Recommended: 12 months from last activity.
+    U->>G: Yes, 12 months.
+    G->>U: Q2: Earn rate — flat (e.g. 1 point per $1) or tiered by membership?\n Recommended: flat to start; tiered is a future upgrade.
+    U->>G: Flat — 1 point per $1.
+    G->>U: Q3: Redemption — any order, or minimum threshold?\n Recommended: minimum 100 points ($1 value) to avoid micro-redemptions.
+    U->>G: 100-point minimum.
+    G->>U: Q4: Can points be earned on orders that later get refunded?\n Recommended: reverse points on refund, not on return initiation.
+    U->>G: Reverse on refund.
+    G->>G: No more open branches — decision tree resolved.
+    G-->>U: Resolved Decision Record:\n• 1pt / $1 earned, reversed on Stripe refund event\n• Expire after 12 months of account inactivity\n• Min 100pts to redeem, applied as order discount\n• No tier interaction in v1
+```
+
+**Then /plan runs with this record folded in — Gate 1 is a clean yes/no, not a renegotiation.**
+
+---
+
+### Prompt Patterns Cheat Sheet
+
+| Situation | What to type |
+|---|---|
+| Typo / label / comment fix | Describe it directly — Triage picks express automatically |
+| Known bug with a file hint | `"Bug in lib/X.ts: [symptom]. Fix is [approach]."` |
+| Intermittent or mysterious bug | `"Bug: [symptom]. Can't reproduce reliably. Diagnose first."` |
+| Small UI feature, no backend | `"Add [feature] to [page]. No backend changes."` |
+| Auth or payment feature | Describe requirements — HIGH risk + feature-full are automatic |
+| File upload | Describe requirements — HIGH risk flag fires automatically |
+| Admin feature | Describe requirements — privileged access flag fires automatically |
+| Unsure about requirements | `/grill-me [description]` — clarify before planning |
+| Want a plan first, no code yet | `/plan [description]` — stops at Gate 1 |
+| Ready to build after Gate 1 | `/implement` — decomposes + builds |
+| Want to review existing code | `/review` — runs all Phase 4 specialists |
+| Want delivery documentation | `/epic-doc` — writes `docs/epics/<slug>.md` |
+
+---
+
 ## Key Constraints to Remember
 
 - **Orchestrator never writes code.** It plans, decomposes, and synthesises. Implementors write code.
