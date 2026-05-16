@@ -342,9 +342,24 @@ stateDiagram-v2
     Phase6 --> Phase7 : Tests pass
     Phase6 --> [*] : Still failing after 2 retries
     Phase7 --> Gate3 : Translator passes Final Report
-    Gate3 --> Merge : Approved
-    Gate3 --> [*] : Cancel
+    Gate3 --> Approve : "[1] APPROVE"
+    Gate3 --> RequestChanges : "[2] REQUEST CHANGES"
+    Gate3 --> Reject : "[3] REJECT"
+    Approve --> PR : Generate PR description\nfrom pipeline files
+    PR --> Cleanup : Delete pipeline/ + TODO.md\ncommit cleanup
+    Cleanup --> CreatePR : mcp__github__create_pull_request
+    CreatePR --> DeliveryUI : Display PR Delivery Summary\nin Claude UI
+    RequestChanges --> Phase7 : Address feedback\nreturn to Gate 3
+    Reject --> [*] : Pipeline halts\npipeline/ intact
 ```
+
+**Gate 3 approval options:**
+
+| Choice | What happens |
+|---|---|
+| **[1] APPROVE** | PR description generated → pipeline/ deleted → PR created → Delivery Summary shown in Claude UI |
+| **[2] REQUEST CHANGES** | Orchestrator asks for reason → addresses feedback → returns to Gate 3 |
+| **[3] REJECT** | Orchestrator asks for reason → records halt summary → leaves `pipeline/` intact for resumption |
 
 **Express-lane exception:** the three gates collapse into one lightweight confirmation — still Translator-passed, still a human approval, never skipped.
 
@@ -431,19 +446,66 @@ After Gate 3 approval, `pipeline/token-usage.md` is deleted along with the rest 
 
 ---
 
-## Pipeline Cleanup After Gate 3
+## Gate 3 Approval Flow & PR Creation
 
-After the human approves Gate 3, the orchestrator **immediately** cleans up all working state:
+When the user chooses **[1] APPROVE** at Gate 3, the orchestrator executes four steps in strict order:
 
 ```mermaid
-flowchart LR
-    G3{Gate 3\nApproved} -->|yes| C1[Delete pipeline/ directory\nrisk_manifest · progress · tasks\nreviews · token-usage · qa-checklist\ndiagnosis]
-    C1 --> C2[Delete TODO.md\nfrom repo root]
-    C2 --> C3["Commit: chore: clean up pipeline\nworking state after Gate 3"]
-    C3 --> DONE([Done — docs/epics/ is\nthe permanent record])
+flowchart TD
+    A([Gate 3 — APPROVE chosen]) --> B["Step 1: Read all pipeline/ files\nand generate PR description\n(tasks · reviews · qa-checklist · token-usage)"]
+    B --> C["Step 2: Delete pipeline/ directory\n+ Delete TODO.md\ncommit: chore: clean up pipeline working state after Gate 3"]
+    C --> D["Step 3: mcp__github__create_pull_request\nwith generated PR description"]
+    D --> E["Step 4: Display PR Delivery Summary\nin Claude UI session"]
+    E --> F([Done])
 
-    style DONE fill:#d4edda,stroke:#28a745
+    style A fill:#fff3cd,stroke:#ffc107
+    style F fill:#d4edda,stroke:#28a745
 ```
+
+**Why pipeline/ is read before deletion:** the PR description is built entirely from pipeline artifacts. Step 1 must complete before Step 2 — once `pipeline/` is gone the data is gone.
+
+### PR Description Sections
+
+The PR description is assembled from pipeline files in this structure:
+
+| Section | Source |
+|---|---|
+| **What Was Built** | `pipeline/tasks/T-XX.json` titles + `pipeline/progress.md` |
+| **How AI Verified This** | `pipeline/reviews/security-*.md`, `performance-*.md`, `architecture-*.md`, `automation-gate.md` |
+| **How You Can Verify** | `pipeline/qa-checklist.md` — 🔴 Critical + 🟡 Functional tiers as numbered steps |
+| **Token Usage** | `pipeline/token-usage.md` — full table + totals per model tier |
+| **Known Limitations & Accepted Risks** | Accepted risks from `pipeline/reviews/` — verbatim |
+
+### PR Delivery Summary (Claude UI)
+
+After the PR is created, this block is displayed in the Claude session:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PR CREATED — DELIVERY SUMMARY
+PR: #[N] [title]   URL: [GitHub PR URL]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHAT WAS BUILT        [1–3 sentence plain-English summary]
+                      ✅ T-01: ...   ✅ T-02: ...
+
+HOW AI VERIFIED       Security [N resolved] · Performance [one-liner]
+                      Tests: unit [X/Y] · integration [X/Y] · E2E [X/Y]
+                      Gate: PASS / CONDITIONAL PASS / FAIL / CI-ONLY
+
+HOW YOU CAN VERIFY    [🔴 Critical test cases only — numbered, concise]
+                      (Full list in PR description)
+
+TOKEN USAGE           ~[N]k total · Opus ~[N]k · Sonnet ~[N]k · Haiku ~[N]k
+                      Est. cost: ~$[N]
+
+KNOWN LIMITATIONS     [One bullet per accepted risk — or "None"]
+
+Pipeline working state deleted. Permanent record: docs/epics/<slug>.md
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+## Pipeline Cleanup After Gate 3
 
 **What is kept vs deleted:**
 
@@ -454,7 +516,7 @@ flowchart LR
 | `docs/epics/<slug>.md` | ✅ Kept — permanent record |
 | All code, tests, and docs written during the pipeline | ✅ Kept |
 
-> Cleanup is **only permitted after explicit Gate 3 approval**. Never delete `pipeline/` mid-run.
+> Cleanup is **only permitted after explicit Gate 3 [1] APPROVE**. On [2] REQUEST CHANGES or [3] REJECT, `pipeline/` is left intact. Never delete `pipeline/` mid-run.
 
 ---
 

@@ -494,15 +494,47 @@ Before the Final Summary Report, delegate to the Epic Doc Writer agent (.claude/
 
 Produce the Final Summary Report, then hand it to the Translator agent (.claude/agents/translator.md) for a plain-English pass before presenting (preserve the resolved-findings counts, accepted risks, and the final recommendation verbatim).
 
-HUMAN GATE 3: Final approval required before any merge or submit action. Present the translated Final Summary Report.
+HUMAN GATE 3: Present the translated Final Summary Report, then immediately display the approval block below. Do not proceed until the user makes an explicit choice.
 
-After Gate 3 approval, immediately clean up all pipeline working state:
-1. Delete the entire `pipeline/` directory — this includes risk_manifest.json, progress.md, token-usage.md, qa-checklist.md, tasks/, reviews/, diagnosis.md, and any other files written during the pipeline run.
-2. Delete `TODO.md` from the repository root — it is a mirror of the task list, now permanently superseded by the epic doc at `docs/epics/<slug>.md`.
-3. Commit the cleanup with message: `chore: clean up pipeline working state after Gate 3`.
-4. The permanent record is `docs/epics/<slug>.md`. Never delete that.
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GATE 3 — ACTION REQUIRED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Choose one option:
 
-This cleanup is only permitted after explicit Gate 3 approval. Never delete pipeline/ mid-run or before the human has confirmed.
+  [1] APPROVE
+      Generates the PR, cleans up pipeline/, done.
+
+  [2] REQUEST CHANGES
+      You will be asked for the reason. Pipeline continues.
+
+  [3] REJECT
+      You will be asked for the reason. Pipeline halts.
+
+Reply with 1, 2, or 3.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**On [1] APPROVE — execute in this exact order:**
+
+Step 1 — Generate the PR description from pipeline files (see Output Format: PR Description below). This is the only time the pipeline files are read for this purpose.
+
+Step 2 — Clean up all pipeline working state:
+  a. Delete the entire `pipeline/` directory (risk_manifest.json, progress.md, token-usage.md, qa-checklist.md, tasks/, reviews/, diagnosis.md — everything).
+  b. Delete `TODO.md` from the repository root.
+  c. Commit with message: `chore: clean up pipeline working state after Gate 3`.
+
+Step 3 — Create the PR via the GitHub MCP tool (mcp__github__create_pull_request) using the generated PR description. Base branch: main (or the project's default branch).
+
+Step 4 — Display the PR Delivery Summary in the Claude UI (see Output Format: PR Delivery Summary below). This is what the user sees after approval — the same information that is in the PR description, shown in the session.
+
+**On [2] REQUEST CHANGES:**
+Ask: "What needs to change before this is ready?" Wait for the answer. Address the specific feedback, then re-run the affected phases and return to Gate 3.
+
+**On [3] REJECT:**
+Ask: "What is the reason for rejection?" Record the reason in a brief halt summary (what was completed, what was rejected, why). Do not delete pipeline/ — leave working state intact so the session can be resumed.
+
+This cleanup is only permitted after explicit Gate 3 [1] APPROVE. Never delete pipeline/ on any other path.
 
 ---
 
@@ -792,6 +824,120 @@ Architectural fault?  : YES | NO — [the coupling that let one change cascade, 
 Action taken          : AUTO-FIXED (re-ran once, now passing) | SURFACED (no auto-fix)
 Remediation           : [what was changed inside the common component, OR the
                          decision the user must make if surfaced]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+---
+
+## Output Format: PR Description (generated at Gate 3 approval)
+
+The PR description is built entirely from pipeline artifacts before they are deleted. Read each source listed below and assemble the description in this exact structure:
+
+```
+## What Was Built
+
+[1–3 sentence plain-English summary of the feature or fix, derived from pipeline/progress.md and the task titles in pipeline/tasks/T-XX.json]
+
+### Tasks completed
+- T-01: [title from T-XX.json — one sentence on what it does]
+- T-02: [repeat for every task]
+
+---
+
+## How AI Verified This
+
+### Specialist reviews
+- **Security Auditor** — [N] critical, [N] medium, [N] low findings. All critical and high resolved. [List any accepted risks verbatim from pipeline/reviews/security-*.md]
+- **Performance Reviewer** — [summary from pipeline/reviews/performance-*.md]
+- **Architecture Reviewer** — [summary from pipeline/reviews/architecture-*.md]
+
+### Tests
+| Suite | Result |
+|---|---|
+| Unit tests | [X passing / Y total] |
+| Integration tests | [X passing / Y total] |
+| E2E tests | [X passing / Y total] — 🔴 [N] critical · 🟡 [N] functional · 🟢 [N] non-blocker |
+| Automation Gate | PASS / CONDITIONAL PASS / FAIL / CI-ONLY |
+
+---
+
+## How You Can Verify (Manual Test Cases)
+
+[List every 🔴 Critical and 🟡 Functional test case from pipeline/qa-checklist.md as a numbered step-by-step checklist. Include expected outcome for each. Label each with its tier emoji.]
+
+---
+
+## Token Usage
+
+| Phase | Agent | Model | Effort | Est. Tokens |
+|---|---|---|---|---|
+[One row per line in pipeline/token-usage.md]
+
+**Total estimate:** ~[N]k tokens · Est. cost: ~$[N]
+_(Estimates only — see session /cost for exact billing.)_
+
+---
+
+## Known Limitations & Accepted Risks
+
+[List every accepted risk from pipeline/reviews/ verbatim. If none, write "None — all findings were resolved before approval."]
+```
+
+Source mapping (read before deleting pipeline/):
+- Tasks list → `pipeline/tasks/T-XX.json` (all files)
+- Security findings → `pipeline/reviews/security-*.md`
+- Performance findings → `pipeline/reviews/performance-*.md`
+- Architecture findings → `pipeline/reviews/architecture-*.md`
+- Automation Gate results → `pipeline/reviews/automation-gate.md`
+- QA checklist → `pipeline/qa-checklist.md` (Critical + Functional tiers only)
+- Token log → `pipeline/token-usage.md`
+- Progress/summary → `pipeline/progress.md`
+
+---
+
+## Output Format: PR Delivery Summary (shown in Claude UI after Gate 3 approval)
+
+After the PR is created, display this block in the Claude session. Content is identical to the PR description, presented as a readable chat summary:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PR CREATED — DELIVERY SUMMARY
+PR: [#number] [title]
+URL: [GitHub PR URL]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHAT WAS BUILT
+[Same 1–3 sentence summary as PR description]
+
+Tasks:
+  ✅ T-01: [title]
+  ✅ T-02: [title]
+  [repeat]
+
+HOW AI VERIFIED
+Security   : [N] critical resolved, [N] medium resolved, [N] accepted risks
+Performance: [one-line summary]
+Architecture: [one-line summary]
+Tests      : unit [X/Y] · integration [X/Y] · E2E [X/Y]
+Gate       : PASS / CONDITIONAL PASS / FAIL / CI-ONLY
+
+HOW YOU CAN VERIFY (top manual checks)
+[List the 🔴 Critical test cases only — numbered, one per line, concise]
+(Full manual test list: see PR description)
+
+TOKEN USAGE
+Total  : ~[N]k tokens
+  Opus   : ~[N]k
+  Sonnet : ~[N]k
+  Haiku  : ~[N]k
+Est. cost: ~$[N]  (see /cost for exact billing)
+
+KNOWN LIMITATIONS
+[One bullet per accepted risk — or "None"]
+
+Pipeline working state has been deleted. The permanent record is:
+  docs/epics/<slug>.md  (epic delivery doc)
+  PR #[N]               (code + description)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
