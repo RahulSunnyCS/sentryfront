@@ -195,6 +195,29 @@ If score is 8 or above, hand to the Translator agent (.claude/agents/translator.
 
 Then seed the root TODO.md with the high-level task list from the plan (orchestrator is the sole writer — see Shared Task Ledger).
 
+### Optional Recommendations (bounded — AI-initiated scope only)
+
+Before presenting at Gate 1, draft up to 5 recommendations that are genuinely
+valuable but **outside the user's literal ask** — the things a senior engineer
+would regret not raising. Use the existing Phase-1 Opus budget; no new agent.
+Stress-test each through the tri-stance Red Team lens already in this phase and
+keep only those that survive with a clear net benefit. For each, state what it
+is, the value it brings, and the tradeoff/cost; include them in the Plan
+Report's OPTIONAL RECOMMENDATIONS block.
+
+Bounded re-plan loop:
+- Track `recommendation_rounds_used` in pipeline/progress.md (starts at 0).
+- If at Gate 1 the user accepts ≥1 AI recommendation: increment the counter,
+  re-run Phase 1 with the accepted items folded into scope, return to Gate 1.
+- Hard cap: **2** AI-initiated rounds. Once `recommendation_rounds_used == 2`,
+  stop generating recommendations — omit the block entirely and present the
+  Plan Report alone for the remainder of this planning cycle.
+- Carve-out: a requirement or change the **user** introduces is NOT an AI
+  recommendation — it is always honored, re-planned as normal, and never
+  counted against the cap. The cap restrains only AI-volunteered scope.
+- This never auto-applies anything and never replaces the gate: "approve
+  as-is" and "stop" are always available; the human always decides.
+
 HUMAN GATE 1: Stop completely. Present the translated Plan Report. Do not proceed until user says YES or gives direction.
 
 ---
@@ -321,6 +344,8 @@ If user says yes, go ahead, approved, or similar → proceed
 If user asks questions → answer fully before proceeding
 If user says stop or cancel → halt and summarise what was completed
 
+At Gate 1 only, the orchestrator may also present optional AI recommendations: capped at 2 AI-initiated recommend→re-plan rounds, never auto-applied, never a replacement for the gate. Requirements the user adds are uncapped and always honored (see Phase 1 → Optional Recommendations).
+
 ---
 
 ## Model Assignment
@@ -356,7 +381,7 @@ Recommended default effort per step (model column = current assignment):
 |----------------------------------|----------------------|--------|
 | Phase 0 Triage                   | Haiku                | low    |
 | Phase 0.5 Intent Extraction      | Opus (grill-me, opt-in) | high   |
-| Phase 1 Planning + Red Team      | Opus / red-team Opus | max    |
+| Phase 1 Planning + Red Team (+ optional recommendations) | Opus / red-team Opus | max    |
 | Gate Translator (Gates 1/2/3)    | Haiku                | medium |
 | Phase 2 Decomposition            | Opus                 | high   |
 | Phase 3 Implementation           | Sonnet (implementor) | high   |
@@ -417,6 +442,16 @@ Task T-02: [Plain English]
 DECISIONS YOU NEED TO MAKE
 □ [Specific binary or clear choice, e.g. "Should user sessions expire after 30 minutes or 8 hours?"]
 □ [Another decision only if genuinely needed]
+
+OPTIONAL RECOMMENDATIONS (AI-suggested — not in your original ask)
+[Recommendation round N of 2 — omit this entire block once 2 rounds are used]
+R1: [Name]
+  What it is     : [Plain English]
+  Value it brings: [Plain English]
+  Tradeoff / cost: [Plain English — time, complexity, risk]
+[Repeat per item; or "None — the plan already covers the high-value scope"]
+(Accept any subset and we re-plan once with them folded in. Adding your own
+ requirement is always allowed and is never capped.)
 
 WHAT HAPPENS NEXT IF YOU APPROVE
 [Exact next steps. No surprises.]
