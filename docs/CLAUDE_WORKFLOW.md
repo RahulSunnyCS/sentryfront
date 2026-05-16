@@ -21,7 +21,8 @@ This document explains the autonomous AI pipeline defined in `.claude/` and `CLA
 │   ├── translator.md
 │   ├── epic-doc-writer.md
 │   ├── qa-planner.md
-│   └── e2e-test-writer.md
+│   ├── e2e-test-writer.md
+│   └── regression-analyst.md
 ├── commands/              # Slash commands wired to pipeline phases
 │   ├── start.md           # /start     → Repository Assessment
 │   ├── plan.md            # /plan      → Phase 0 + Phase 1
@@ -33,7 +34,8 @@ This document explains the autonomous AI pipeline defined in `.claude/` and `CLA
 │   ├── diagnose.md        # /diagnose  → Phase 0.7
 │   ├── fix.md             # /fix         → Phase 6 fix cycle only
 │   ├── qa-plan.md         # /qa-plan     → QA Planner on demand
-│   └── setup-project.md  # /setup-project → Domain owner onboarding interview
+│   ├── setup-project.md  # /setup-project → Domain owner onboarding interview
+│   └── triage.md          # /triage      → Regression Triage + Blast-Radius Validation
 └── project/               # Single-source-of-truth facts (never duplicated)
     ├── overview.md        # What the product does
     ├── business.md        # Tiers, pricing, Stripe facts
@@ -64,12 +66,19 @@ flowchart TD
     D3 --> D4[Phase 4 — Specialist Review\nParallel agents · risk-gated]
     D4 --> G2{HUMAN GATE 2\nSynthesis Review Report}
     G2 -->|Approved| D5[Phase 5 — Test Generation\nParallel: unit + integration + docs + e2e]
-    G2 -->|Fix needed| D6
-    D5 --> D6[Phase 6 — Unit/Integration Tests\nmax 2 auto-retries]
-    D6 -->|Pass| AG[Automation Gate\nHaiku · low effort\n@critical / @functional / @non-blocker]
-    AG -->|Critical fail| STOP2([Stop — block Gate 2\nreport failing critical tests])
-    AG -->|Pass or CI-ONLY| D7[Phase 7 — Final Review + Epic Doc\nOpus · high effort]
-    D6 -->|Fail after 2 retries| STOP([Stop — report to user])
+    G2 -->|Fix needed| BRV
+    D5 --> BRV[Blast-Radius Validation\nHaiku · low effort\nchanged files → task scopes]
+    BRV --> D6[Phase 6 — Unit/Integration Tests]
+    D6 -->|Fail| RT{Regression Triage\nHaiku · low effort}
+    RT -->|DIRECT| FIX[Implementor fix\nmax 2 auto-retries]
+    RT -->|COLLATERAL| RA[regression-analyst\nOpus · high effort\n1 bounded auto-fix]
+    FIX -->|Pass| AG
+    FIX -->|Fail after 2 retries| STOP([Stop — report to user])
+    RA -->|Auto-fixed| AG
+    RA -->|Architectural fault / unconfirmed| STOP3([Stop — surface regression\n+ blast radius to user])
+    D6 -->|Pass| AG[Automation Gate\nHaiku · low effort\n@critical / @functional / @non-blocker\nE2E fails → Regression Triage]
+    AG -->|Critical DIRECT fail| STOP2([Stop — block Gate 2\nreport failing critical tests])
+    AG -->|Pass / CI-ONLY / EXTERNAL| D7[Phase 7 — Final Review + Epic Doc\nOpus · high effort]
     D7 --> G3{HUMAN GATE 3\nFinal Summary Report}
     G3 -->|Approved| MERGE([Merge / Submit])
 ```
@@ -116,7 +125,10 @@ gantt
     Docs Writer · Haiku · LOW         :0, 1
     E2E Test Writer · Sonnet · MEDIUM :0, 1
     section Phase 6
+    Blast-Radius Validation · Haiku · LOW :0, 1
+    Regression Triage · Haiku · LOW   :0, 1
     Fix Cycles · Sonnet · HIGH        :0, 1
+    Regression Analyst · Opus · HIGH  :0, 1
     Automation Gate · Haiku · LOW     :0, 1
     section Phase 7
     Final Review · Opus · HIGH        :0, 1
@@ -146,6 +158,9 @@ Reference table (the canonical source):
 | Phase 7 — Epic Doc Writer | Sonnet | medium |
 | Phase 1 — QA Planner | Sonnet → Opus if auth/PII | medium → high |
 | Phase 5 — E2E Test Writer | Sonnet | medium |
+| Phase 5/6 — Blast-Radius Validation | Haiku | low |
+| Phase 6 — Regression Triage | Haiku | low |
+| Phase 6 — Regression Analyst | Opus | high |
 | Phase 6 — Automation Gate | Haiku | low |
 
 > You can override any step: `"run planning at max effort"` or globally `"set effort to high"`. The orchestrator records the chosen effort in `pipeline/progress.md`.
@@ -238,6 +253,7 @@ flowchart TD
 | `epic-doc-writer` | Sonnet | 7 | Collated delivery doc at `docs/epics/<slug>.md` |
 | `qa-planner` | Sonnet → Opus if auth/PII | 1 (end, before Gate 1) | Reads the plan; writes `pipeline/qa-checklist.md` with 🔴/🟡/🟢 test tiers |
 | `e2e-test-writer` | Sonnet | 5 | Translates `qa-checklist.md` into tagged Playwright tests; bootstraps config on first run |
+| `regression-analyst` | Opus | 6 | Evaluates COLLATERAL shared-component regressions + the coupling that let them cascade; one bounded auto-fix, else surfaces |
 
 ---
 
@@ -345,6 +361,9 @@ stateDiagram-v2
 | `pipeline/tasks/T-XX.json` | Orchestrator (Phase 2) | ✅ Yes | Atomic task contracts |
 | `pipeline/qa-checklist.md` | QA Planner (Phase 1) | ✅ Yes | Severity-tiered test scenarios |
 | `pipeline/reviews/*.md` | Specialist reviewers (Phase 4) | ✅ Yes | Individual audit reports |
+| `pipeline/reviews/blast-radius-validation.md` | Blast-Radius Validation (Phase 5→6) | ✅ Yes | Changed-file → task-scope map |
+| `pipeline/reviews/regression-triage.md` | Regression Triage (Phase 6) | ✅ Yes | Per-failure DIRECT / COLLATERAL / EXTERNAL classification |
+| `pipeline/reviews/regression-analysis.md` | regression-analyst (Phase 6) | ✅ Yes | Root cause, blast radius, auto-fixed vs surfaced |
 | `TODO.md` | Orchestrator only (root, each phase boundary) | ✅ Yes | Human-readable mirror of tasks |
 | `docs/epics/<slug>.md` | Epic Doc Writer (Phase 7 or /epic-doc) | ❌ Kept | Permanent collated delivery document |
 
@@ -451,6 +470,7 @@ flowchart LR
 | `/review` | Phase 4 | Run all specialist reviewers; stops at Gate 2 |
 | `/test` | Phase 5 + Phase 6 | Generate and run unit + integration tests |
 | `/fix` | Phase 6 only | Drive failing tests to green without re-running the full pipeline |
+| `/triage` | Phase 5→6 + Phase 6 | Classify failing tests DIRECT vs COLLATERAL vs EXTERNAL + validate every changed file maps to a task |
 | `/qa-plan` | QA Planner (Phase 1 on demand) | Generate or refresh `qa-checklist.md` without running the full pipeline |
 | `/setup-project` | Pre-pipeline (project init) | Interview-driven onboarding — writes all three `.claude/project/` files for a new project |
 | `/epic-doc` | Phase 7 (on demand) | Produce collated delivery doc mid-pipeline or at end |
@@ -1083,6 +1103,8 @@ sequenceDiagram
     participant O as Orchestrator
     participant QA as QA Planner (Sonnet/Opus)
     participant EW as E2E Test Writer (Sonnet)
+    participant RT as Regression Triage (Haiku)
+    participant RA as regression-analyst (Opus)
     participant AG as Automation Gate (Haiku)
     participant U as You
 
@@ -1095,12 +1117,27 @@ sequenceDiagram
     O->>EW: Translate checklist into Playwright tests
     EW-->>O: e2e/*.spec.ts written\nplaywright.config.ts bootstrapped if missing
 
+    Note over O,RT: Phase 5→6 boundary
+    O->>RT: Blast-Radius Validation — changed files → task scopes
+    RT-->>O: blast-radius-validation.md\nshared-ripple → escalate
+
+    Note over O,RA: Phase 6 — on any test failure (unit/integration/E2E)
+    O->>RT: Classify each failing test
+    alt DIRECT (subject in task scope)
+        RT-->>O: Implementor fix — max 2 auto-retries
+    else COLLATERAL (shared-component regression)
+        RT->>RA: Evaluate the change + the coupling
+        RA-->>O: 1 bounded auto-fix, else SURFACE\n+ full blast radius
+    else EXTERNAL (flaky / env / network)
+        RT-->>O: Surface error — never block, never a regression
+    end
+
     Note over O,AG: Phase 6 — after unit/integration pass
     O->>AG: npm run test:e2e
     alt test:e2e not found or server won't start
         AG-->>O: CI-ONLY — proceed without blocking
     else tests run
-        AG-->>O: @critical results → PASS / FAIL\n@functional results → PASS / CONDITIONAL\n@non-blocker results → logged only
+        AG-->>O: @critical/@functional/@non-blocker results\nfailing E2E → Regression Triage (DIRECT/COLLATERAL/EXTERNAL)
     end
     AG-->>O: pipeline/reviews/automation-gate.md saved
 ```
@@ -1109,10 +1146,49 @@ sequenceDiagram
 
 | Tier | Phase 6 Automation Gate | Gate 2 verdict impact | Final Summary |
 |---|---|---|---|
-| 🔴 Critical | Blocks on failure | Fail → must fix before Gate 2 | Always shown |
+| 🔴 Critical | Blocks on DIRECT failure | Fail → must fix before Gate 2 | Always shown |
 | 🟡 Functional | Does not block | Failures → CONDITIONAL PASS conditions | Always shown |
 | 🟢 Non-blocker | Does not block | No impact | Logged in automation-gate.md |
 | CI-ONLY | No gate impact | No impact | Noted as pending CI |
+
+### Why a failing test is triaged before it is "fixed"
+
+A failing test is not automatically a fix target. Phase 6 classifies every
+failure first — so a shared-component regression is evaluated at its cause, not
+patched away by editing the test that caught it.
+
+| Classification | What it means | What happens |
+|---|---|---|
+| **DIRECT** | The failing test's subject is inside the current task's own scope | Implementor fix — existing max 2 auto-retries |
+| **COLLATERAL** | A shared/common component changed for one task and broke an unrelated test | `regression-analyst` (Opus): evaluate the change + the coupling; one bounded auto-fix inside the changed component, else STOP + surface blast radius |
+| **EXTERNAL** | Flaky test, dev server / port / env / network, missing browser, timeout | Surfaced as EXTERNAL — never blocks, never routed as a fix, never a regression |
+
+The "max 2 automatic retries" cap applies to **DIRECT** failures only.
+COLLATERAL is escalation (one bounded auto-fix), not a retry loop. The same
+triage runs for failing E2E tests at the Automation Gate, not just
+unit/integration.
+
+### Worked example — a shared util change breaks an unrelated test
+
+Task T-03 ("apply a 10% promo to the cart total") edits the shared
+`formatMoney()` util to round differently. Phase 6 runs the suite:
+
+1. **Blast-Radius Validation** diffs the changes: `formatMoney.ts` is touched by
+   T-03 but is also imported by the checkout, invoice, and refund flows →
+   classified `shared-ripple`, escalated.
+2. The suite fails on `checkout-total.spec.ts` — a test T-03 never touched.
+3. **Regression Triage** sees the failing test is outside T-03's scope and a
+   shared component changed → **COLLATERAL**.
+4. **`regression-analyst` (Opus)** confirms the root cause
+   (`formatMoney.ts:42` now floors instead of rounding half-up), reports the
+   blast radius (checkout, invoice, refund all consume it), judges the change
+   itself wrong (not the architecture), and applies one bounded fix **inside
+   `formatMoney.ts`** — not by editing `checkout-total.spec.ts`. Re-runs the
+   test once: green. Recorded in `regression-analysis.md`.
+5. **Architectural-fault variant:** if the analyst instead found that every flow
+   hand-rolls its own rounding on top of `formatMoney()` (so the cascade is a
+   coupling problem, not a one-line bug), it does **not** auto-fix — it STOPS
+   and surfaces the regression plus the full blast radius to you immediately.
 
 ### Automating only what makes sense
 
