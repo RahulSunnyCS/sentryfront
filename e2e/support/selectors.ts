@@ -30,9 +30,10 @@ export const FINAL_CTA_PRICING = 'final-cta-pricing';
 /**
  * Returns the CSS attribute selector string for a data-testid value.
  *
- * Using this helper is optional — Playwright's `getByTestId` is equally
- * valid — but it gives a single canonical place to change the attribute
- * name if the project ever migrates from `data-testid` to another scheme.
+ * Kept for raw-string use cases (e.g. page.locator(sel('x') + ' input')).
+ * For simple element lookups prefer byTestId(), which uses page.getByTestId()
+ * and delegates the attribute name to the single home in playwright.config.ts
+ * (AR-L2: testIdAttribute: 'data-testid').
  *
  * Example:
  *   page.locator(sel('hero-url-input'))
@@ -46,9 +47,12 @@ export function sel(testId: string): string {
  * Shorthand: returns a Playwright Locator for the given data-testid on the
  * supplied Page.
  *
- * Equivalent to `page.locator(sel(testId))` but reads more naturally in
- * test bodies.
+ * AR-L2: Uses page.getByTestId() so the attribute name ('data-testid') is
+ * configured in exactly one place — playwright.config.ts use.testIdAttribute.
+ * testId must be the raw id value (e.g. 'hero-url-input'), not a CSS selector.
  */
 export function byTestId(page: Page, testId: string) {
-  return page.locator(sel(testId));
+  // AR-L2: getByTestId() reads the configured testIdAttribute from
+  // playwright.config.ts rather than hard-coding '[data-testid="..."]' here.
+  return page.getByTestId(testId);
 }

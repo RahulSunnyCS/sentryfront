@@ -18,6 +18,24 @@
 import { test, expect } from '@playwright/test';
 import { byTestId, HERO_URL_INPUT, HERO_SCAN_SUBMIT, FINAL_CTA_PRICING } from './support/selectors';
 
+// AR-H1: Known-harmless console patterns filtered before asserting zero errors.
+// Without this filter, React DevTools banners, Next.js Fast Refresh messages,
+// and ResizeObserver loop warnings (which Chrome throttles harmlessly) all flip
+// the flagship @critical test red on dev-mode noise — not real breakages.
+// The pageerror (uncaught JS exception) check is intentionally kept strict and
+// unfiltered; a real exception always means something broke.
+const BENIGN_CONSOLE = [
+  '[Fast Refresh]',
+  'ResizeObserver loop',
+  'Download the React DevTools',
+  // React dev-mode warnings use console.error but are not runtime errors.
+  'Warning:',
+];
+
+function isBenignConsoleMessage(text: string): boolean {
+  return BENIGN_CONSOLE.some((pattern) => text.includes(pattern));
+}
+
 // ── Test 1: @critical landing page renders ─────────────────────────────────
 test('@critical landing page renders', async ({ page }) => {
   // Collect any console errors and uncaught page exceptions that occur
@@ -32,6 +50,8 @@ test('@critical landing page renders', async ({ page }) => {
     }
   });
 
+  // pageerror fires for uncaught JS exceptions — always a real breakage.
+  // This check is intentionally unfiltered (AR-H1: pageerror stays strict).
   page.on('pageerror', (err) => {
     pageErrors.push(err.message);
   });
@@ -48,15 +68,23 @@ test('@critical landing page renders', async ({ page }) => {
   await expect(byTestId(page, HERO_URL_INPUT)).toBeVisible();
   await expect(byTestId(page, HERO_SCAN_SUBMIT)).toBeVisible();
 
-  // Semantic landmarks — the Nav component renders a <nav> (implicit
-  // navigation role) and the Footer uses role="contentinfo".
-  await expect(page.getByRole('navigation')).toBeVisible();
+  // AR-L1: Scope the navigation locator to its accessible name so that
+  // future nav landmarks (docs sidebar, breadcrumbs) don't cause a
+  // strict-mode ambiguity. The Nav component sets aria-label={t('primary')}
+  // which resolves to "Primary" in en.json — matched case-insensitively for
+  // locale tolerance.
+  await expect(page.getByRole('navigation', { name: /primary/i })).toBeVisible();
   await expect(page.getByRole('contentinfo')).toBeVisible();
 
-  // Assert silence: no console errors and no uncaught JS exceptions were
-  // emitted during the landing page load. Any entry here indicates a real
-  // breakage that should be investigated.
-  expect(consoleErrors, `Unexpected console errors on /en: ${JSON.stringify(consoleErrors)}`).toEqual([]);
+  // AR-H1: Filter known-harmless dev-mode console noise before asserting.
+  // Any console.error not in BENIGN_CONSOLE is an unexpected breakage.
+  const unexpectedConsoleErrors = consoleErrors.filter((msg) => !isBenignConsoleMessage(msg));
+  expect(
+    unexpectedConsoleErrors,
+    `Unexpected console errors on /en: ${JSON.stringify(unexpectedConsoleErrors)}`,
+  ).toEqual([]);
+
+  // Uncaught JS exceptions are always unexpected — no filter applied.
   expect(pageErrors, `Unexpected page errors on /en: ${JSON.stringify(pageErrors)}`).toEqual([]);
 });
 

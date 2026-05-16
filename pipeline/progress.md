@@ -16,14 +16,15 @@
 | 3 — Implementation | Done | All 8 tasks complete & verified (T-04: 0 TS errors project-wide) |
 | 4 — Specialist Review (security + architecture) | Done | Security PASS (1 Low); Architecture CONDITIONAL PASS (1 High, 3 Low); synthesis CONDITIONAL PASS; awaiting Gate 2 |
 | 4 — Specialist Review (security + architecture) | Pending | |
-| 5 — Test Generation | Pending | |
-| 6 — Test Execution + Automation Gate | Pending | |
-| 7 — Final Review | Pending | |
+| Gate 2 fix cycle | Done | AR-H1 High + 4 Low applied & verified (typecheck/lint/unit all green) |
+| 5 — Test Generation | Done (right-sized) | E2E suite authored Phase 3 (T-04) + hardened in fix cycle; no unit/integration applicable (attribute-only product change, no new logic); docs (README) done T-07; qa-checklist exists |
+| 6 — Test Execution + Automation Gate | Done | Unit 1354 passed; Automation Gate CI-ONLY (browsers absent + no egress; enforced in CI) |
+| 7 — Final Review | In progress | |
 
 ## Human Gates
 
 | Gate | Status | Decision |
 |------|--------|----------|
 | Gate 1 — Plan Approval | Approved | User acknowledged D2 advisory-local/CI-enforced tradeoff; plan v2 |
-| Gate 2 — Review Approval | Pending | |
+| Gate 2 — Review Approval | Approved | CONDITIONAL PASS; user chose "Fix High + all 4 Low" — applied & verified |
 | Gate 3 — Final Approval | Pending | |

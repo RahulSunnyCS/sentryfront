@@ -42,6 +42,11 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
 
+    // AR-L2: Single canonical home for the test-id attribute name.
+    // byTestId() in e2e/support/selectors.ts calls page.getByTestId(), which
+    // reads this value — so renaming the attribute requires only this change.
+    testIdAttribute: 'data-testid',
+
     // Capture a trace on the first retry so failing CI runs have a
     // diagnostic artifact without recording traces on every green run.
     trace: 'on-first-retry',

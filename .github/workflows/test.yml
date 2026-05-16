@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main, develop]
 
+# SEC-L1: Least-privilege default. Every job inherits contents:read unless it
+# explicitly overrides. actions/upload-artifact uses the Actions runtime token,
+# not the GITHUB_TOKEN contents scope, so artifact upload is unaffected.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run Tests
@@ -93,8 +99,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-          restore-keys: ${{ runner.os }}-playwright-
+          # AR-L3: Include the pinned Playwright version in the cache key so
+          # that a version bump always evicts the stale ~300 MB browser cache.
+          # Without the version prefix, an unrelated dep change in
+          # package-lock.json would also cause a spurious cache miss.
+          key: ${{ runner.os }}-playwright-1.59.1-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-1.59.1-
+            ${{ runner.os }}-playwright-
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
