@@ -338,9 +338,12 @@ stateDiagram-v2
 |---|---|---|
 | `/start` | Assessment | Opening a new session or onboarding to a new repo |
 | `/grill-me` | Phase 0.5 | Before planning — want to stress-test intent first |
+| `/diagnose` | Phase 0.7 | Bug with unknown root cause — investigate before planning |
 | `/plan` | Phase 0 + Phase 1 | Start planning a new task; stops at Gate 1 |
 | `/implement` | Phase 2 + Phase 3 | After Gate 1 approval; decompose and build |
 | `/review` | Phase 4 | Run all specialist reviewers; stops at Gate 2 |
+| `/test` | Phase 5 + Phase 6 | Generate and run unit + integration tests |
+| `/fix` | Phase 6 only | Drive failing tests to green without re-running the full pipeline |
 | `/epic-doc` | Phase 7 (on demand) | Produce collated delivery doc mid-pipeline or at end |
 
 ---
