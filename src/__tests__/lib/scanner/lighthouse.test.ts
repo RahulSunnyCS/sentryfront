@@ -964,6 +964,139 @@ describe('runLighthouse()', () => {
     });
   });
 
+  // ── C-35: CrUX category string length-capping (QA contract) ─────────────
+  //
+  // Verifies that parseCrUXBlock caps every CrUX-derived category string to
+  // MAX_CRUX_CATEGORY_LEN (32) before placing it in the returned CrUXFieldData.
+  // This is the single parse-boundary chokepoint that protects the
+  // performanceMetrics JSON column from oversized external values.
+
+  describe('C-35 — CrUX category string length-capping', () => {
+    /** MAX_CRUX_CATEGORY_LEN as defined in lighthouse.ts */
+    const MAX_CRUX_CATEGORY_LEN = 32;
+
+    it('caps an oversized loadingExperience.overall_category to MAX_CRUX_CATEGORY_LEN', async () => {
+      // Simulate a malformed PSI response where overall_category is 5000 chars.
+      const oversized = 'X'.repeat(5000);
+      const response = {
+        ...makePageSpeedResponse(),
+        loadingExperience: {
+          overall_category: oversized,
+          metrics: {},
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+
+      // The block must parse successfully (overallCategory is truthy after capping).
+      expect(metrics.fieldData).not.toBeNull();
+      // The stored value must be capped — NOT the raw oversized string.
+      expect(metrics.fieldData!.overallCategory.length).toBeLessThanOrEqual(MAX_CRUX_CATEGORY_LEN);
+    });
+
+    it('caps an oversized per-metric category on LARGEST_CONTENTFUL_PAINT_MS', async () => {
+      // Simulate a malformed per-metric category — 5000 chars instead of 'FAST'.
+      const oversized = 'Y'.repeat(5000);
+      const response = {
+        ...makePageSpeedResponse(),
+        loadingExperience: {
+          overall_category: 'FAST',
+          metrics: {
+            LARGEST_CONTENTFUL_PAINT_MS: {
+              percentile: 2400,
+              category: oversized, // oversized — must be capped before storage
+              distributions: [],
+            },
+          },
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+
+      expect(metrics.fieldData).not.toBeNull();
+      expect(metrics.fieldData!.lcp).not.toBeNull();
+      // The stored category must be capped.
+      expect(metrics.fieldData!.lcp!.category.length).toBeLessThanOrEqual(MAX_CRUX_CATEGORY_LEN);
+    });
+
+    it('does not alter a normal category value (FAST / AVERAGE / SLOW are well under the cap)', async () => {
+      // All three legitimate enum values are << 32 chars; they must be stored verbatim.
+      const response = {
+        ...makePageSpeedResponse(),
+        loadingExperience: {
+          overall_category: 'FAST',
+          metrics: {
+            LARGEST_CONTENTFUL_PAINT_MS: {
+              percentile: 2400,
+              category: 'AVERAGE',
+              distributions: [],
+            },
+            FIRST_CONTENTFUL_PAINT_MS: {
+              percentile: 1800,
+              category: 'SLOW',
+              distributions: [],
+            },
+          },
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+
+      expect(metrics.fieldData).not.toBeNull();
+      // overallCategory must be exactly 'FAST' — not truncated or mutated.
+      expect(metrics.fieldData!.overallCategory).toBe('FAST');
+      // Per-metric categories must be exactly as supplied.
+      expect(metrics.fieldData!.lcp!.category).toBe('AVERAGE');
+      expect(metrics.fieldData!.fcp!.category).toBe('SLOW');
+    });
+
+    it('caps an oversized overall_category in originLoadingExperience (originFieldData)', async () => {
+      // The cap must apply to both URL-level and origin-level CrUX blocks,
+      // since parseCrUXBlock is called identically for both.
+      const oversized = 'Z'.repeat(5000);
+      const response = {
+        ...makePageSpeedResponse(),
+        originLoadingExperience: {
+          overall_category: oversized,
+          metrics: {},
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+
+      expect(metrics.originFieldData).not.toBeNull();
+      expect(metrics.originFieldData!.overallCategory.length).toBeLessThanOrEqual(MAX_CRUX_CATEGORY_LEN);
+    });
+
+    it('caps an oversized per-metric category in originLoadingExperience (originFieldData)', async () => {
+      const oversized = 'W'.repeat(5000);
+      const response = {
+        ...makePageSpeedResponse(),
+        originLoadingExperience: {
+          overall_category: 'SLOW',
+          metrics: {
+            LARGEST_CONTENTFUL_PAINT_MS: {
+              percentile: 4200,
+              category: oversized,
+              distributions: [],
+            },
+          },
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+
+      expect(metrics.originFieldData).not.toBeNull();
+      expect(metrics.originFieldData!.lcp).not.toBeNull();
+      expect(metrics.originFieldData!.lcp!.category.length).toBeLessThanOrEqual(MAX_CRUX_CATEGORY_LEN);
+    });
+  });
+
   // ── PSI v5 fixture round-trip ─────────────────────────────────────────────
 
   describe('PSI v5 fixture round-trip (src/__tests__/fixtures/psi-v5-sample.json)', () => {

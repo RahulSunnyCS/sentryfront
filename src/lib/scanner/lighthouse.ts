@@ -154,6 +154,20 @@ export interface LighthouseConfig {
 // ─── CrUX parsing helper ──────────────────────────────────────────────────────
 
 /**
+ * Maximum length for any CrUX category string (overallCategory or per-metric
+ * category) stored in CrUXFieldData.
+ *
+ * Legitimate PSI values are tiny enums: "FAST" (4), "AVERAGE" (7), "SLOW" (4).
+ * 32 chars is generous enough for any plausible Google change while decisively
+ * preventing an oversized or malformed PSI response from being stored verbatim.
+ *
+ * This is a defense-in-depth / storage-hygiene measure (QA contract C-35).
+ * Real-world severity is LOW — the source is Google PSI over TLS — but we must
+ * treat all external data as untrusted at the parse boundary regardless of origin.
+ */
+const MAX_CRUX_CATEGORY_LEN = 32;
+
+/**
  * Parse a PSI v5 loadingExperience / originLoadingExperience block into the
  * typed CrUXFieldData structure.
  *
@@ -169,15 +183,31 @@ export interface LighthouseConfig {
  *    because FID and INP measure different things and mixing them would produce
  *    misleading verdicts.
  * 4. We forward Google's verbatim `category` and `overall_category` labels
- *    (FAST / AVERAGE / SLOW) unchanged — no self-computed bucketing.
+ *    (FAST / AVERAGE / SLOW) unchanged — no self-computed bucketing — but cap
+ *    them at MAX_CRUX_CATEGORY_LEN before storing to prevent an oversized
+ *    external value from reaching the performanceMetrics JSON column.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseCrUXBlock(block: any): CrUXFieldData | null {
   // The block may be absent (undefined) or an empty object — both mean no data.
   if (!block || typeof block !== 'object') return null;
 
+  /**
+   * Cap a CrUX category string at MAX_CRUX_CATEGORY_LEN.
+   *
+   * Non-string values (undefined, null, number, etc.) are passed through
+   * unchanged so that the callers' existing truthiness guards (e.g.
+   * `if (!category) return null`) continue to work correctly.
+   * Only strings are sliced — we never widen undefined/null to a string.
+   */
+  function capCat(s: unknown): unknown {
+    return typeof s === 'string' ? s.slice(0, MAX_CRUX_CATEGORY_LEN) : s;
+  }
+
   // overall_category must be present for the block to be usable.
-  const overallCategory = block.overall_category as 'FAST' | 'AVERAGE' | 'SLOW';
+  // Cap before the truthiness check so an oversized value is stored truncated,
+  // not stored verbatim (the cap is the only mutation — no other behaviour changes).
+  const overallCategory = capCat(block.overall_category) as 'FAST' | 'AVERAGE' | 'SLOW';
   if (!overallCategory) return null;
 
   const m = block.metrics as Record<string, unknown> | undefined;
@@ -187,7 +217,9 @@ function parseCrUXBlock(block: any): CrUXFieldData | null {
   function parseMetric(raw: any, isCls = false): CrUXMetric | null {
     if (!raw || typeof raw !== 'object') return null;
     if (raw.percentile === undefined || raw.percentile === null) return null;
-    const category = raw.category as 'FAST' | 'AVERAGE' | 'SLOW';
+    // Cap the per-metric category string at parse time — same defense-in-depth
+    // rationale as overallCategory above. Non-string values pass through unchanged.
+    const category = capCat(raw.category) as 'FAST' | 'AVERAGE' | 'SLOW';
     if (!category) return null;
 
     // CLS raw percentile is an integer scaled ×100; divide to get the true value.
