@@ -19,7 +19,7 @@
 - [ ] **Tests** — rewrite only penalty-specific assertions in `performance.test.ts` (keep the rest); new tests for parser/bands/INP/CLS÷100/origin fallback/UNAVAILABLE/timeout-bound/XSS; update `scan-worker.test.ts` fixture.
 - [ ] **Docs + epic** — README performance section; epic delivery doc.
 
-## Optional recommendations (capped — user decides at Gate 1)
-- [ ] R1 short-TTL cache for PSI/CrUX results (cuts quota pressure / UNAVAILABLE frequency)
-- [ ] R2 optional desktop strategy alongside mobile (tradeoff: +1 PSI call latency/quota)
-- [ ] R3 ops note: set `PAGESPEED_API_KEY` so the shared free quota isn't exhausted
+## Accepted recommendations (Gate 1 round 1 — folded into scope)
+- [ ] **R1 — short-TTL PSI/CrUX cache** — cache wrapper around the PSI fetch; key includes URL + form-factor + category set; configurable TTL; optional Redis (reuse existing) with bounded in-memory fallback; fail-soft; cache successes only (never cache UNAVAILABLE/errors).
+- [ ] **R2 — optional desktop measurement** — second PSI call (desktop) run in PARALLEL with mobile; mobile = headline grade/score + primary CrUX verdict + P2-07; desktop = own labelled score/verdict shown beside it in the performance card; NO averaging; desktop nested under existing `performanceMetrics` JSON (no migration); desktop independently fail-soft and disable-able (mobile-only path stays byte-identical); new i18n keys (Mobile/Desktop) in all 5 catalogs.
+- [x] R3 — `PAGESPEED_API_KEY` already configured in the environment (no work).

@@ -11,3 +11,6 @@
 | Phase 1 | Red Team Sprint 2 (revised plan) | red-team | opus | max | ~52k |
 | Phase 1 | Red Team Sprint 3 (convergence check) | red-team | opus | max | ~48k |
 | Phase 1 | QA Planner (tiered checklist) | qa-planner | sonnet | medium | ~78k |
+| Phase 1 | Gate 1 round 1 (R1+R2 accepted) + form-factor Q | orchestrator | opus | low | ~2k |
+| Phase 1 | Red Team — R1+R2 delta sprint | red-team | opus | max | ~54k |
+| Phase 1 | QA Planner — R1+R2 delta refresh | qa-planner | sonnet | medium | ~30k |

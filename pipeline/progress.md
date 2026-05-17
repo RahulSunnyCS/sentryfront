@@ -4,7 +4,34 @@
 **Branch:** claude/enhance-passive-scanning-eBoYx
 **Lane:** feature-full · **Risk:** MEDIUM · **Gates:** 3 · **Sprints:** 3
 **Effort:** default per CLAUDE.md effort table (Planning = Opus/max)
-**recommendation_rounds_used:** 0
+**recommendation_rounds_used:** 1  (Gate 1 round 1 — user accepted R1 + R2; R3 already done in env, not counted)
+
+## Gate 1 — user responses (round 1)
+
+- Scoring approach → **recommended** approach approved (Lighthouse-accurate headline + Google's verbatim real-user verdict beside it; no blended number).
+- R1 (short-TTL PSI/CrUX cache) → **accepted** — fold in.
+- R2 (optional desktop measurement) → **accepted** — fold in, with form-factor model: **mobile = headline grade/score; desktop shown beside it in the performance card; NO averaging** (each score independently verifiable vs PageSpeed Insights; mobile-first preserves grade continuity).
+- R3 (PAGESPEED_API_KEY) → already configured in the user's environment; no work, not counted against the cap.
+
+Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already converged 9/9/9/9 and is unchanged). Delta converged post-incorporation (~8.5 all axes; all "revise before proceeding" findings closed with concrete fixes).
+
+### Converged delta design (R1 + R2)
+
+**R2 — desktop measurement (mobile headline + desktop beside):**
+- Desktop is **opt-in, default OFF** — a real `features.ts` frozen-flag (`getFeatureStatus()`-observable). When OFF: byte-identical to today's mobile-only path.
+- When ON: run mobile first; if mobile is UNAVAILABLE due to 429/403 (rate-limit/quota) → **skip desktop** (quota-aware). Otherwise run desktop. Each call independently fail-soft via `Promise.allSettled` semantics — a cache-wrapper throw maps to emptyMetrics per form factor and can never collapse the other (explicit test).
+- Timing: when desktop ON, two sequential PSI calls; per-call timeout tightened for the dual case so total PSI wall ≤ ~80s leaving ≥40s crawl/overhead headroom under SCAN_TIMEOUT=120000 (hard timing-bound test). Desktop OFF = single 45s call (base plan).
+- Mobile = headline grade/score + the ONLY CrUX real-user verdict that drives the P2-07 HIGH finding/banner and the grade. Desktop = its own labelled score + Google CrUX verdict rendered **visually subordinate + disclaimed** "informational — headline grade is mobile (matches Google PageSpeed default)"; NO desktop banner / HIGH / grade-drive. NO averaging.
+- Persistence: desktop nested under existing `performanceMetrics` JSON (`performanceMetrics.desktop`); mobile stays top-level → back-compat, no migration. Old scans (no desktop block) render mobile-only, no crash.
+
+**R1 — short-TTL PSI cache:**
+- **In-memory LRU only** (Redis deferred — near-zero cross-instance hit rate for a distinct-URL scanner). Hard **entry-count cap = 200** with LRU eviction; test inserts 10k distinct keys, asserts size ≤ 200 (memory-DoS guard).
+- Key = `normalized(targetUrl) + strategy(mobile|desktop)` only (category set is invariant — code comment, not a key field). Cap key length; skip caching over-long normalized URLs.
+- TTL default **300000 (5 min)**, env `PSI_CACHE_TTL_MS`. **Force-refresh**: an explicit user-initiated re-scan bypasses the cache. UI i18n string discloses "performance data may be cached up to ~5 min" (all 5 catalogs).
+- Fail-soft: any cache get/set error → proceed to live PSI, never throw. **Cache successful responses only** — never cache UNAVAILABLE / 4xx / 5xx / timeout (so rate-limit recovery is not hidden).
+- Security: per-URL key ⇒ an attacker can only affect their own URL's entry (cache poisoning is not a risk — documented & explicitly cleared by Red Team P4); no new SSRF/secret/privacy surface (same PSI call; cache holds already-public parsed metrics, not the API key). security-auditor confirms in Phase 4.
+
+**Phase 2 decomposition note:** R1 (cache) and R2 (desktop) are separate task contracts with dependency edges: base PSI parser task → T-cache (R1) → T-desktop (R2). No shared-file write conflicts.
 
 ## User intent (Phase 0.5 — captured via clarifying questions)
 
