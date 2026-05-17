@@ -86,6 +86,19 @@ Rules:
   - Opus + max     : 30k – 80k
 - The Phase 7 Final Summary Report reads this file and produces a cost estimate. The log is working state — it is deleted along with the rest of `pipeline/` after Gate 3 approval.
 
+**Soft per-phase budgets (live notification — no stop):** After each delegation,
+check whether the running Phase 1 total has exceeded its soft cap for the lane.
+If it has, send a one-line notification to the user: "ℹ️ Phase 1 over soft budget
+(~Xk / cap Yk tokens) — continuing." Then **keep working immediately** — do not
+pause, do not ask for approval, do not wait for a reply. The notification is
+purely informational; the pipeline does not stop for it.
+
+Soft Phase 1 caps by lane (the highest-spend phase):
+- express          : n/a (no Phase 1)
+- bugfix-known / bugfix-unknown : ~20k tokens
+- feature-fast     : ~60k tokens
+- feature-full     : ~150k tokens
+
 ---
 
 ## Phase 0 — Triage (Automatic, runs silently after assessment)
@@ -107,6 +120,7 @@ Create the file pipeline/risk_manifest.json with this structure:
   "mandatory_agents": ["security-auditor", "performance-reviewer", "architecture-reviewer"],
   "tags": ["zero or more of: pricing, frontend, backend, infra, product"],
   "lane": "express | bugfix-known | bugfix-unknown | feature-fast | feature-full",
+  "lane_rationale": "one sentence — why this lane and not a heavier one",
   "sprint_count": 3,
   "human_gates": 3
 }
@@ -128,6 +142,12 @@ Also set lane (the task class — see Adaptive Lanes below):
 - feature-fast   — small feature, or one whose high-level design already exists
 - feature-full   — novel/cross-cutting, or anything not matching the above
                     (this is the default)
+
+**Default lane for MEDIUM / no-flag work:** When risk_level is MEDIUM and no
+risk_flag applies, default to **feature-fast** unless the `lane_rationale`
+field states a concrete reason to go heavier. "feature-full is the default"
+applies only when the heavier lane is genuinely justified — not as a silent
+fallback. If you cannot write a concrete escalation reason, use feature-fast.
 
 **Lane fail-safe (non-negotiable):** if risk_level is HIGH, OR any risk_flag
 applies (auth, pii, payment/billing, public-facing API, admin/privileged,
@@ -281,17 +301,19 @@ Then immediately run the Red Team Loop:
 - Red Team attacks the plan under three stances in one pass — Conservative, Optimist, Pessimist (defined in .claude/agents/red-team.md)
 - You revise based on valid criticisms only
 - Dismiss weak or irrelevant criticisms explicitly and explain why
-- Repeat this loop sprint_count times (from risk_manifest)
+- After each sprint, score the plan internally (see criteria below) and count newly-accepted criticisms
+- **Convergence early-exit:** if a sprint produces **zero newly-accepted criticisms** AND the internal score is **≥8**, stop immediately — do not run remaining scheduled sprints. The score gate already protects quality; over-running past convergence adds cost without benefit.
+- Otherwise repeat up to sprint_count times (from risk_manifest)
 
 If risk_manifest.tags require conditional specialists (see Conditional Specialists), pull their input in here and fold it into the plan before scoring.
 
-After all sprints, score the plan internally:
+Score the plan internally after each sprint (and at final convergence):
 - Completeness: Did we cover every part of the system?
 - Security depth: Are real threats addressed with real solutions?
 - Feasibility: Can a team actually build this?
 - Clarity: Would a non-security person understand what and why?
 
-If score is below 8 out of 10, run one more sprint.
+If final score is below 8 out of 10, run one more sprint.
 If score is 8 or above, hand to the Translator agent (.claude/agents/translator.md).
 
 Then seed the root TODO.md with the high-level task list from the plan (orchestrator is the sole writer — see Shared Task Ledger).
@@ -309,7 +331,10 @@ Report's OPTIONAL RECOMMENDATIONS block.
 Bounded re-plan loop:
 - Track `recommendation_rounds_used` in pipeline/progress.md (starts at 0).
 - If at Gate 1 the user accepts ≥1 AI recommendation: increment the counter,
-  re-run Phase 1 with the accepted items folded into scope, return to Gate 1.
+  run a **bounded delta re-plan** (do NOT run a full new Red Team sprint):
+  fold the accepted items into the plan, run one Bounded Phase-1 Constraint
+  Round (single synthesiser pass, scoped to the delta — see above), refresh
+  the QA Planner for Critical + Functional tiers only, then return to Gate 1.
 - Hard cap: **2** AI-initiated rounds. Once `recommendation_rounds_used == 2`,
   stop generating recommendations — omit the block entirely and present the
   Plan Report alone for the remainder of this planning cycle.
@@ -322,6 +347,7 @@ Bounded re-plan loop:
 Then run the QA Planner agent (.claude/agents/qa-planner.md) to produce pipeline/qa-checklist.md:
 - Escalate to Opus at high effort when risk_flags include auth or PII; otherwise Sonnet at medium effort.
 - The checklist classifies every test scenario into three tiers: 🔴 Critical (blocks Gate 2 if failing at the Automation Gate), 🟡 Functional (CONDITIONAL PASS condition at Gate 2), 🟢 Non-blocker (informational only).
+- **Lane-scaled breadth:** for feature-fast lane or MEDIUM risk_level with no risk_flags, emit **Critical + Functional tiers only** — skip exhaustive Non-blocker enumeration. Full three-tier output only for feature-full or HIGH risk.
 - The Translator agent does NOT translate the checklist — it is a machine-readable artifact consumed by the E2E Test Writer (Phase 5) and the Automation Gate (Phase 6).
 - Append the QA checklist tier summary to the Plan Report before presenting at Gate 1 (see Output Format: Plan Report below).
 
@@ -344,6 +370,8 @@ Save each task as pipeline/tasks/T-XX.json:
   "title": "Short descriptive title",
   "assigned_to": "implementor",
   "risk_flags": ["list risk flags from risk_manifest that apply"],
+  "model_hint": "haiku | sonnet | opus",
+  "effort_hint": "low | medium | high",
   "scope": {
     "files_to_create": [],
     "files_to_modify": [],
@@ -356,6 +384,19 @@ Save each task as pipeline/tasks/T-XX.json:
   "dependencies": [],
   "output_format": "code plus plain English explanation of every non-obvious decision"
 }
+
+**Assigning model_hint + effort_hint (per-task, not per-phase):**
+- **mechanical** (pure boilerplate, string catalogs, config, docs, simple rename):
+  `model_hint: haiku`, `effort_hint: medium`
+- **logic-bearing** (algorithm, data flow, type-shape, API contract, consumer
+  interaction, anything a reviewer would look at for correctness):
+  `model_hint: sonnet`, `effort_hint: high`
+- **security-critical or architecturally cross-cutting** (auth, payment,
+  public API surface, cross-module shared type):
+  `model_hint: opus`, `effort_hint: high`
+The Phase-3 implementor receives these hints as its model/effort instruction.
+The lane fail-safe still applies: HIGH risk / any risk_flag → minimum sonnet/high
+regardless of the per-task hint.
 
 Regenerate the root TODO.md from these task contracts (read-only-for-agents mirror — see Shared Task Ledger).
 
@@ -408,6 +449,38 @@ Then synthesise all reports:
 Hand the Synthesis Review Report to the Translator agent (.claude/agents/translator.md) for a plain-English pass BEFORE presenting it. Safeguard: the Translator clarifies wording only — it must preserve every severity label, the finding counts, and the PASS / CONDITIONAL PASS / FAIL verdict verbatim (never dilute the security signal).
 
 HUMAN GATE 2: Stop. Present the translated Synthesis Review Report. Do not proceed to testing until approved.
+
+---
+
+## Phase 4.5 — Bounded Fix Cycle (CONDITIONAL PASS only)
+
+Runs only when the Gate 2 verdict is CONDITIONAL PASS (one or more High/Medium
+conditions must be remediated before Phase 5). Not a Human Gate — it runs under
+the existing Gate 2 user approval and reports results before Phase 5 begins.
+
+**Parallelization rule (reuses the Phase 3 independence principle):**
+- Decompose each condition into a fix task with an explicit file scope.
+- Fix tasks whose `files_to_modify` sets are **disjoint** run in **parallel**
+  (same implementor-agent mechanics as Phase 3).
+- Fix tasks with a declared dependency or overlapping file sets run
+  **sequentially** in dependency order.
+- The orchestrator determines disjointness from the condition descriptions
+  before delegating — never assume disjointness.
+
+**Bounds:**
+- Maximum 2 sequential fix cycles (parallel-within-cycle is fine). If
+  conditions are still unresolved after 2 cycles, stop and surface to the user.
+- Each fix agent works within its declared scope only; `files_forbidden` from
+  the original task contracts apply.
+- After each cycle, re-run the full unit/integration suite. If green, proceed
+  to Phase 5. If tests regress, apply Regression Triage (DIRECT → Implementor;
+  COLLATERAL → regression-analyst) before continuing.
+
+**Orchestrator verification after each fix batch:**
+Run a cheap Haiku/low verification step: confirm only declared files were
+modified (grep scope-check) + `npm run test` summary. The orchestrator
+adjudicates the pass/fail summary, not raw command output — this avoids
+burning Opus on mechanical verification that a fast model can do.
 
 ---
 
@@ -580,6 +653,14 @@ Never use a fast model for security reasoning. Never use a slow expensive model 
 
 Lane sizing (see Adaptive Lanes) selects the model per phase: express → Haiku end-to-end; bugfix-known → Haiku/Sonnet; bugfix-unknown → Sonnet diagnosis then normal phase models; feature-fast / feature-full → as per the table. The lane fail-safe overrides any sizing: HIGH risk / any risk_flag ⇒ feature-full models, security-auditor Opus/max.
 
+**Meta-principle — effort + model are lane-and-task-derived, not static table
+lookups.** Triage sets the lane; the lane sets per-phase effort/model defaults
+(table above). Decomposition further refines per-task model/effort via
+`model_hint` + `effort_hint` in each task contract (see Phase 2). Every agent
+delegation must receive its model and effort **explicitly** — never assume the
+static table row applies when the lane or task type points to a lighter
+assignment. The table is the starting point; the lane + task contract override it.
+
 ---
 
 ## Effort Levels & Model Versions
@@ -602,16 +683,18 @@ Recommended default effort per step (model column = current assignment):
 | Phase 0 Triage                   | Haiku                | low    |
 | Phase 0.5 Intent Extraction      | Opus (grill-me, opt-in) | high   |
 | Phase 0.7 Diagnosis (bugfix-unknown) | Sonnet (Opus if elusive) | medium (high if escalated) |
-| Phase 1 Planning + Red Team (+ optional recommendations) | Opus / red-team Opus | max (feature-fast = 1 sprint; feature-full = sprint_count) |
+| Phase 1 Planning + Red Team (+ optional recommendations) | Opus / red-team Opus | **high** (feature-fast / MEDIUM) · **max** (feature-full / HIGH or any risk_flag) |
 | Gate Translator (Gates 1/2/3)    | Haiku                | medium |
 | Phase 2 Decomposition            | Opus                 | high   |
-| Phase 3 Implementation           | Sonnet (implementor) | high   |
+| Phase 3 Implementation           | per task_contract model_hint (haiku→sonnet→opus) | per task_contract effort_hint (medium→high) |
+| Phase 3+4.5 Agent output verification | Haiku          | low    |
 | Phase 4 Security Auditor         | Opus                 | max    |
 | Phase 4 Performance/Architecture | Sonnet               | high   |
 | Phase 4 Synthesis                | Opus                 | high   |
 | Phase 1/4 Pricing Reviewer       | Sonnet (tag-gated)   | low    |
 | Phase 5 Test Writer              | Sonnet (Opus if auth/PII) | medium (high if auth/PII) |
 | Phase 5 Docs Writer              | Haiku                | low    |
+| Phase 4.5 Bounded Fix Cycle      | Sonnet (implementor) | high   |
 | Phase 6 Fix cycles               | Sonnet (implementor) | high   |
 | Phase 7 Final Review             | Opus                 | high   |
 | Phase 7 Epic Doc Writer          | Sonnet               | medium |
