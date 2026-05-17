@@ -9,3 +9,5 @@
 | Phase 1 | Red Team Sprint 1 | red-team | opus | max | ~55k |
 | Phase 1 | Live PSI v5 capture attempt (quota-blocked) | orchestrator | n/a | low | ~1k |
 | Phase 1 | Red Team Sprint 2 (revised plan) | red-team | opus | max | ~52k |
+| Phase 1 | Red Team Sprint 3 (convergence check) | red-team | opus | max | ~48k |
+| Phase 1 | QA Planner (tiered checklist) | qa-planner | sonnet | medium | ~78k |
