@@ -38,3 +38,4 @@
 | Phase 4.5 | FIX-B: H2 honest-bound tighten | implementor | sonnet | high | ~19k |
 | Phase 4.5 | FIX-C: M2 trim cache payload | implementor | sonnet | high | ~22k |
 | Phase 4.5 | FIX-D: M1 relocate normalizePerformanceMetrics | implementor | sonnet | high | ~16k |
+| Phase 5 | Docs writer (README revert; API-ref deferred) | docs-writer | haiku | low | ~10k |
