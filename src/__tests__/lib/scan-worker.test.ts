@@ -42,7 +42,10 @@ vi.mock('@/lib/logger', () => ({
 
 // ── Imports after mocks ───────────────────────────────────────────────────────
 
-import { runScan, normalizePerformanceMetrics } from '@/lib/scan-worker';
+import { runScan } from '@/lib/scan-worker';
+// normalizePerformanceMetrics lives in its canonical home; scan-worker.ts no
+// longer re-exports it. Import directly so the test covers the real module.
+import { normalizePerformanceMetrics } from '@/lib/scanner/performance-metrics';
 import { prisma } from '@/lib/prisma';
 import { runScanner } from '@/lib/scanner';
 import { enrichFindingsWithLLM } from '@/lib/llm/enrichment';

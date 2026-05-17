@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/helpers';
 import { canViewScan } from '@/lib/report-access';
 import { logger } from '@/lib/logger';
-import { normalizePerformanceMetrics } from '@/lib/scan-worker';
+import { normalizePerformanceMetrics } from '@/lib/scanner/performance-metrics';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   logger.setScanScope(params.id);

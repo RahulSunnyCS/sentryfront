@@ -37,3 +37,4 @@
 | Phase 4.5 | FIX-B: H2 desktop timeout (impl) | implementor | sonnet | high | ~26k |
 | Phase 4.5 | FIX-B: H2 honest-bound tighten | implementor | sonnet | high | ~19k |
 | Phase 4.5 | FIX-C: M2 trim cache payload | implementor | sonnet | high | ~22k |
+| Phase 4.5 | FIX-D: M1 relocate normalizePerformanceMetrics | implementor | sonnet | high | ~16k |
