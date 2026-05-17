@@ -53,7 +53,8 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
   - Wave A ✅ DONE: T-01 (47 tests pass, +amendment: performanceScore `?? null` so 0 survives), T-03 (committed 92d2caa), T-05 (13 keys × 5 catalogs, parity verified)
   - Wave B ✅ DONE: T-02 (P2-07/P2-08/P2-01-transparency; 606 module tests pass; clamps on untrusted text), T-04 (committed af7db0d)
   - Wave C ✅ DONE: T-06 (scoring rework, UNAVAILABLE, P2-07/08 wired, desktop orchestration, cache; 1132 scanner tests pass; scope clean)
-  - Wave D ⏳ next: T-07 (null-safety), T-08 (persistence/types/API), T-10 (README)
+  - Wave D: T-10 ✅ done (README perf section + 15→18 fix) · T-07 ⏳ running · T-08 ⏳ running
+  - Note: README "What's Included" numbered module list still says 15 (separate section, out of T-10 scope) — follow-up for Phase 5 docs-writer / epic doc.
 
 ### Cross-task notes from T-06 (carry to T-08 / Phase 4)
 - PerformanceResult (defined in performance.ts) now exposes: `performanceScore` (0-100 int | null), `performanceGrade` ('A'..'F' | 'N/A'), `scoreSource` ('lab'|'unavailable'), `fieldDataVerdict`, `fieldData`, `bestPracticesScore`/`bestPracticesGrade`, optional `desktop: FormFactorResult`, `moduleFindingCounts`. T-08 must thread ALL of these into ScannerResult + the `performanceMetrics` JSON blob + API route + PerformanceData type, and ensure the UNAVAILABLE path persists a non-empty object carrying `scoreSource:'unavailable'`.

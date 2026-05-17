@@ -11,12 +11,18 @@ Scan any website for security vulnerabilities, performance bottlenecks, accessib
 ## ✨ Features
 
 ### **Security Scanning**
-- 🔍 **15 Security Modules** - Client secrets, XSS, CSP, CORS, and more
+- 🔍 **18 Security Modules** - Client secrets, XSS, CSP, CORS, and more
 - 🤖 **AI-Powered Enrichment** - Claude explains findings in plain English
 
 ### **Performance Scanning** ✅
-- ⚡ **Core Web Vitals** - LCP, FCP, CLS, TBT analysis
-- 📊 **Lighthouse Integration** - Google PageSpeed Insights API
+- ⚡ **Core Web Vitals** - LCP, FCP, CLS, TBT analysis via Lighthouse
+- 📊 **Lighthouse-Accurate Score** - Matches Google PageSpeed Insights exactly (the old double-penalty on LCP/CLS has been removed so your VibeSafe score equals what you see on PageSpeed)
+- 👥 **Real-User Field Data (CrUX)** - Google's verbatim FAST / AVERAGE / SLOW verdict from Chrome User Experience Report shown alongside the lab score — no extra API call
+- 🏅 **Web Best Practices Grade** - Surfaces best-practices issues from the same PageSpeed call (module P2-08)
+- ⚠️ **Field vs Lab Mismatch Alert** - When real Chrome users are slow despite a passing lab score, a prominent finding flags the gap (module P2-07)
+- 🔄 **Graceful Degradation** - If PageSpeed is rate-limited or unavailable, performance is reported as "not measured" (grade N/A) instead of a misleading F
+- ⚡ **Result Cache** - Performance results are cached for ~5 minutes (configurable via `PSI_CACHE_TTL_MS`) to reduce quota usage; an explicit re-scan always bypasses the cache
+- 🖥️ **Optional Desktop Score** - Off by default; enable with `"desktopPerformance": true` in the `FEATURES` env JSON. Mobile remains the headline grade; desktop is shown as a clearly-labelled secondary score (never averaged with mobile)
 - 💡 **AI Optimization** - File-specific improvement suggestions
 
 ### **Accessibility Scanning** ✅

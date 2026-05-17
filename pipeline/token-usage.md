@@ -23,3 +23,4 @@
 | Phase 3 | T-04: in-memory PSI LRU cache | implementor | sonnet | high | ~22k |
 | Phase 3 | T-02: P2-07/P2-08/P2-01 finding modules | implementor | sonnet | high | ~32k |
 | Phase 3 | T-06: scoring hub + desktop + cache + UNAVAILABLE | implementor | sonnet | high | ~34k |
+| Phase 3 | T-10: README performance section | implementor | sonnet | high | ~9k |
