@@ -8,6 +8,8 @@ export type ScanStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'TIMEOU
 // Single canonical definition lives in lighthouse.ts (the producer).
 // We re-export from here so that UI consumers import from '@/types' as before,
 // without a direct dependency on the scanner internals.
+// Also imported locally so the name is in scope for the PerformanceData interface below.
+import type { CrUXFieldData } from '@/lib/scanner/lighthouse';
 export type {
   CrUXDistribution,
   CrUXMetric,

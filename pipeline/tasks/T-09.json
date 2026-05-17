@@ -9,6 +9,7 @@
     "files_forbidden": ["src/lib/scanner/types.ts", "any p5-*.ts", "src/lib/scanner/modules/compliance.ts", "src/lib/scan-worker.ts"]
   },
   "acceptance_criteria": [
+    "Add the optional field `complianceFrameworkSummary?: ComplianceFrameworkSummary` (import the type from ./types) to the ScannerResult interface in index.ts — deferred here from T-01 because ScannerResult lives in this file (T-01 Option B)",
     "Behind `features.complianceScanning`, AFTER the accessibility block, build ComplianceContext from the accessibility result (accessibilityScore + scoreSource) and crawlResult.renderMode, call runComplianceModules, push findings, set moduleFindingCounts['P5-Compliance'], and spread complianceFrameworkSummary onto the returned ScannerResult (optional spread like the sibling blocks)",
     "Wrapped in try/catch — a compliance failure must not fail the scan (logger.error, continue), matching the perf/a11y/seo blocks",
     "BYTE-IDENTICAL FLAG-OFF: when features.complianceScanning is false, NO compliance code path runs, NO new key appears on ScannerResult, findings/moduleFindingCounts ordering is unchanged vs pre-feature. The P5 group is appended strictly last",

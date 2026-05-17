@@ -30,6 +30,11 @@ const defaultFeatures = {
   // consumes two PageSpeed API quota slots (one mobile + one desktop) instead of one.
   // Operators must explicitly opt in via FEATURES='{"desktopPerformance":true}'.
   desktopPerformance: false,
+  // Compliance scanning (Phase 5): cookie consent, privacy policy, data-protection
+  // headers, WCAG attestation, third-party data sharing, and user-rights signals.
+  // On by default — flag-off behaviour is byte-identical to pre-Phase-5 because no
+  // P5 module is wired into scanner/index.ts until the wiring task runs.
+  complianceScanning: true,
 };
 
 // Parse FEATURES env variable (JSON object)
@@ -109,6 +114,12 @@ export const features = {
    *  output is byte-identical to today. Enable via
    *  FEATURES='{"desktopPerformance":true}'. */
   desktopPerformance: customFeatures.desktopPerformance ?? defaultFeatures.desktopPerformance,
+
+  /** Compliance scanning (Phase 5) — cookie consent, privacy policy, data-protection
+   *  headers, WCAG attestation, third-party data sharing, and user-rights signals.
+   *  Defaults to true; when off, no P5 modules run and scanner output is
+   *  byte-identical to pre-Phase-5 (no runtime wiring exists yet). */
+  complianceScanning: customFeatures.complianceScanning ?? defaultFeatures.complianceScanning,
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────
@@ -218,6 +229,10 @@ export function isFeatureReady(feature: keyof typeof features): boolean {
       // Desktop performance needs no external config beyond the flag itself;
       // "ready" simply mirrors the enabled boolean, same as performanceScanning.
       return true;
+    case 'complianceScanning':
+      // Compliance scanning needs no external config beyond the flag itself;
+      // ready mirrors enabled, same pattern as seoScanning.
+      return true;
     default:
       return false;
   }
@@ -247,5 +262,6 @@ export function getFeatureStatus() {
     auth: { enabled: features.auth, ready: isFeatureReady('auth'), provider: authConfig.provider },
     tierGating: { enabled: features.tierGating, ready: isFeatureReady('tierGating') },
     desktopPerformance: { enabled: features.desktopPerformance, ready: isFeatureReady('desktopPerformance') },
+    complianceScanning: { enabled: features.complianceScanning, ready: isFeatureReady('complianceScanning') },
   };
 }
