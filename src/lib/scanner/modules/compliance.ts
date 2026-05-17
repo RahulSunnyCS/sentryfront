@@ -35,38 +35,17 @@ import { runWcagAttestationModule } from './p5-04-wcag-attestation';
 import { runThirdPartyDataSharingModule } from './p5-05-third-party-sharing';
 import { runUserRightsModule } from './p5-06-user-rights';
 import { logger } from '@/lib/logger';
+import * as cheerio from 'cheerio';
+import { deriveComplianceStatus, MODULE_FRAMEWORKS, FRAMEWORK_ORDER } from '../compliance-shared';
 
 // ── Signal derivation ────────────────────────────────────────────────────────
-
-/**
- * Derive a ComplianceSignal status from a single RawFinding.
- *
- * The derivation logic is intentionally string-based rather than structural
- * (module-id specific switch statements) so that future P5 modules do not
- * require changes here — any module that follows the fail-closed INFO pattern
- * is handled automatically.
- */
-function deriveStatus(finding: RawFinding): ComplianceSignal['status'] {
-  if (finding.severity === 'INFO') {
-    const titleLower = finding.title.toLowerCase();
-    // Fail-closed and unavailable paths always use neutral 'not-evaluated'.
-    // We check for the key phrases the P5 modules use in their INFO titles.
-    if (
-      titleLower.includes('not evaluated') ||
-      titleLower.includes('unavailable') ||
-      titleLower.includes('not applicable')
-    ) {
-      return 'not-evaluated';
-    }
-    // Any other INFO = a positive observation (e.g. "Consent mechanism observed",
-    // "Privacy policy link observed", "No third-party...observed" also qualifies
-    // as a positive signal because it means the footprint was clean).
-    return 'observed';
-  }
-  // LOW / MEDIUM / HIGH / CRITICAL findings represent negative signals —
-  // something is absent, misconfigured, or concerning.
-  return 'not-observed';
-}
+//
+// deriveComplianceStatus is the single source of truth, defined in
+// compliance-shared.ts. It is imported above and called directly wherever
+// the previous local deriveStatus was used. The alias below keeps the internal
+// call sites readable without a rename diff across the file.
+const deriveStatus = (finding: RawFinding): ComplianceSignal['status'] =>
+  deriveComplianceStatus(finding);
 
 // ── Per-module signal label extraction ──────────────────────────────────────
 
@@ -82,26 +61,11 @@ function signalLabel(finding: RawFinding): string {
 }
 
 // ── Framework routing ────────────────────────────────────────────────────────
-
-/**
- * Map a module ID to the frameworks whose summary it contributes to.
- * A module may contribute to more than one framework (e.g. P5-01 is relevant
- * to both GDPR and CCPA because both frameworks have consent/notice provisions).
- *
- * Rationale for multi-framework contribution:
- * - GDPR and CCPA share many surface indicators (consent banners, privacy
- *   policy, data-subject rights) — it would be misleading to attribute them
- *   to only one framework when the passive scan cannot determine jurisdiction.
- * - WCAG / Accessibility is separate: only P5-04 speaks to it directly.
- */
-const MODULE_FRAMEWORKS: Record<string, string[]> = {
-  'P5-01': ['GDPR', 'CCPA'],          // cookie consent is relevant to both frameworks
-  'P5-02': ['GDPR', 'CCPA'],          // privacy policy disclosure required by both
-  'P5-03': ['GDPR'],                  // data-protection headers are a GDPR technical measure
-  'P5-04': ['WCAG / Accessibility'],  // WCAG attestation — not a GDPR/CCPA signal
-  'P5-05': ['GDPR', 'CCPA'],          // third-party sharing disclosure required by both
-  'P5-06': ['GDPR', 'CCPA'],          // data-subject rights affordances required by both
-};
+//
+// MODULE_FRAMEWORKS and FRAMEWORK_ORDER are imported from compliance-shared.ts
+// (the single source of truth). They are also re-exported implicitly via the
+// import above so UI components can import from compliance-shared.ts directly
+// without going through this server-side orchestrator.
 
 // ── Module runner helpers ────────────────────────────────────────────────────
 
@@ -147,16 +111,41 @@ export async function runComplianceModules(
 ): Promise<ComplianceResult> {
   logger.info('Running compliance scan', { url: crawl.finalUrl });
 
+  // ── C2: Parse-once optimisation ──────────────────────────────────────────────
+  //
+  // Each P5 module previously called cheerio.load() independently, producing up
+  // to 6 separate parse passes over the same HTML document. Instead, we select
+  // the best available HTML representation once here and parse it a single time.
+  // The resulting CheerioAPI is forwarded to every module via ctx.dom; all
+  // modules implement the `ctx.dom ?? cheerio.load(...)` pattern (FIX-01) so
+  // they use the shared instance when present and fall back gracefully when not.
+  //
+  // Preference order matches each module's own selection logic:
+  //   cleanedHtml  — noise-reduced (scripts/styles stripped), sourced from
+  //                  renderedHtml when available — preferred for DOM inspection.
+  //   renderedHtml — post-JS snapshot from Playwright.
+  //   html         — raw pre-JS fetch-only HTML.
+  //
+  // Guard: if the selected source is absent or effectively empty we do NOT set
+  // ctx.dom so the modules' own fail-closed paths (which check for empty HTML)
+  // continue to work correctly without receiving a cheerio instance built from
+  // an empty string.
+  const htmlForDom = crawl.cleanedHtml ?? crawl.renderedHtml ?? crawl.html;
+  const ctxWithDom: ComplianceContext =
+    htmlForDom && htmlForDom.trim().length > 0
+      ? { ...ctx, dom: cheerio.load(htmlForDom) }
+      : ctx; // leave ctx.dom absent so modules' fail-closed paths still fire
+
   // Invoke each module in its own isolated try/catch via safeRun.
   // Sequential execution is used here (not Promise.all) because all modules
   // are synchronous CPU-bound functions — parallelism via Promise.all would
   // only add overhead from microtask scheduling with no I/O gain.
-  const cookieConsentFindings = safeRun('P5-01', runCookieConsentModule, crawl, ctx);
-  const privacyPolicyFindings = safeRun('P5-02', runPrivacyPolicyModule, crawl, ctx);
-  const dataProtectionFindings = safeRun('P5-03', runDataProtectionHeadersModule, crawl, ctx);
-  const wcagAttestationFindings = safeRun('P5-04', runWcagAttestationModule, crawl, ctx);
-  const thirdPartySharingFindings = safeRun('P5-05', runThirdPartyDataSharingModule, crawl, ctx);
-  const userRightsFindings = safeRun('P5-06', runUserRightsModule, crawl, ctx);
+  const cookieConsentFindings = safeRun('P5-01', runCookieConsentModule, crawl, ctxWithDom);
+  const privacyPolicyFindings = safeRun('P5-02', runPrivacyPolicyModule, crawl, ctxWithDom);
+  const dataProtectionFindings = safeRun('P5-03', runDataProtectionHeadersModule, crawl, ctxWithDom);
+  const wcagAttestationFindings = safeRun('P5-04', runWcagAttestationModule, crawl, ctxWithDom);
+  const thirdPartySharingFindings = safeRun('P5-05', runThirdPartyDataSharingModule, crawl, ctxWithDom);
+  const userRightsFindings = safeRun('P5-06', runUserRightsModule, crawl, ctxWithDom);
 
   // Aggregate all findings into a single flat array for the RawFinding pipeline.
   const findings: RawFinding[] = [
@@ -205,9 +194,12 @@ export async function runComplianceModules(
   }
 
   // Convert the Map to the typed ComplianceFrameworkSummary array.
-  // Preserve a stable output order: GDPR → CCPA → WCAG / Accessibility.
-  const FRAMEWORK_ORDER = ['GDPR', 'CCPA', 'WCAG / Accessibility'];
-  const frameworkSummary: ComplianceFrameworkSummary = FRAMEWORK_ORDER
+  // Preserve a stable output order using FRAMEWORK_ORDER from compliance-shared.ts
+  // (the single source of truth imported at the top of this file). Previously a
+  // local `const FRAMEWORK_ORDER` was declared here, which shadowed the import
+  // and prevented the shared constant from being used — now both sites reference
+  // the same value, so the display order is guaranteed to be in sync.
+  const frameworkSummary: ComplianceFrameworkSummary = (FRAMEWORK_ORDER as string[])
     .filter((fw) => frameworkSignals.has(fw))
     .map((fw) => ({
       framework: fw,
@@ -216,7 +208,7 @@ export async function runComplianceModules(
 
   // Include any framework not in FRAMEWORK_ORDER at the end (future-proofing).
   for (const [fw, signals] of frameworkSignals.entries()) {
-    if (!FRAMEWORK_ORDER.includes(fw)) {
+    if (!(FRAMEWORK_ORDER as string[]).includes(fw)) {
       frameworkSummary.push({ framework: fw, signals });
     }
   }

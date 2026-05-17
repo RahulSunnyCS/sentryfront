@@ -24,9 +24,10 @@ export const SCAN_MODULES: ScanModule[] = [
   { id: 'P1-13', name: 'Admin Interfaces',     plainName: 'Exposed admin pages' },
   { id: 'P1-14', name: 'robots.txt & Sitemap', plainName: 'Search engine exposure' },
   { id: 'P1-15', name: 'Cache Configuration',  plainName: 'Cache leak check' },
-  // Phase 5 compliance modules — P5-01..P5-06. No runtime wiring yet; entries
-  // are present so the report UI can display module metadata before the modules
-  // are active. Metadata follows the same id/name/plainName shape as P1 rows.
+  // Phase 5 compliance modules — P5-01..P5-06. Wired into the scan pipeline via
+  // runComplianceModules() in src/lib/scanner/modules/compliance.ts, which is
+  // called from src/lib/scanner/index.ts. Metadata follows the same
+  // id/name/plainName shape as P1 rows.
   { id: 'P5-01', name: 'Cookie Consent',            plainName: 'Cookie consent banner check' },
   { id: 'P5-02', name: 'Privacy Policy',             plainName: 'Privacy policy presence' },
   { id: 'P5-03', name: 'Data Protection Headers',   plainName: 'Data-protection header signals' },
