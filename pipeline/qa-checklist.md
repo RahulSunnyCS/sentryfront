@@ -393,8 +393,197 @@ Auth/PII escalated: no
 
 ---
 
+## R1 + R2 Delta (cache + desktop)
+
+### R2 — Desktop Form Factor
+
+🔴 When the desktop feature flag is OFF, the performance scan output is byte-identical to the mobile-only path — no desktop field appears in the response
+  Scenario    : Set the frozen `desktopPerformance` feature flag to OFF (default). Run a full scan. Inspect the persisted `performanceMetrics` JSON and the API GET response.
+  Pass if     : The response body is structurally identical to a scan run on the old code with no desktop flag: no `performanceMetrics.desktop` key, no desktop score, no desktop grade, no desktop CrUX block.
+  Fail if     : Any `desktop` key appears in the response, even as null or an empty object; or any field name or ordering differs from the pre-flag baseline.
+  Automatable : yes
+  @critical
+
+🔴 The desktop feature flag is a real frozen flag in `src/lib/features.ts` and is observable via `getFeatureStatus()`
+  Scenario    : Call `getFeatureStatus()` with the flag OFF and again with the flag ON. Inspect the returned status object.
+  Pass if     : The returned object contains a `desktopPerformance` key; value is `false` when OFF and `true` when ON; no other feature-status shape is altered.
+  Fail if     : The key is absent from `getFeatureStatus()`; or the flag is not declared inside the frozen `features` object in `features.ts`; or toggling it requires a code change outside of `features.ts`.
+  Automatable : yes
+  @critical
+
+🔴 When the desktop flag is ON and the mobile PSI call returns HTTP 429, the desktop PSI call is SKIPPED entirely — only one outbound PSI request is made
+  Scenario    : Enable the desktop flag. Mock the mobile PSI endpoint to return HTTP 429. Instrument or intercept outbound fetch calls. Run `runLighthouse`.
+  Pass if     : Exactly one PSI HTTP request is recorded (the failed mobile call); no desktop PSI request is issued; the result records mobile as UNAVAILABLE and desktop as absent/skipped.
+  Fail if     : A second PSI request (for desktop) is made after the 429; or the desktop result is populated with any data.
+  Automatable : yes
+  @critical
+
+🔴 Each form factor fails independently: a cache-wrapper exception on one form factor yields empty metrics for ONLY that form factor — the other still returns its results (Promise.allSettled semantics)
+  Scenario    : Enable the desktop flag. Arrange the cache wrapper to throw synchronously for the desktop strategy but succeed for mobile. Run both PSI calls through the settled-promise path.
+  Pass if     : Mobile metrics are populated normally; desktop metrics are empty (the exception was swallowed); no unhandled rejection; the scan proceeds to completion.
+  Fail if     : The mobile result is also wiped or absent; or an uncaught exception propagates out of the PSI call layer; or the scan is marked TIMEOUT or ERROR due to the desktop cache throw.
+  Automatable : yes
+  @critical
+
+🔴 With the desktop flag ON, the combined wall-time for both sequential PSI calls must not exceed 80 seconds, leaving at least 40 seconds of headroom under SCAN_TIMEOUT_MS = 120000
+  Scenario    : Set `PAGESPEED_TIMEOUT_MS` to the planned value (45000 ms, 0 retries) and enable the desktop flag. Assert that `PAGESPEED_TIMEOUT_MS * 2 <= 80000` in a static config test, and that the integration path completes within that budget under a mocked 1 ms PSI response.
+  Pass if     : `45000 * 2 = 90000` — wait, this must be <= 80000. If the per-call timeout for desktop is distinct and lower, assert that `mobileTimeout + desktopTimeout <= 80000`. The test must assert the ACTUAL configured values, not a hardcoded assumption.
+  Fail if     : The sum of per-form-factor timeout budgets exceeds 80000 ms; or the implementation uses the same 45000 ms timeout for both calls without a lower desktop cap that keeps total <= 80000 ms.
+  Automatable : yes
+  @critical
+
+🔴 With the desktop flag OFF, a single PSI call runs with the same 45-second timeout as today — no second request, no timing regression
+  Scenario    : Confirm desktop flag is OFF. Inspect the configured `PAGESPEED_TIMEOUT_MS`. Assert that exactly one PSI call is issued and that its timeout matches the pre-delta baseline (45000 ms).
+  Pass if     : One PSI call; timeout = 45000 ms; no desktop branch enters the call path.
+  Fail if     : Two PSI calls are observed; or the mobile timeout is altered by the presence of the desktop code path even when the flag is OFF.
+  Automatable : yes
+  @critical
+
+🔴 Mobile is the ONLY form factor that produces the headline grade, headline score, primary CrUX verdict, and the P2-07 "real users SLOW" HIGH finding/banner — desktop drives NONE of these
+  Scenario    : Enable the desktop flag. Run a scan where desktop PSI returns a score of 0.95 (A) but mobile returns 0.40 (F) and mobile CrUX is SLOW. Inspect the scan's `performanceGrade`, `performanceScore`, P2-07 findings, and any banners.
+  Pass if     : `performanceGrade` is 'F'; `performanceScore` is 40; exactly one P2-07 HIGH finding is present (driven by mobile CrUX SLOW + lab score >= 50 condition); no desktop-sourced HIGH finding or banner.
+  Fail if     : `performanceGrade` or `performanceScore` reflects the desktop A/95; or a P2-07 HIGH finding is driven by desktop; or any desktop banner appears.
+  Automatable : yes
+  @critical
+
+🔴 Desktop metrics are stored nested under `performanceMetrics.desktop` in the JSON — mobile stays top-level — and the full structure survives a persist → API GET round-trip intact
+  Scenario    : Enable the desktop flag. Run a scan. Capture the value written to `Scan.performanceMetrics`. Fetch via GET /api/v1/scans/[id]. Compare the `desktop` sub-object in the written value against the read value.
+  Pass if     : `performanceMetrics.desktop` exists in both write and read paths; all desktop keys (score, grade, CrUX verdict, individual metrics) are preserved; mobile keys remain top-level and unchanged.
+  Fail if     : `desktop` key is absent from the API response; any desktop key is dropped or mutated; mobile fields migrate into `desktop` or vice versa; JSON.parse throws on the stored blob.
+  Automatable : yes
+  @critical
+
+🔴 Old scans that have no `performanceMetrics.desktop` block render correctly in mobile-only mode — no crash, no blank section, no invented desktop data
+  Scenario    : Seed the DB with a scan whose `performanceMetrics` JSON matches the pre-delta shape (no `desktop` key at any level). Load the report page and the API route with the desktop flag ON.
+  Pass if     : The report renders the mobile performance section as before; no desktop UI panel appears; no thrown error or blank section.
+  Fail if     : The page throws on missing `desktop` key; a desktop panel renders with null/undefined values; or the mobile section is disrupted.
+  Automatable : yes
+  @critical
+
+🟡 The desktop score, grade, and CrUX verdict render in the report UI in a visually subordinate position relative to the mobile headline, with an explicit disclaimer reading (in English) "informational — headline grade is mobile (matches Google PageSpeed default)" or equivalent
+  Scenario    : Enable the desktop flag. Render the report performance section with both mobile and desktop data populated. Inspect the DOM / rendered output.
+  Pass if     : The desktop block is visually below or secondary to the mobile headline; the disclaimer string is present and visible; mobile grade/score is rendered first/larger/more prominently.
+  Fail if     : Desktop score appears at the same visual level as mobile or above it; the disclaimer string is absent; or no visual distinction between headline and subordinate data exists.
+  Automatable : partial
+  @functional
+
+🟡 No desktop PSI HIGH finding and no desktop-sourced grade change appear in the report under any combination of desktop PSI scores — the desktop block is informational only
+  Scenario    : Enable the desktop flag. Run through the P2-07 module and grade computation with a desktop score of 0.30 (F) and mobile score of 0.90 (A). Inspect findings list and headline grade.
+  Pass if     : `performanceGrade` remains A (mobile); no HIGH finding is sourced from the desktop score; the desktop F is visible only in the subordinate desktop block.
+  Fail if     : A HIGH finding references the desktop score; or the headline grade drops below A due to desktop input.
+  Automatable : yes
+  @functional
+
+🟡 New i18n keys for the desktop feature (Mobile label, Desktop label, "desktop not measured" copy, the subordinate disclaimer, and the cache-staleness disclosure) exist in all five locale catalogs — en, hi, ml, es, de
+  Scenario    : Extract all new `t('key')` references added by the R2 delta from the performance components. Cross-check against each of the five `messages/` files.
+  Pass if     : Every new key is present in all five catalogs with a non-empty string value.
+  Fail if     : Any new key is present in `en.json` but absent or empty in one or more of the remaining four catalogs.
+  Automatable : yes
+  @functional
+
+🟡 A missing desktop i18n key in a non-English locale does not crash the page or produce a blank performance section
+  Scenario    : Temporarily remove one desktop-related key from `de.json`. Load the performance report with locale=de and both mobile and desktop data present.
+  Pass if     : Page renders; next-intl falls back to the English string or shows the key name; no uncaught exception; mobile data still visible.
+  Fail if     : Page crashes or renders a blank performance section.
+  Automatable : partial
+  @functional
+
+🟢 The desktop disclaimer wording reads naturally in all five locale translations — no machine-translated placeholder text or grammatically awkward phrasing
+  Scenario    : Manual review of the desktop disclaimer and "not measured" strings in each of the five locale files.
+  Pass if     : Strings read naturally in each language.
+  Automatable : no
+  @non-blocker
+
+---
+
+### R1 — In-Memory PSI Cache
+
+🔴 After inserting 10,000 distinct URL keys into the cache, the cache size remains at or below 200 entries (LRU eviction enforces the hard cap)
+  Scenario    : Instantiate the cache module directly. Insert 10,000 cache entries with distinct normalized URLs. Query `cache.size` or equivalent.
+  Pass if     : `cache.size <= 200`.
+  Fail if     : `cache.size` exceeds 200; or the eviction mechanism throws; or memory grows unboundedly.
+  Automatable : yes
+  @critical
+
+🔴 Cache keys for mobile strategy, desktop strategy, and a different URL never collide — a cache hit for one must never be returned for the other
+  Scenario    : Insert a cache entry for `(normalizedUrl: 'https://example.com', strategy: 'mobile')` with value A. Query `('https://example.com', 'desktop')` and `('https://other.com', 'mobile')`.
+  Pass if     : Both queries return a cache miss (undefined/null); the mobile+example.com entry returns value A and only value A.
+  Fail if     : The desktop or different-URL query returns value A; or any two distinct (url, strategy) pairs share a cache entry.
+  Automatable : yes
+  @critical
+
+🔴 An expired cache entry (TTL elapsed) causes a live PSI refetch — the stale value is not returned
+  Scenario    : Insert a cache entry with a TTL of 1 ms. Wait for expiry (or mock the clock). Query the cache. Observe whether a live PSI call is made.
+  Pass if     : The cache returns a miss after TTL expiry; a live PSI fetch is initiated; the fresh value (not the stale one) is returned to the caller.
+  Fail if     : The stale value is returned after TTL expiry; or no live PSI fetch is made; or the entry is treated as valid indefinitely.
+  Automatable : yes
+  @critical
+
+🔴 An explicit user-initiated re-scan bypasses the cache — the live PSI result is fetched and stored, not the previously cached value
+  Scenario    : Seed the cache with a known stale value for a URL. Trigger a re-scan (simulating the user explicitly requesting a fresh scan for the same URL). Capture the PSI call count and the returned metrics.
+  Pass if     : At least one live PSI call is made during the re-scan regardless of cache state; the result reflects the fresh PSI response, not the cached value; the cache is updated with the new result.
+  Fail if     : The cached stale value is returned without a live PSI call; or the re-scan path makes zero outbound PSI requests.
+  Automatable : yes
+  @critical
+
+🔴 Any exception thrown by cache get or cache set is swallowed — the call site proceeds to a live PSI fetch and never propagates the cache error to the caller
+  Scenario    : Monkey-patch the cache's `get` method to throw synchronously. Run `runLighthouse` (or the PSI call wrapper). Observe whether the error propagates.
+  Pass if     : No exception reaches the caller; a live PSI call is made; a valid metrics result is returned.
+  Fail if     : The exception propagates out of the PSI call layer; the scan is aborted or marked ERROR due to the cache throw.
+  Automatable : yes
+  @critical
+
+🔴 A PSI response that is UNAVAILABLE (HTTP 429, HTTP 403, timeout, or network error) is NOT stored in the cache — the next call for the same URL triggers a fresh live PSI attempt
+  Scenario    : Mock the PSI endpoint to return HTTP 429. Call the PSI wrapper once (result: UNAVAILABLE). Mock the endpoint to return HTTP 200 on the second call. Call the wrapper again for the same URL and strategy.
+  Pass if     : The second call makes a live PSI request (cache miss) and returns the successful result.
+  Fail if     : The second call returns UNAVAILABLE from cache without making a live PSI request; or the 429 response is cached and served on the next call.
+  Automatable : yes
+  @critical
+
+🔴 A cache hit for a successful PSI response returns the identical parsed metrics without making a second network call
+  Scenario    : Mock the PSI endpoint to succeed once. Call the PSI wrapper twice for the same URL and strategy. Record outbound HTTP call count.
+  Pass if     : Exactly one outbound PSI HTTP call is observed; both invocations return structurally identical `LighthouseMetrics` objects.
+  Fail if     : Two outbound PSI calls are made on the second invocation; or the cached result differs from the first-call result in any field.
+  Automatable : yes
+  @critical
+
+🟡 A URL whose normalized form exceeds the documented length cap is not cached — the live PSI result is returned without a cache write
+  Scenario    : Construct a URL whose normalized form exceeds the cache key length cap (e.g. > 2000 characters with long query parameters). Call the PSI wrapper.
+  Pass if     : The live PSI call is made; no entry is inserted into the cache (`cache.size` unchanged); no error is thrown.
+  Fail if     : The oversized key is inserted into the cache; or the call throws due to key length; or the result is returned without making a live PSI call.
+  Automatable : yes
+  @functional
+
+🟡 A cache hit vs a cache miss produces structurally equivalent parsed metrics downstream — score derivation and grade computation are deterministic across both paths
+  Scenario    : Run the full scan pipeline twice for the same URL with the same mock PSI response: first with an empty cache (miss path), second with the cache pre-warmed (hit path). Compare `performanceGrade`, `performanceScore`, and all CWV fields in the two results.
+  Pass if     : All compared fields are identical between the miss-path result and the hit-path result.
+  Fail if     : Any field differs; or the hit-path result omits a field present in the miss-path result.
+  Automatable : yes
+  @functional
+
+🟡 The `PSI_CACHE_TTL_MS` environment variable is respected — setting it to a value other than the default 300000 ms changes the effective TTL without a code change
+  Scenario    : Set `PSI_CACHE_TTL_MS=1000` in the environment. Insert a cache entry. Wait 1500 ms (or mock the clock past 1000 ms). Query the cache.
+  Pass if     : The entry is expired and a live PSI fetch is triggered; the 1000 ms TTL was used, not the 300000 ms default.
+  Fail if     : The entry is still valid after 1000 ms; or the env variable is ignored; or the module hardcodes the TTL without reading the env var.
+  Automatable : yes
+  @functional
+
+🟢 The in-memory cache has no shared-secret or cross-user exposure surface — each cache key is URL + strategy only, and an attacker who controls a URL can only affect their own URL's cache entry (cache poisoning risk cleared)
+  Scenario    : Document review: confirm the cache key construction uses only normalized URL and strategy, with no user-ID, session, or shared global mutable key. Verify no user-supplied value other than the normalized URL is embedded in the key.
+  Pass if     : Cache key = f(normalizedUrl, strategy) with no other inputs; no user-session data in key or value; the risk is documented as cleared.
+  Automatable : no
+  @non-blocker
+
+🟢 The cache-staleness disclosure string appears in the report UI when data was served from the cache (cache hit) — informing the user that metrics may be up to 5 minutes old
+  Scenario    : Render the performance section with a `cacheHit: true` flag (or equivalent metadata) in the metrics payload. Inspect the rendered output.
+  Pass if     : A disclosure note is visible (e.g. "Results may reflect data from up to 5 minutes ago").
+  Automatable : partial
+  @non-blocker
+
+---
+
 TIER SUMMARY
-🔴 Critical    : 17 — all must pass at Automation Gate for Gate 2 to pass
-🟡 Functional  : 21 — failures -> CONDITIONAL PASS at Gate 2
-🟢 Non-blocker : 6  — logged only, no gate impact
-Automatable    : 27 yes / 8 partial / 3 no
+🔴 Critical    : 36 — all must pass at Automation Gate for Gate 2 to pass
+🟡 Functional  : 29 — failures -> CONDITIONAL PASS at Gate 2
+🟢 Non-blocker : 9  — logged only, no gate impact
+Automatable    : 57 yes / 13 partial / 4 no
