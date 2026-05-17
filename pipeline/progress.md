@@ -56,7 +56,8 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
   - Wave D: T-10 ✅ · T-07 ✅ done (route 0-vs-null guard, UNAVAILABLE UI state; 19 tests pass; PDF/print path confirmed already null-safe — no extra consumer) · T-08 ⏳ running
   - T-07 note: shared `src/types/index.ts` PerformanceData widening is T-08's scope (T-07 correctly did not touch it; TS-valid meanwhile). Confirm T-08 widens it.
   - Wave D: T-07 ✅ · T-10 ✅ · T-08 ✅ done (scan-worker UNAVAILABLE persistence fix via `'performanceScore' in scannerResult` + blob-guard; normalizePerformanceMetrics 3-case back-compat w/ 2 fixtures; types/index.ts PerformanceData widened; scope clean; lint clean; its own tests pass)
-  - Wave E ⏳ next: T-09 (report UI) — deps T-07, T-08, T-05 (all done)
+  - Wave D ✅ DONE (T-07, T-08, T-10 + T-04 flaky-test fix; full suite 1527/0)
+  - Wave E ⏳ running: T-09 (report UI) — deps T-07, T-08, T-05 (all done)
 
 ### Known limitation (Phase 4 / epic-doc): PDF/print export
 - `src/app/[locale]/report/[id]/print/page.tsx` + `print-report.tsx` read only the SCALAR performanceScore (already null-safe — `performanceScore !== null` guard; no crash on UNAVAILABLE) and do NOT surface scoreSource/fieldData/bestPractices/desktop. No regression (scalar behaviour preserved). Rich-data in PDF is a deliberate non-goal of this delivery — candidate follow-up. Flag for Phase 4 architecture review + epic doc limitations.
