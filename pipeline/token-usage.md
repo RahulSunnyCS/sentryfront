@@ -28,3 +28,7 @@
 | Phase 3 | T-08: persistence + types + API + back-compat | implementor | sonnet | high | ~30k |
 | Phase 3 | T-04 flaky TTL test fix (deterministic timers) | implementor | sonnet | high | ~12k |
 | Phase 3 | T-09: report UI (CrUX/best-practices/desktop/UNAVAILABLE, XSS-safe) | implementor | sonnet | high | ~34k |
+| Phase 4 | Security Auditor | security-auditor | opus | max | ~52k |
+| Phase 4 | Performance Reviewer | performance-reviewer | sonnet | high | ~22k |
+| Phase 4 | Architecture Reviewer | architecture-reviewer | sonnet | high | ~24k |
+| Phase 4 | Synthesis | orchestrator | opus | high | ~9k |

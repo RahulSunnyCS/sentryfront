@@ -59,7 +59,12 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
   - Wave D ✅ DONE (T-07, T-08, T-10 + T-04 flaky-test fix; full suite 1527/0)
   - Wave E ✅ DONE: T-09 (report UI — verbatim CrUX verdict, subordinate desktop, mobile-only slow banner, capString length-cap, NO dangerouslySetInnerHTML, back-compat; +20 tests incl. XSS payloads)
 - [x] Phase 3 — COMPLETE. All 10 tasks (T-01..T-10) + T-04 flaky-test fix. Full suite: 92 files, **1547 passed / 10 skipped / 0 failed**, lint clean. Browser visual QA not possible in this env (no dev server) — flagged for human manual test (qa-checklist).
-- [ ] Phase 4 — Specialist review (security + performance + architecture) → Human Gate 2 (next)
+- [x] Phase 4 — Specialist review complete. Security PASS (0/0/3); Performance CONDITIONAL PASS (0/1/2/3); Architecture CONDITIONAL PASS (1/5/5). Synthesis: **CONDITIONAL PASS**. No conflicts. Reports in pipeline/reviews/.
+  - Blocking H1: CrUX 3-way shape mismatch → per-metric real-user cards dead in prod (all 3 reviewers).
+  - Blocking H2: desktop-ON path can exceed 120s SCAN_TIMEOUT (~38s crawl + 90s 2×PSI).
+  - M1: relocate normalizePerformanceMetrics out of scan-worker. M2: strip non-perf arrays before caching.
+- [ ] Phase 4 — Translator pass on Synthesis Review Report (in progress)
+- [ ] HUMAN GATE 2 (awaiting presentation)
 
 ### Known limitation (Phase 4 / epic-doc): PDF/print export
 - `src/app/[locale]/report/[id]/print/page.tsx` + `print-report.tsx` read only the SCALAR performanceScore (already null-safe — `performanceScore !== null` guard; no crash on UNAVAILABLE) and do NOT surface scoreSource/fieldData/bestPractices/desktop. No regression (scalar behaviour preserved). Rich-data in PDF is a deliberate non-goal of this delivery — candidate follow-up. Flag for Phase 4 architecture review + epic doc limitations.
