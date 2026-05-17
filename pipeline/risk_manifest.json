@@ -1,0 +1,14 @@
+{
+  "risk_level": "HIGH",
+  "triggers": [
+    "Processes/observes site privacy posture (cookies, trackers, privacy policy) — adjacent to PII/regulatory claims",
+    "Public-facing report UI surface (Compliance tab) — user-visible regulatory language",
+    "Project has an explicit no-compliance-claims-without-backing-module policy (Phase 2.5.1 / CLAIMS_RULES.md) — false/overstated claims are a legal-credibility risk"
+  ],
+  "mandatory_agents": ["security-auditor", "performance-reviewer", "architecture-reviewer"],
+  "tags": ["frontend", "backend", "product"],
+  "lane": "feature-full",
+  "sprint_count": 3,
+  "human_gates": 3,
+  "risk_flags": ["regulatory-claim-surface"]
+}
