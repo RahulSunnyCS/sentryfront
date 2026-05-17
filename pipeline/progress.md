@@ -49,7 +49,8 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
 - [x] Phase 1 — Translator pass on Plan Report
 - [x] HUMAN GATE 1 — **APPROVED** (round 1; recommended scoring approved, R1+R2 folded in)
 - [x] Phase 2 — Decomposition (10 task contracts T-01..T-10; T-09 depends on T-07 for shared performance-section.tsx)
-- [ ] Phase 3 — awaiting user "proceed with implementation?"
+- [ ] Phase 3 — Parallel implementation
+  - Wave A: T-03 ✅ done · T-01 ⏳ running · T-05 ⏳ running
 - [ ] Phase 2 — Decomposition
 - [ ] Phase 3 — Parallel implementation
 - [ ] Phase 4 — Specialist review (security + performance + architecture) + Translator

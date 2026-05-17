@@ -9,7 +9,7 @@
  * with selective feature disabling when needed.
  */
 
-// Default feature configuration (all enabled)
+// Default feature configuration (all enabled, except desktopPerformance which is opt-in)
 const defaultFeatures = {
   performanceScanning: true,
   accessibilityScanning: true,
@@ -26,6 +26,10 @@ const defaultFeatures = {
   pwaSurfaceChecks: true,
   pathCoverageChecks: true,
   seoDepthPass: true,
+  // Desktop performance measurement is off by default because each scan that enables it
+  // consumes two PageSpeed API quota slots (one mobile + one desktop) instead of one.
+  // Operators must explicitly opt in via FEATURES='{"desktopPerformance":true}'.
+  desktopPerformance: false,
 };
 
 // Parse FEATURES env variable (JSON object)
@@ -97,6 +101,14 @@ export const features = {
    *  diff. Cross-source corroborated. When off, only the legacy Lighthouse-
    *  derived SEO findings emit, so flag-off output is byte-identical to pre-3.11. */
   seoDepthPass: customFeatures.seoDepthPass ?? defaultFeatures.seoDepthPass,
+
+  /** Desktop performance measurement — when true, Lighthouse/PageSpeed runs an
+   *  additional desktop pass alongside the default mobile pass. Defaults to
+   *  false because it doubles PageSpeed API quota usage (mobile + desktop per
+   *  scan). When false, only the mobile-form-factor pass runs, so scanner
+   *  output is byte-identical to today. Enable via
+   *  FEATURES='{"desktopPerformance":true}'. */
+  desktopPerformance: customFeatures.desktopPerformance ?? defaultFeatures.desktopPerformance,
 } as const;
 
 // ── Configuration ────────────────────────────────────────────────────────────
@@ -202,6 +214,10 @@ export function isFeatureReady(feature: keyof typeof features): boolean {
     case 'scanDiff':
       // Scan diff just needs to be enabled, no external config
       return true;
+    case 'desktopPerformance':
+      // Desktop performance needs no external config beyond the flag itself;
+      // "ready" simply mirrors the enabled boolean, same as performanceScanning.
+      return true;
     default:
       return false;
   }
@@ -230,5 +246,6 @@ export function getFeatureStatus() {
     stripe: { enabled: features.stripe, ready: isFeatureReady('stripe') },
     auth: { enabled: features.auth, ready: isFeatureReady('auth'), provider: authConfig.provider },
     tierGating: { enabled: features.tierGating, ready: isFeatureReady('tierGating') },
+    desktopPerformance: { enabled: features.desktopPerformance, ready: isFeatureReady('desktopPerformance') },
   };
 }

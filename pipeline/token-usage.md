@@ -16,3 +16,4 @@
 | Phase 1 | QA Planner — R1+R2 delta refresh | qa-planner | sonnet | medium | ~30k |
 | Phase 1 | Translator — updated Plan Report (re-plan r1) | translator | haiku | medium | ~8k |
 | Phase 2 | Decomposition (10 task contracts) | orchestrator | opus | high | ~14k |
+| Phase 3 | T-03: desktop opt-in feature flag | implementor | sonnet | high | ~14k |
