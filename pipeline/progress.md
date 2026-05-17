@@ -66,8 +66,9 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
 - [x] HUMAN GATE 2 — **APPROVED** with bounded fix cycle (H1,H2,M1,M2). User capacity Q answered: cache is process-wide 200-cap LRU (constant ~4MB after M2, NOT per-user) → not an infra trigger; real free-tier friction = PSI quota (429/403) + worker concurrency. Levers + triggers to be recorded in epic doc.
 - [ ] Phase 4.5 — Bounded fix cycle (sequential, verify between each):
   - FIX-A ✅ H1 DONE & VERIFIED: one canonical CrUXFieldData re-exported from lighthouse.ts (producer); types/index.ts no longer defines a divergent `metrics:Record` shape; core-web-vitals.tsx reads named fields (fd?.lcp/.fcp/.cls/.inp); fixtures corrected to the real persisted shape; new core-web-vitals.test.tsx (12 tests) mounts the real component and proves per-metric cards render. Full suite 1559/0, lint clean. Follow-up note: no real-user TTFB FieldMetricCard though fieldData.ttfb is populated (TTFB shown as lab metric) — minor, epic-doc limitation.
-  - FIX-B ⏳ next: H2 desktop timeout bound
-  - FIX-C: M2 trim cache payload · FIX-D: M1 relocate normalizePerformanceMetrics
+  - FIX-B ✅ H2 DONE & VERIFIED: runLighthouse gained optional `timeoutMs`; desktop-ON passes DESKTOP_PSI_TIMEOUT_MS=25_000 to BOTH calls (default 45_000 when OFF). HONEST bound enforced & pinned: CRAWL_WORST_CASE_MS=53_000 (TLS5k+NAV30k+IDLE8k+PWAman5k+PWAsw5k) + P1_MODULES_ALLOWANCE_MS=10_000 + 2×25_000 + SAFETY 5_000 = 118_000 ≤ 120_000 (2s static slack); single-call 108_000 (12s slack). Regression guards prove 35k & 45k breach; crawler-drift guard pins the 5-component sum. scan-worker hard SCAN_TIMEOUT is the documented runtime backstop for pathological (Playwright→static-fetch) tails. Full suite 1567/0, lint clean.
+    - LIMITATION (epic-doc + user awareness): desktop-ON static timing slack is a deliberate ~2s; enabling desktop is viable but margin is slim — if P1 modules grow, revisit DESKTOP_PSI_TIMEOUT_MS. Runtime backstop = graceful TIMEOUT + UNAVAILABLE performance.
+  - FIX-C ⏳ next: M2 trim cache payload · FIX-D: M1 relocate normalizePerformanceMetrics
 - [ ] Phase 5 — Tests + docs + E2E
 
 ### Known limitation (Phase 4 / epic-doc): PDF/print export

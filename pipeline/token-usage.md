@@ -34,3 +34,5 @@
 | Phase 4 | Synthesis | orchestrator | opus | high | ~9k |
 | Phase 4 | Translator — Synthesis Review (Gate 2) | translator | haiku | medium | ~8k |
 | Phase 4.5 | FIX-A: H1 canonical CrUX type | implementor | sonnet | high | ~30k |
+| Phase 4.5 | FIX-B: H2 desktop timeout (impl) | implementor | sonnet | high | ~26k |
+| Phase 4.5 | FIX-B: H2 honest-bound tighten | implementor | sonnet | high | ~19k |

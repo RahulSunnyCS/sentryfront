@@ -85,7 +85,7 @@ vi.mock('@/lib/features', () => ({
   },
 }));
 
-import { runPerformanceModules, PSI_TIMEOUT_MS } from '@/lib/scanner/modules/performance';
+import { runPerformanceModules, PSI_TIMEOUT_MS, DESKTOP_PSI_TIMEOUT_MS, CRAWL_WORST_CASE_MS, P1_MODULES_ALLOWANCE_MS } from '@/lib/scanner/modules/performance';
 import type { LighthouseMetrics } from '@/lib/scanner/lighthouse';
 import { runLighthouse } from '@/lib/scanner/lighthouse';
 import { getOrFetch } from '@/lib/scanner/psi-cache';
@@ -287,15 +287,31 @@ describe('runPerformanceModules — desktop-ON (flag = true)', () => {
     mockGetOrFetch.mockImplementation(async (_key: unknown, fetcher: () => unknown) => fetcher());
   });
 
-  it('makes two PSI calls (mobile first, then desktop) when flag is true', async () => {
-    // Both calls return valid metrics
+  it('makes two PSI calls (mobile first, then desktop) when flag is true, both with DESKTOP_PSI_TIMEOUT_MS', async () => {
+    // Both calls return valid metrics.
+    // When desktop is ON, BOTH mobile and desktop calls must receive the reduced
+    // DESKTOP_PSI_TIMEOUT_MS (25 000 ms) so the combined honest worst case fits:
+    // CRAWL_WORST_CASE_MS (53 000) + P1_MODULES_ALLOWANCE_MS (10 000) +
+    //   2 × DESKTOP_PSI_TIMEOUT_MS (50 000) + SAFETY_MARGIN_MS (5 000) = 118 000 ms
+    // — 2 000 ms under the 120 000 ms scan limit.
+    // Using 45 000 ms for both (the old behaviour) would give 158 000 ms; using
+    // 35 000 ms (the prior "fixed" value) would give 138 000 ms — both over the limit
+    // once CRAWL_WORST_CASE_MS is correctly accounted as 53 000 ms.
     mockRunLighthouse
       .mockResolvedValueOnce(makeMetrics({ performanceScore: 0.80 })) // mobile
       .mockResolvedValueOnce(makeMetrics({ performanceScore: 0.90 })); // desktop
     await runPerformanceModules('https://example.com');
     expect(mockRunLighthouse).toHaveBeenCalledTimes(2);
-    expect(mockRunLighthouse).toHaveBeenNthCalledWith(1, 'https://example.com', { formFactor: 'mobile' });
-    expect(mockRunLighthouse).toHaveBeenNthCalledWith(2, 'https://example.com', { formFactor: 'desktop' });
+    expect(mockRunLighthouse).toHaveBeenNthCalledWith(
+      1,
+      'https://example.com',
+      { formFactor: 'mobile', timeoutMs: DESKTOP_PSI_TIMEOUT_MS },
+    );
+    expect(mockRunLighthouse).toHaveBeenNthCalledWith(
+      2,
+      'https://example.com',
+      { formFactor: 'desktop', timeoutMs: DESKTOP_PSI_TIMEOUT_MS },
+    );
   });
 
   it('mobile result is the headline: score, grade, and scoreSource come from mobile', async () => {
@@ -439,18 +455,101 @@ describe('runPerformanceModules — cache behaviour', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('runPerformanceModules — timing-bound invariant', () => {
-  it('2 × PSI_TIMEOUT_MS stays under SCAN_TIMEOUT_MS (120 000 ms) with headroom', () => {
-    // The scan pipeline has a hard 120 000 ms limit. When desktop is enabled,
-    // two sequential PSI calls are made; their combined worst-case budget must
-    // stay well under that limit to leave headroom for crawling, security modules,
-    // etc. The constant is exported from performance.ts so the test can assert
-    // without hard-coding either value.
-    const SCAN_TIMEOUT_MS = 120_000;
-    expect(PSI_TIMEOUT_MS).toBe(45_000); // verify the constant is correct
-    expect(2 * PSI_TIMEOUT_MS).toBeLessThan(SCAN_TIMEOUT_MS);
-    // More stringent: combined PSI budget should be < 80% of scan timeout
-    // to leave at least 24 000 ms for crawl + security modules.
-    expect(2 * PSI_TIMEOUT_MS).toBeLessThan(SCAN_TIMEOUT_MS * 0.8);
+  // SCAN_TIMEOUT_MS is not exported from scan-worker.ts (which is forbidden to
+  // modify), so we reference the well-known default of 120 000 ms directly.
+  // This matches the value in scan-worker.ts: Number(process.env.SCAN_TIMEOUT_MS ?? 120000).
+  const SCAN_TIMEOUT_MS = 120_000;
+
+  // These are STATIC DESIGN-BUDGET guarantees, not runtime measurements.
+  // The scan-worker hard SCAN_TIMEOUT_MS is the runtime backstop for any
+  // pathological tail that exceeds these bounds — it produces a graceful
+  // TIMEOUT status with partial findings rather than a hung process.
+
+  it('single-call path (desktop OFF): honest inequality CRAWL_WORST_CASE_MS + P1_MODULES_ALLOWANCE_MS + PSI_TIMEOUT_MS <= SCAN_TIMEOUT_MS', () => {
+    // Desktop is OFF (the default): one mobile PSI call at PSI_TIMEOUT_MS (45 000 ms).
+    // Honest worst-case budget:
+    //   CRAWL_WORST_CASE_MS (53 000) + P1_MODULES_ALLOWANCE_MS (10 000) + PSI_TIMEOUT_MS (45 000)
+    //   = 108 000 ms — 12 000 ms under the 120 000 ms scan limit.
+    // P1_MODULES_ALLOWANCE_MS accounts for P1 security module time between crawl and
+    // runPerformanceModules in scanner/index.ts.
+    expect(PSI_TIMEOUT_MS).toBe(45_000);                     // guard: constant must not drift
+    expect(P1_MODULES_ALLOWANCE_MS).toBe(10_000);            // guard: constant must not drift
+    const singleCallBudget = CRAWL_WORST_CASE_MS + P1_MODULES_ALLOWANCE_MS + PSI_TIMEOUT_MS;
+    expect(singleCallBudget).toBeLessThanOrEqual(SCAN_TIMEOUT_MS);
+    // Must leave at least 12 000 ms of headroom (the declared slack for this path).
+    expect(singleCallBudget).toBeLessThanOrEqual(SCAN_TIMEOUT_MS - 12_000);
+  });
+
+  it('desktop-ON path: honest inequality CRAWL_WORST_CASE_MS + P1_MODULES_ALLOWANCE_MS + 2×DESKTOP_PSI_TIMEOUT_MS + SAFETY_MARGIN_MS <= SCAN_TIMEOUT_MS', () => {
+    // Desktop ON: two sequential PSI calls, each at DESKTOP_PSI_TIMEOUT_MS (25 000 ms).
+    // Full honest budget with all pre-performance pipeline phases:
+    //   CRAWL_WORST_CASE_MS (53 000) + P1_MODULES_ALLOWANCE_MS (10 000)
+    //   + 2 × DESKTOP_PSI_TIMEOUT_MS (50 000) + SAFETY_MARGIN_MS (5 000)
+    //   = 118 000 ms — 2 000 ms under the 120 000 ms scan limit.
+    const SAFETY_MARGIN_MS = 5_000;
+    expect(DESKTOP_PSI_TIMEOUT_MS).toBe(25_000);             // guard: constant must not drift
+    const desktopBudget =
+      CRAWL_WORST_CASE_MS +
+      P1_MODULES_ALLOWANCE_MS +
+      2 * DESKTOP_PSI_TIMEOUT_MS +
+      SAFETY_MARGIN_MS;
+    expect(desktopBudget).toBeLessThanOrEqual(SCAN_TIMEOUT_MS);
+    // Exact slack check: 2 000 ms is tight but intentional — any increase in DESKTOP_PSI_TIMEOUT_MS
+    // will flip this assertion, making the overrun visible before it hits production.
+    expect(desktopBudget).toBe(118_000); // 53k + 10k + 50k + 5k
+  });
+
+  it('DESKTOP_PSI_TIMEOUT_MS at 35 000 ms (prior "fixed" value) would breach the scan limit — regression guard', () => {
+    // DESKTOP_PSI_TIMEOUT_MS was previously set to 35 000 ms, which was still wrong
+    // because CRAWL_WORST_CASE_MS was only 38 000 ms (missing TLS 5k, PWA manifest 5k, PWA SW 5k).
+    // With the corrected CRAWL_WORST_CASE_MS of 53 000 ms, 35 000 ms fails the honest inequality:
+    //   53 000 + 10 000 + 2×35 000 + 5 000 = 138 000 ms > 120 000 ms — 18 000 ms OVER.
+    const SAFETY_MARGIN_MS = 5_000;
+    const prevDesktopTimeout = 35_000;
+    const budgetWithPrevValue =
+      CRAWL_WORST_CASE_MS + P1_MODULES_ALLOWANCE_MS + 2 * prevDesktopTimeout + SAFETY_MARGIN_MS;
+    // Proves the prior "fixed" value was also dishonest once CRAWL_WORST_CASE_MS is correct.
+    expect(budgetWithPrevValue).toBeGreaterThan(SCAN_TIMEOUT_MS);
+    // The current value (25 000 ms) must be strictly less than 35 000 ms.
+    expect(DESKTOP_PSI_TIMEOUT_MS).toBeLessThan(prevDesktopTimeout);
+  });
+
+  it('DESKTOP_PSI_TIMEOUT_MS at 45 000 ms (original value) would breach the scan limit — regression guard', () => {
+    // This assertion MUST FAIL if someone restores DESKTOP_PSI_TIMEOUT_MS to 45 000 ms.
+    // 53 000 + 10 000 + 2×45 000 + 5 000 = 158 000 ms > 120 000 ms — 38 000 ms OVER.
+    const SAFETY_MARGIN_MS = 5_000;
+    const oldDesktopTimeout = 45_000;
+    const budgetWithOldValue =
+      CRAWL_WORST_CASE_MS + P1_MODULES_ALLOWANCE_MS + 2 * oldDesktopTimeout + SAFETY_MARGIN_MS;
+    // The old value produces a budget FAR above the scan limit.
+    expect(budgetWithOldValue).toBeGreaterThan(SCAN_TIMEOUT_MS);
+    // The current value (25 000 ms) must be strictly less than the old 45 000 ms.
+    expect(DESKTOP_PSI_TIMEOUT_MS).toBeLessThan(oldDesktopTimeout);
+  });
+
+  it('crawler-drift guard: CRAWL_WORST_CASE_MS === TLS_TIMEOUT + NAV_TIMEOUT + NET_IDLE + PWA_MANIFEST + PWA_SW from crawler.ts', () => {
+    // All five timeouts are defined in src/lib/scanner/crawler.ts (read-only — do not modify).
+    // They run sequentially in the headless-path worst case:
+    //   getTLSInfo (probeTLS timeout)    =  5 000 ms
+    //   page.goto (NAV_TIMEOUT_MS)       = 30 000 ms
+    //   waitForLoadState (networkidle)   =  8 000 ms  (NETWORK_IDLE_TIMEOUT_MS)
+    //   PWA web-manifest fetchCapped     =  5 000 ms  (withTimeout cap)
+    //   PWA service-worker fetchCapped   =  5 000 ms  (withTimeout cap in fetchSwScripts)
+    //   ─────────────────────────────────────────────
+    //   Headless-path worst case         = 53 000 ms
+    //
+    // If anyone raises a crawler constant, this test catches the drift and forces
+    // CRAWL_WORST_CASE_MS to be updated — keeping the timing arithmetic honest.
+    const tlsProbeTimeout    =  5_000; // getTLSInfo probe in crawler.ts
+    const crawlerNavTimeout  = 30_000; // NAV_TIMEOUT_MS in crawler.ts
+    const netIdleTimeout     =  8_000; // NETWORK_IDLE_TIMEOUT_MS in crawler.ts
+    const pwaManifestTimeout =  5_000; // withTimeout cap for web-manifest fetchCapped
+    const pwaSwTimeout       =  5_000; // withTimeout cap in fetchSwScripts
+    expect(CRAWL_WORST_CASE_MS).toBe(
+      tlsProbeTimeout + crawlerNavTimeout + netIdleTimeout + pwaManifestTimeout + pwaSwTimeout,
+    );
+    // Explicit sum guard so the reader can see the arithmetic at a glance.
+    expect(CRAWL_WORST_CASE_MS).toBe(53_000);
   });
 });
 

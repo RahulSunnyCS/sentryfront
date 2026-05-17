@@ -37,15 +37,87 @@ import { getOrFetch, buildPsiCacheKey } from '../psi-cache';
 import type { PsiStrategy } from '../psi-cache';
 import { logger } from '@/lib/logger';
 
-// ─── Public timeout constant ──────────────────────────────────────────────────
+// ─── Public timeout constants ─────────────────────────────────────────────────
 /**
- * Worst-case wall-clock budget for a SINGLE PageSpeed Insights call (ms).
- * Matches the PAGESPEED_TIMEOUT_MS constant in lighthouse.ts (45 000 ms / 0 retries).
- * When desktop is enabled, two sequential calls are made; their combined budget is
- * 2 × PSI_TIMEOUT_MS = 90 000 ms, comfortably under SCAN_TIMEOUT_MS (120 000 ms).
- * Exported so the timing-bound test can assert the invariant without hard-coding numbers.
+ * Worst-case wall-clock budget for a SINGLE PageSpeed Insights call when desktop
+ * is disabled (mobile-only path).  Matches PAGESPEED_TIMEOUT_MS in lighthouse.ts.
+ *
+ * Single-call (desktop OFF) budget check:
+ *   CRAWL_WORST_CASE_MS + P1_MODULES_ALLOWANCE_MS + PSI_TIMEOUT_MS
+ *   = 53 000 + 10 000 + 45 000 = 108 000 ms — 12 000 ms under the 120 000 ms limit.
+ *
+ * Exported so the timing-bound test can assert the single-call invariant.
  */
 export const PSI_TIMEOUT_MS = 45_000;
+
+/**
+ * Reduced PSI timeout used for BOTH the mobile AND desktop calls when
+ * features.desktopPerformance is ON.
+ *
+ * The HONEST desktop-ON budget inequality (see timing-bound tests):
+ *   CRAWL_WORST_CASE_MS + P1_MODULES_ALLOWANCE_MS + 2×DESKTOP_PSI_TIMEOUT_MS + SAFETY_MARGIN_MS
+ *   = 53 000 + 10 000 + 2×25 000 + 5 000 = 118 000 ms ≤ 120 000 ms (2 000 ms slack)
+ *
+ * Using 45 000 ms for both calls (old behaviour) would give:
+ *   53 000 + 10 000 + 90 000 + 5 000 = 158 000 ms — 38 000 ms OVER the limit.
+ * Using 35 000 ms (the previous "fixed" value) would give:
+ *   53 000 + 10 000 + 70 000 + 5 000 = 138 000 ms — 18 000 ms OVER the limit.
+ * Both were dishonest because CRAWL_WORST_CASE_MS was incorrectly set to 38 000
+ * (missing TLS 5k, PWA manifest 5k, PWA SW 5k).  This value corrects that.
+ *
+ * A rarer slower PSI (>25 s) lands in the already-implemented graceful UNAVAILABLE
+ * state — acceptable.  The rarer Playwright→static-fetch fallback tail
+ * (FETCH_TIMEOUT_MS = 20 000) is intentionally covered by the scan-worker hard
+ * SCAN_TIMEOUT fail-soft (graceful TIMEOUT + UNAVAILABLE performance), not by
+ * this static bound.
+ *
+ * Exported so the timing-bound test can verify budget compliance and detect
+ * any future increase that would re-introduce the overrun.
+ */
+export const DESKTOP_PSI_TIMEOUT_MS = 25_000;
+
+/**
+ * Bounded time allowance (ms) for the P1 security modules that run between
+ * the crawl phase and runPerformanceModules in scanner/index.ts.
+ *
+ * In scanner/index.ts the scan flow is:
+ *   await crawl()  →  P1 Group-1 Promise.all + P1 Group-2 sync  →  await runPerformanceModules()
+ *
+ * P1 modules are I/O-light once the crawl result is in memory; 10 000 ms is a
+ * conservative allowance that accounts for any synchronous CPU work and any
+ * rare network-adjacent calls in P1 modules.
+ *
+ * Exported so the timing-bound test can compute the full honest budget without
+ * hard-coding a magic number here that would drift if the P1 suite grows.
+ */
+export const P1_MODULES_ALLOWANCE_MS = 10_000;
+
+/**
+ * Conservative upper bound for the crawl phase wall-clock time (ms).
+ *
+ * Derived from constants in src/lib/scanner/crawler.ts (which is forbidden to
+ * modify, but we may read its exported constants and reference their values here).
+ * All five components run sequentially in the worst case on the headless path:
+ *
+ *   getTLSInfo (probeTLS)          =  5 000  (setTimeout resolve in getTLSInfo)
+ *   page.goto (NAV_TIMEOUT_MS)     = 30 000  (Playwright page.goto timeout)
+ *   waitForLoadState (networkidle) =  8 000  (NETWORK_IDLE_TIMEOUT_MS)
+ *   PWA web-manifest fetchCapped   =  5 000  (withTimeout cap in fetchCapped)
+ *   PWA service-worker fetchCapped =  5 000  (withTimeout cap in fetchSwScripts)
+ *   ─────────────────────────────────────────
+ *   Headless-path worst case       = 53 000 ms
+ *
+ * The rarer Playwright→static-fetch fallback tail (FETCH_TIMEOUT_MS = 20 000 ms)
+ * is intentionally NOT included here — that path is covered by the scan-worker
+ * hard SCAN_TIMEOUT fail-soft (graceful TIMEOUT status + UNAVAILABLE performance),
+ * not by this static design-budget bound.
+ *
+ * Exported so the timing-bound test can compute the full budget without
+ * hard-coding a magic number that could silently drift if crawler.ts changes.
+ * If someone raises any crawler timeout they should also update this constant
+ * and verify the desktop timing test still passes.
+ */
+export const CRAWL_WORST_CASE_MS = 53_000; // TLS 5k + NAV 30k + NET_IDLE 8k + PWA_MANIFEST 5k + PWA_SW 5k
 
 // ─── PerformanceResult ────────────────────────────────────────────────────────
 
@@ -231,6 +303,13 @@ function normalizeUrlForCacheKey(url: string): string {
  * @param normalizedUrl  Normalised URL used as cache key prefix
  * @param strategy       'mobile' | 'desktop'
  * @param bypass         If true, skip cache read (force fresh fetch)
+ * @param timeoutMs      Optional per-call timeout override passed through to
+ *                       runLighthouse.  When omitted, runLighthouse uses its own
+ *                       PAGESPEED_TIMEOUT_MS default (45 000 ms).  The desktop
+ *                       orchestration path passes DESKTOP_PSI_TIMEOUT_MS (25 000 ms)
+ *                       here so both mobile and desktop calls share the tighter budget
+ *                       when desktop is enabled, keeping the honest combined worst case
+ *                       under the 120 000 ms scan limit.
  */
 async function fetchPsi(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -239,6 +318,7 @@ async function fetchPsi(
   normalizedUrl: string,
   strategy: PsiStrategy,
   bypass: boolean,
+  timeoutMs?: number,
 ): Promise<LighthouseMetrics> {
   const emptyMetrics: LighthouseMetrics = {
     lcp: null,
@@ -264,7 +344,9 @@ async function fetchPsi(
     const key = buildPsiCacheKey(normalizedUrl, strategy);
     const result = await getOrFetch(
       key,
-      () => runLighthouse(targetUrl, { formFactor: strategy }),
+      // Pass timeoutMs only when provided; omitting it lets runLighthouse use its
+      // own 45 000 ms default (unchanged behaviour for the mobile-only path).
+      () => runLighthouse(targetUrl, { formFactor: strategy, ...(timeoutMs !== undefined && { timeoutMs }) }),
       {
         bypass,
         // Only cache results where PSI returned a real performance score.
@@ -312,7 +394,19 @@ export async function runPerformanceModules(
     const normalizedUrl = normalizeUrlForCacheKey(targetUrl);
 
     // ── MOBILE (always runs — it is the headline) ─────────────────────────────
-    const mobileMetrics = await fetchPsi(runLighthouse, targetUrl, normalizedUrl, 'mobile', bypassCache);
+    //
+    // When desktop is OFF: use the default 45 000 ms timeout (PSI_TIMEOUT_MS).
+    //   Honest worst-case: CRAWL_WORST_CASE_MS + P1_MODULES_ALLOWANCE_MS + PSI_TIMEOUT_MS
+    //   = 53 000 + 10 000 + 45 000 = 108 000 ms — 12 000 ms under the 120 000 ms limit.
+    //
+    // When desktop is ON: both mobile AND desktop must use the reduced 25 000 ms timeout
+    //   (DESKTOP_PSI_TIMEOUT_MS) so the combined honest budget fits:
+    //   CRAWL_WORST_CASE_MS + P1_MODULES_ALLOWANCE_MS + 2×DESKTOP_PSI_TIMEOUT_MS + SAFETY_MARGIN_MS
+    //   = 53 000 + 10 000 + 50 000 + 5 000 = 118 000 ms — 2 000 ms under the limit.
+    //   See DESKTOP_PSI_TIMEOUT_MS JSDoc for details on what was wrong with the old values.
+    const psiTimeoutMs = features.desktopPerformance ? DESKTOP_PSI_TIMEOUT_MS : undefined;
+
+    const mobileMetrics = await fetchPsi(runLighthouse, targetUrl, normalizedUrl, 'mobile', bypassCache, psiTimeoutMs);
     const mobileResult = buildFormFactorResult(mobileMetrics);
 
     // ── DESKTOP (only when feature flag is enabled) ───────────────────────────
@@ -328,10 +422,12 @@ export async function runPerformanceModules(
         });
         // desktopResult stays undefined — no `desktop` key in the output
       } else {
-        // Run desktop PSI — sequentially after mobile (T-01 established that
-        // 2 × PSI_TIMEOUT_MS = 90 000 ms, within SCAN_TIMEOUT_MS = 120 000 ms).
+        // Run desktop PSI sequentially after mobile, with the same reduced timeout.
+        // DESKTOP_PSI_TIMEOUT_MS (25 000 ms) is defined at module level and was already
+        // passed to the mobile call above via psiTimeoutMs — reuse the same variable here
+        // so both calls always use the same budget and the timing arithmetic stays simple.
         const desktopMetrics = await fetchPsi(
-          runLighthouse, targetUrl, normalizedUrl, 'desktop', bypassCache,
+          runLighthouse, targetUrl, normalizedUrl, 'desktop', bypassCache, DESKTOP_PSI_TIMEOUT_MS,
         );
         desktopResult = buildFormFactorResult(desktopMetrics);
       }

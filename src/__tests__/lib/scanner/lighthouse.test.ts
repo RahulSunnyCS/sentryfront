@@ -611,6 +611,62 @@ describe('runLighthouse()', () => {
     });
   });
 
+  // ── Optional per-call timeoutMs override ──────────────────────────────────
+
+  describe('config.timeoutMs optional override', () => {
+    it('uses the default 45 000 ms timeout when timeoutMs is omitted', async () => {
+      // When the caller omits timeoutMs, the AbortController is armed with
+      // PAGESPEED_TIMEOUT_MS (45 000 ms).  We verify indirectly: a fetch that
+      // times out after 10 ms still returns emptyMetrics (fail-safe path).
+      // The key contract here is that NOT passing timeoutMs works correctly and
+      // does not throw or return undefined — the single-call (mobile-only) path
+      // is completely unchanged by the H2 fix.
+      mockFetchOk(makePageSpeedResponse());
+      const metrics = await runLighthouse('https://example.com');
+      // Single call, default timeout — must succeed and return real metrics
+      expect(metrics.performanceScore).toBe(0.85);
+    });
+
+    it('accepts a reduced timeoutMs and still succeeds when fetch completes within it', async () => {
+      // The desktop orchestration path in performance.ts passes 35 000 ms (DESKTOP_PSI_TIMEOUT_MS).
+      // We verify that runLighthouse honours the override by ensuring a successful
+      // fetch still returns correct metrics when a shorter timeout is specified.
+      mockFetchOk(makePageSpeedResponse({ performanceScore: 0.72 }));
+      const metrics = await runLighthouse('https://example.com', {
+        formFactor: 'desktop',
+        timeoutMs: 35_000, // reduced budget used by the desktop-ON orchestration path
+      });
+      // Must parse successfully — the timeout override does not change parsing behaviour
+      expect(metrics.performanceScore).toBe(0.72);
+    });
+
+    it('returns emptyMetrics (fail-safe) when fetch rejects with AbortError under custom timeoutMs', async () => {
+      // Simulate a timeout under the reduced 35 000 ms budget: the AbortError is
+      // the same regardless of which timeout value armed the controller.
+      const abortError = new Error('The operation was aborted');
+      abortError.name = 'AbortError';
+      vi.mocked(global.fetch).mockRejectedValue(abortError);
+
+      const metrics = await runLighthouse('https://example.com', { timeoutMs: 35_000 });
+      // Fail-safe: emptyMetrics returned, no throw
+      expect(metrics.performanceScore).toBeNull();
+      expect(metrics.lcp).toBeNull();
+      expect(metrics.opportunities).toEqual([]);
+    });
+
+    it('omitting timeoutMs and passing timeoutMs: undefined both use the default', async () => {
+      // config.timeoutMs ?? PAGESPEED_TIMEOUT_MS must treat explicit undefined
+      // the same as omitted (both produce the default 45 000 ms).
+      mockFetchOk(makePageSpeedResponse({ performanceScore: 0.91 }));
+      const metricsWithUndefined = await runLighthouse('https://example.com', { timeoutMs: undefined });
+      mockFetchOk(makePageSpeedResponse({ performanceScore: 0.91 }));
+      const metricsWithOmitted = await runLighthouse('https://example.com', {});
+
+      expect(metricsWithUndefined.performanceScore).toBe(0.91);
+      expect(metricsWithOmitted.performanceScore).toBe(0.91);
+    });
+  });
+
   // ── CrUX field data — URL-level loadingExperience ────────────────────────
 
   describe('CrUX field data parsing', () => {

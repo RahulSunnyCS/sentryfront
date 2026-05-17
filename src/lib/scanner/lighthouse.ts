@@ -135,6 +135,20 @@ export interface LighthouseConfig {
     cpuSlowdownMultiplier: number;
   };
   formFactor?: 'mobile' | 'desktop';
+  /**
+   * Optional per-call timeout override (ms).
+   *
+   * When present, this value is used for the AbortController timeout instead of the
+   * module-level PAGESPEED_TIMEOUT_MS default (45 000 ms).  This lets the desktop
+   * orchestration path in performance.ts use a tighter budget (35 000 ms) so that
+   * the combined crawl + 2 × PSI worst case stays under the 120 000 ms scan limit
+   * without changing the default single-call (mobile-only) timeout, which is already
+   * safe at 45 000 ms.
+   *
+   * Callers that omit this field get the existing PAGESPEED_TIMEOUT_MS behaviour —
+   * the single-call path is completely unchanged.
+   */
+  timeoutMs?: number;
 }
 
 // ─── CrUX parsing helper ──────────────────────────────────────────────────────
@@ -268,12 +282,17 @@ export async function runLighthouse(
     let attempt = 0;
     let lastError: Error | null = null;
 
+    // Resolve the effective timeout once, outside the retry loop — it is the same
+    // for every attempt of the same call.  Declared here (not inside the try block)
+    // so the catch block can reference it when logging an AbortError.
+    const effectiveTimeoutMs = config.timeoutMs ?? PAGESPEED_TIMEOUT_MS;
+
     while (attempt <= MAX_RETRIES) {
       attempt++;
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), PAGESPEED_TIMEOUT_MS);
+        const timeoutId = setTimeout(() => controller.abort(), effectiveTimeoutMs);
 
         const response = await fetch(apiUrl, {
           signal: controller.signal,
@@ -510,7 +529,9 @@ export async function runLighthouse(
           logger.warn('PageSpeed Insights API timeout', {
             url: targetUrl,
             attempt,
-            timeoutMs: PAGESPEED_TIMEOUT_MS,
+            // Log the effective timeout so the operator sees which budget was active —
+            // this is especially useful when the desktop override (35 000 ms) fires.
+            timeoutMs: effectiveTimeoutMs,
           });
         } else {
           logger.warn('PageSpeed Insights API error', {
