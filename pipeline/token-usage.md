@@ -32,3 +32,5 @@
 | Phase 4 | Performance Reviewer | performance-reviewer | sonnet | high | ~22k |
 | Phase 4 | Architecture Reviewer | architecture-reviewer | sonnet | high | ~24k |
 | Phase 4 | Synthesis | orchestrator | opus | high | ~9k |
+| Phase 4 | Translator — Synthesis Review (Gate 2) | translator | haiku | medium | ~8k |
+| Phase 4.5 | FIX-A: H1 canonical CrUX type | implementor | sonnet | high | ~30k |

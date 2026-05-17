@@ -7,12 +7,11 @@
   "opportunities": [],
   "fieldData": {
     "overallCategory": "FAST",
-    "metrics": {
-      "LARGEST_CONTENTFUL_PAINT_MS": {
-        "category": "FAST",
-        "percentile": 1900
-      }
-    }
+    "lcp": { "percentile": 1900, "category": "FAST", "distributions": [] },
+    "inp": null,
+    "cls": null,
+    "fcp": { "percentile": 900, "category": "FAST", "distributions": [] },
+    "ttfb": null
   },
   "fieldDataVerdict": "FAST"
 }

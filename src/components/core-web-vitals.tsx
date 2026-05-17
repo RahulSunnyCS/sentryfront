@@ -264,19 +264,30 @@ function FieldMetricCard({
 export function CoreWebVitals({ metrics }: CoreWebVitalsProps) {
   const t = useTranslations('report');
 
-  // CrUX uses 'LARGEST_CONTENTFUL_PAINT_MS', 'FIRST_CONTENTFUL_PAINT_MS',
-  // 'CUMULATIVE_LAYOUT_SHIFT_SCORE', 'INTERACTION_TO_NEXT_PAINT',
-  // 'EXPERIMENTAL_TIME_TO_FIRST_BYTE' as keys in the metrics record.
-  const fieldMetrics = metrics.fieldData?.metrics ?? null;
+  // The stored CrUXFieldData uses NAMED fields (lcp, inp, cls, fcp, ttfb), not
+  // a Record keyed by the PSI metric name. The parser in lighthouse.ts maps
+  // 'LARGEST_CONTENTFUL_PAINT_MS' → .lcp etc. before persisting. Reading the
+  // named fields here matches the actual persisted shape.
+  const fd = metrics.fieldData ?? null;
 
-  // Extract per-metric field data using the CrUX metric key names
-  const fieldLcp = fieldMetrics?.['LARGEST_CONTENTFUL_PAINT_MS'];
-  const fieldFcp = fieldMetrics?.['FIRST_CONTENTFUL_PAINT_MS'];
-  const fieldCls = fieldMetrics?.['CUMULATIVE_LAYOUT_SHIFT_SCORE'];
-  const fieldInp = fieldMetrics?.['INTERACTION_TO_NEXT_PAINT'];
+  const fieldLcp = fd?.lcp ?? null;
+  const fieldFcp = fd?.fcp ?? null;
+  const fieldCls = fd?.cls ?? null;
+  const fieldInp = fd?.inp ?? null;
 
-  // Check if we have any field data to show at all
-  const hasFieldData = Boolean(fieldMetrics && Object.keys(fieldMetrics).length > 0);
+  // Show the real-user section when the fieldData block is present and at least
+  // one named metric has a percentile value, OR when overallCategory is present
+  // (so the verdict chip / heading still renders even if individual metrics lack p75).
+  const hasFieldData = Boolean(
+    fd && (
+      fieldLcp !== null ||
+      fieldFcp !== null ||
+      fieldCls !== null ||
+      fieldInp !== null ||
+      fd.ttfb !== null ||
+      fd.overallCategory
+    )
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

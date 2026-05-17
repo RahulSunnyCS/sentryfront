@@ -64,7 +64,10 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
   - Blocking H2: desktop-ON path can exceed 120s SCAN_TIMEOUT (~38s crawl + 90s 2×PSI).
   - M1: relocate normalizePerformanceMetrics out of scan-worker. M2: strip non-perf arrays before caching.
 - [x] HUMAN GATE 2 — **APPROVED** with bounded fix cycle (H1,H2,M1,M2). User capacity Q answered: cache is process-wide 200-cap LRU (constant ~4MB after M2, NOT per-user) → not an infra trigger; real free-tier friction = PSI quota (429/403) + worker concurrency. Levers + triggers to be recorded in epic doc.
-- [ ] Phase 4.5 — Bounded fix cycle (sequential, verify between each): FIX-A H1 (canonical CrUX type) → FIX-B H2 (desktop timeout) → FIX-C M2 (trim cache payload) → FIX-D M1 (relocate normalizePerformanceMetrics) → full-suite re-verify
+- [ ] Phase 4.5 — Bounded fix cycle (sequential, verify between each):
+  - FIX-A ✅ H1 DONE & VERIFIED: one canonical CrUXFieldData re-exported from lighthouse.ts (producer); types/index.ts no longer defines a divergent `metrics:Record` shape; core-web-vitals.tsx reads named fields (fd?.lcp/.fcp/.cls/.inp); fixtures corrected to the real persisted shape; new core-web-vitals.test.tsx (12 tests) mounts the real component and proves per-metric cards render. Full suite 1559/0, lint clean. Follow-up note: no real-user TTFB FieldMetricCard though fieldData.ttfb is populated (TTFB shown as lab metric) — minor, epic-doc limitation.
+  - FIX-B ⏳ next: H2 desktop timeout bound
+  - FIX-C: M2 trim cache payload · FIX-D: M1 relocate normalizePerformanceMetrics
 - [ ] Phase 5 — Tests + docs + E2E
 
 ### Known limitation (Phase 4 / epic-doc): PDF/print export

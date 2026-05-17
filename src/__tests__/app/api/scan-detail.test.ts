@@ -170,7 +170,8 @@ describe('GET /api/v1/scans/[id]', () => {
       lcp: 1500, fcp: 700, cls: 0.01, tbt: 100, ttfb: 300, opportunities: [],
       scoreSource: 'lab',
       fieldDataVerdict: 'FAST',
-      fieldData: { overallCategory: 'FAST', metrics: {} },
+      // Named-field shape — matches what lighthouse.ts parseCrUXBlock produces
+      fieldData: { overallCategory: 'FAST', lcp: null, inp: null, cls: null, fcp: null, ttfb: null },
       bestPracticesScore: 92,
       bestPracticesGrade: 'A',
       desktop: {

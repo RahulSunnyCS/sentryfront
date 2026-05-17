@@ -109,13 +109,15 @@ function makeScannerResult(findings: RawFinding[] = []) {
     performanceGrade: 'A',
     performanceScore: 95,
     scoreSource: 'lab' as const,
-    // CrUX field data
+    // CrUX field data — named-field shape, as produced by lighthouse.ts parseCrUXBlock
     fieldDataVerdict: 'FAST' as const,
     fieldData: {
       overallCategory: 'FAST' as const,
-      metrics: {
-        LARGEST_CONTENTFUL_PAINT_MS: { category: 'FAST', percentile: 1800 },
-      },
+      lcp: { percentile: 1800, category: 'FAST' as const, distributions: [] },
+      inp: null,
+      cls: null,
+      fcp: { percentile: 900, category: 'FAST' as const, distributions: [] },
+      ttfb: null,
     },
     // Best practices
     bestPracticesScore: 87,

@@ -5,25 +5,14 @@ export type GradeStyle = 'ring' | 'shield' | 'letter';
 export type CardStyle = 'elevated' | 'bordered' | 'flat';
 export type ScanStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'TIMEOUT';
 
-/**
- * CrUX field data block forwarded verbatim from Google's PSI response.
- * All fields optional — not every PSI response includes a CrUX block.
- */
-export interface CrUXMetric {
-  /** e.g. 'FAST' | 'AVERAGE' | 'SLOW' */
-  category?: string;
-  /** Histogram buckets: [{ min, max, density }] */
-  histogram?: Array<{ start?: number; end?: number; density?: number }>;
-  /** p75 percentile value */
-  percentile?: number;
-}
-
-export interface CrUXFieldData {
-  /** URL-level overall loading experience verdict */
-  overallCategory?: 'FAST' | 'AVERAGE' | 'SLOW';
-  /** Per-metric CrUX entries (keyed by metric name, e.g. 'LARGEST_CONTENTFUL_PAINT_MS') */
-  metrics?: Record<string, CrUXMetric>;
-}
+// Single canonical definition lives in lighthouse.ts (the producer).
+// We re-export from here so that UI consumers import from '@/types' as before,
+// without a direct dependency on the scanner internals.
+export type {
+  CrUXDistribution,
+  CrUXMetric,
+  CrUXFieldData,
+} from '@/lib/scanner/lighthouse';
 
 /**
  * Desktop performance sub-object.

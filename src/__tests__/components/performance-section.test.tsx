@@ -349,32 +349,35 @@ describe('PerformanceSection — normal score 73', () => {
 // T-09 NEW TESTS
 // ===========================================================================
 
-/** Metrics block with CrUX field data (FAST verdict) */
+/** Metrics block with CrUX field data (FAST verdict) — named-field shape from lighthouse.ts */
 const METRICS_WITH_FIELD_FAST = {
   ...METRICS,
   scoreSource: 'lab' as const,
   fieldDataVerdict: 'FAST',
   fieldData: {
     overallCategory: 'FAST' as const,
-    metrics: {
-      LARGEST_CONTENTFUL_PAINT_MS: { percentile: 1800, category: 'FAST' },
-      FIRST_CONTENTFUL_PAINT_MS:   { percentile: 900,  category: 'FAST' },
-    },
+    lcp:  { percentile: 1800, category: 'FAST' as const, distributions: [] },
+    inp:  null,
+    cls:  null,
+    fcp:  { percentile: 900,  category: 'FAST' as const, distributions: [] },
+    ttfb: null,
   },
   bestPracticesScore: 92,
   bestPracticesGrade: 'A',
 };
 
-/** Metrics block with CrUX field data (SLOW verdict) */
+/** Metrics block with CrUX field data (SLOW verdict) — named-field shape from lighthouse.ts */
 const METRICS_WITH_FIELD_SLOW = {
   ...METRICS,
   scoreSource: 'lab' as const,
   fieldDataVerdict: 'SLOW',
   fieldData: {
     overallCategory: 'SLOW' as const,
-    metrics: {
-      LARGEST_CONTENTFUL_PAINT_MS: { percentile: 6000, category: 'SLOW' },
-    },
+    lcp:  { percentile: 6000, category: 'SLOW' as const, distributions: [] },
+    inp:  null,
+    cls:  null,
+    fcp:  null,
+    ttfb: null,
   },
   bestPracticesScore: 75,
   bestPracticesGrade: 'C',
@@ -778,9 +781,10 @@ describe('PerformanceSection — XSS payload escaping (T-09)', () => {
             ...METRICS_NO_FIELD,
             fieldDataVerdict: xssPayload,
             fieldData: {
-              // Cast to feed an adversarial value past the type guard
+              // Cast to feed an adversarial value past the type guard.
+              // Named-field shape matches what lighthouse.ts actually produces.
               overallCategory: xssPayload as 'FAST' | 'AVERAGE' | 'SLOW',
-              metrics: {},
+              lcp: null, inp: null, cls: null, fcp: null, ttfb: null,
             },
           },
         }}
