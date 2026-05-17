@@ -14,9 +14,9 @@
 - [x] Phase 4 — Specialist review: 3× CONDITIONAL PASS. Gate 2: APPROVED
       WITH CONDITIONS (C1+C2+C3 + cheap Lows).
 - [x] Phase 6 — Fix cycle: FIX-01..03 DONE, all conditions resolved, 1596 green
-- [~] Phase 5 — Test+docs generation (unit/integration/e2e/docs)
-- [ ] Phase 4 — Specialist review
-- [ ] Phase 5 — Tests/docs
+- [x] Phase 5 — Test+docs generation (unit/integration/e2e/docs) DONE
+      Docs: README.md (compliance pillar + module enumeration), technical.md
+      (P5 modules section), COMPLIANCE_MODULES.md (verified consistency).
 - [ ] Phase 6 — Test execution
 - [ ] Phase 7 — Final review
 
