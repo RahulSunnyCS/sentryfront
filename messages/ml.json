@@ -531,6 +531,17 @@
       "desktopSubordinateNote": "വിവരാത്മകം — മുഖ്യ ഗ്രേഡ് മൊബൈൽ അടിസ്ഥാനമാക്കിയുള്ളതാണ് (Google-ന്റെ സ്ഥിരസ്ഥിതി)",
       "cacheStalenessNote": "ഫലങ്ങൾ ഏകദേശം 5 മിനിറ്റ് വരെ കാഷെ ചെയ്തേക്കാം",
       "realUsersSlowBanner": "ലാബ് സിമുലേഷൻ സ്വീകാര്യമായി തോന്നുന്നുണ്ടെങ്കിലും യഥാർത്ഥ ഉപയോക്താക്കൾ മന്ദഗതിയിലുള്ള പ്രകടനം അനുഭവിക്കുന്നു"
+    },
+    "compliance": {
+      "sectionTitle": "കംപ്ലയൻസ് സിഗ്നലുകൾ",
+      "emptyTitle": "കംപ്ലയൻസ് പരിശോധന — ഇനിയും വിലയിരുത്തിയിട്ടില്ല",
+      "emptyBody": "കംപ്ലയൻസ് സിഗ്നൽ കണ്ടെത്തൽ (GDPR, CCPA, WCAG) Phase 5 മൊഡ്യൂളുകൾ പ്രവർത്തിച്ചതിനുശേഷം ഇവിടെ കാണിക്കും. ഈ സ്കാനിനായി കംപ്ലയൻസ് അവകാശവാദം ഒന്നും ഉന്നയിക്കുന്നില്ല.",
+      "signalObserved": "നിരീക്ഷിച്ചു",
+      "signalNotObserved": "നിരീക്ഷിക്കപ്പെട്ടില്ല",
+      "signalNotEvaluated": "വിലയിരുത്തിയില്ല",
+      "disclaimer": "Not legal advice. Not a compliance attestation. Signal detection only.",
+      "findingsTitle": "കംപ്ലയൻസ് കണ്ടെത്തലുകൾ",
+      "categoryLabel": "സിഗ്നലുകൾ"
     }
   },
   "scan": {

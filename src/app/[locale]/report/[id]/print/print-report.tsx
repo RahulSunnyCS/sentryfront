@@ -2,6 +2,72 @@ import { GRADE_CONFIG, SCAN_MODULES, SEVERITY_RANK } from '@/lib/data';
 import type { Finding, Grade, ScanData } from '@/types';
 import { AutoPrint } from './auto-print';
 
+// ── Compliance signal derivation (mirrors compliance.ts server-side logic) ────
+// Kept here so the print path derives signals from persisted findings without
+// requiring a separate data fetch or a new DB column.
+type PrintComplianceSignalStatus = 'observed' | 'not-observed' | 'not-evaluated';
+
+function derivePrintComplianceStatus(finding: Finding): PrintComplianceSignalStatus {
+  if (finding.severity === 'INFO') {
+    const titleLower = finding.title.toLowerCase();
+    if (
+      titleLower.includes('not evaluated') ||
+      titleLower.includes('unavailable') ||
+      titleLower.includes('not applicable')
+    ) {
+      return 'not-evaluated';
+    }
+    return 'observed';
+  }
+  return 'not-observed';
+}
+
+const P5_MODULE_FRAMEWORKS_PRINT: Record<string, string[]> = {
+  'P5-01': ['GDPR', 'CCPA'],
+  'P5-02': ['GDPR', 'CCPA'],
+  'P5-03': ['GDPR'],
+  'P5-04': ['WCAG / Accessibility'],
+  'P5-05': ['GDPR', 'CCPA'],
+  'P5-06': ['GDPR', 'CCPA'],
+};
+const FRAMEWORK_ORDER_PRINT = ['GDPR', 'CCPA', 'WCAG / Accessibility'];
+
+interface PrintFrameworkSignal {
+  label: string;
+  status: PrintComplianceSignalStatus;
+}
+
+function buildPrintFrameworkSignals(
+  p5Findings: Finding[],
+): { framework: string; signals: PrintFrameworkSignal[] }[] {
+  const map = new Map<string, PrintFrameworkSignal[]>(
+    FRAMEWORK_ORDER_PRINT.map((fw) => [fw, []]),
+  );
+  for (const finding of p5Findings) {
+    const moduleKey = finding.module.slice(0, 5);
+    const frameworks = P5_MODULE_FRAMEWORKS_PRINT[moduleKey];
+    if (!frameworks) continue;
+    const status = derivePrintComplianceStatus(finding);
+    const label =
+      finding.title.length <= 80 ? finding.title : finding.title.slice(0, 77) + '…';
+    for (const fw of frameworks) {
+      const signals = map.get(fw);
+      if (signals) signals.push({ label, status });
+    }
+  }
+  return FRAMEWORK_ORDER_PRINT.filter((fw) => map.has(fw)).map((fw) => ({
+    framework: fw,
+    signals: map.get(fw)!,
+  }));
+}
+
+// The disclaimer string is in English in the print path intentionally:
+// PDF/print is consumed as a static document and cannot use next-intl at
+// render time (this is a Server Component). The English string is the
+// reviewed, legally safe version — same policy as the i18n fallback.
+const COMPLIANCE_DISCLAIMER_EN =
+  'Not legal advice. Not a compliance attestation. Signal detection only.';
+
 interface Props {
   scanData: ScanData;
   reportId: string;
@@ -221,6 +287,11 @@ export function PrintReport(props: Props) {
 
   const verdict = verdictFor(scanData.grade, summary.CRITICAL);
 
+  // ── Compliance data (derived from persisted P5 findings — no extra fetch) ───
+  const p5Findings = findings.filter((f) => f.module.startsWith('P5-'));
+  const hasComplianceFindings = p5Findings.length > 0;
+  const complianceFrameworks = buildPrintFrameworkSignals(p5Findings);
+
   // ── Page numbering — only count pages we actually render
   const pages: { id: string; pageNumber: number }[] = [];
   let pageCounter = 1;
@@ -236,6 +307,8 @@ export function PrintReport(props: Props) {
   const priorityPage = priorityFindings.length > 0 ? addPage('priority') : null;
   const allFindingsPage = findingsByCategory.length > 0 ? addPage('all-findings') : null;
   const passedPage = passedModules.length > 0 ? addPage('passed') : null;
+  // Compliance page is always added — shows either signals or the empty/not-evaluated state.
+  const compliancePage = addPage('compliance');
   const nextStepsPage = addPage('next-steps');
   const glossaryPage = addPage('glossary');
   const attestationPage = addPage('attestation');
@@ -339,6 +412,10 @@ export function PrintReport(props: Props) {
                   <span className="num">{String(passedPage).padStart(2, '0')}</span>
                 </li>
               )}
+              <li>
+                <span>Compliance signals</span>
+                <span className="num">{String(compliancePage).padStart(2, '0')}</span>
+              </li>
               <li>
                 <span>Recommended next steps</span>
                 <span className="num">{String(nextStepsPage).padStart(2, '0')}</span>
@@ -618,13 +695,82 @@ export function PrintReport(props: Props) {
       )}
 
       {/* ─────────────────────────────────────────────────────
-          7 — NEXT STEPS
+          7 — COMPLIANCE SIGNALS
+          ───────────────────────────────────────────────────── */}
+      <section className="page" aria-label="Compliance signals">
+        <RunningHeader host={host} dateLabel={dateLabel} reportId={reportId} />
+        <div className="section">
+          <div className="section-head">
+            <span className="num">06</span>
+            <h2>Compliance signals</h2>
+            <span className="right">Page {String(compliancePage).padStart(2, '0')}</span>
+          </div>
+
+          {/* Always-present disclaimer at the top of this section, plus repeated
+              inline per framework block below — fulfils the "co-located with EVERY
+              framework block" acceptance criterion. */}
+          <div
+            className="callout"
+            role="note"
+            style={{ marginBottom: '6mm', borderLeft: '3px solid #D97706', background: '#FFFBEB' }}
+          >
+            <strong>⚠ {COMPLIANCE_DISCLAIMER_EN}</strong>
+          </div>
+
+          {!hasComplianceFindings ? (
+            <p style={{ fontSize: '11pt', color: 'var(--pdoc-text-2)' }}>
+              Compliance signal detection (GDPR, CCPA, WCAG) will appear here once
+              the scan has run the Phase 5 modules. No compliance claim is made for
+              this scan.
+            </p>
+          ) : (
+            complianceFrameworks.map(({ framework, signals }) => (
+              <div key={framework} style={{ marginBottom: '8mm' }}>
+                <h3 className="subhead">{framework}</h3>
+                {/* Disclaimer co-located with each framework block */}
+                <div
+                  className="callout"
+                  role="note"
+                  style={{ marginBottom: '3mm', borderLeft: '3px solid #D97706', background: '#FFFBEB', padding: '4pt 8pt' }}
+                >
+                  <span style={{ fontSize: '9pt' }}>⚠ {COMPLIANCE_DISCLAIMER_EN}</span>
+                </div>
+                {signals.length === 0 ? (
+                  <p style={{ fontSize: '10.5pt', color: 'var(--pdoc-text-2)' }}>
+                    Not evaluated
+                  </p>
+                ) : (
+                  <ul style={{ fontSize: '10.5pt', color: 'var(--pdoc-text-2)' }}>
+                    {signals.map((sig, idx) => (
+                      <li key={idx}>
+                        <strong>
+                          {sig.status === 'observed'
+                            ? 'Observed'
+                            : sig.status === 'not-observed'
+                            ? 'Not observed'
+                            : 'Not evaluated'}
+                        </strong>
+                        {' — '}
+                        {sig.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+        <RunningFooter scanId={scanId} page={compliancePage} total={totalPages} />
+      </section>
+
+      {/* ─────────────────────────────────────────────────────
+          8 — NEXT STEPS
           ───────────────────────────────────────────────────── */}
       <section className="page" aria-label="Recommended next steps">
         <RunningHeader host={host} dateLabel={dateLabel} reportId={reportId} />
         <div className="section">
           <div className="section-head">
-            <span className="num">06</span>
+            <span className="num">07</span>
             <h2>Recommended next steps</h2>
             <span className="right">Page {String(nextStepsPage).padStart(2, '0')}</span>
           </div>
@@ -701,7 +847,7 @@ export function PrintReport(props: Props) {
         <RunningHeader host={host} dateLabel={dateLabel} reportId={reportId} />
         <div className="section">
           <div className="section-head">
-            <span className="num">07</span>
+            <span className="num">08</span>
             <h2>Glossary &amp; references</h2>
             <span className="right">Page {String(glossaryPage).padStart(2, '0')}</span>
           </div>
@@ -798,7 +944,7 @@ export function PrintReport(props: Props) {
         <RunningHeader host={host} dateLabel={dateLabel} reportId={reportId} />
         <div className="section">
           <div className="section-head">
-            <span className="num">08</span>
+            <span className="num">09</span>
             <h2>Report attestation</h2>
             <span className="right">Page {String(attestationPage).padStart(2, '0')}</span>
           </div>

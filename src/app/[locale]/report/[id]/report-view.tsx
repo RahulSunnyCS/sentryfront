@@ -1,7 +1,9 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { GRADE_CONFIG, SCAN_MODULES, SEVERITY_RANK } from '@/lib/data';
 import type { ScanData, Finding } from '@/types';
 import { GradeDisplay } from '@/components/grade-display';
@@ -352,7 +354,7 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
                 />
               </>
             )}
-            {activeTab === 'compliance' && <CompliancePlaceholder />}
+            {activeTab === 'compliance' && <ComplianceSection findings={findings} />}
           </div>
         </div>
 
@@ -692,23 +694,278 @@ function DeeperScanCard({
   );
 }
 
-function CompliancePlaceholder() {
+// ── Compliance signal derivation ─────────────────────────────────────────────
+// Mirrors the server-side logic in src/lib/scanner/modules/compliance.ts
+// (function deriveStatus). Kept in sync intentionally: if compliance.ts changes
+// its derivation rule, this function must be updated to match.
+type ComplianceSignalStatus = 'observed' | 'not-observed' | 'not-evaluated';
+
+function deriveComplianceStatus(finding: Finding): ComplianceSignalStatus {
+  if (finding.severity === 'INFO') {
+    const titleLower = finding.title.toLowerCase();
+    if (
+      titleLower.includes('not evaluated') ||
+      titleLower.includes('unavailable') ||
+      titleLower.includes('not applicable')
+    ) {
+      return 'not-evaluated';
+    }
+    return 'observed';
+  }
+  return 'not-observed';
+}
+
+// Maps P5 module IDs to the frameworks they contribute to.
+// Must stay in sync with MODULE_FRAMEWORKS in compliance.ts.
+const P5_MODULE_FRAMEWORKS: Record<string, string[]> = {
+  'P5-01': ['GDPR', 'CCPA'],
+  'P5-02': ['GDPR', 'CCPA'],
+  'P5-03': ['GDPR'],
+  'P5-04': ['WCAG / Accessibility'],
+  'P5-05': ['GDPR', 'CCPA'],
+  'P5-06': ['GDPR', 'CCPA'],
+};
+
+// Stable display order matching compliance.ts output order.
+const FRAMEWORK_ORDER = ['GDPR', 'CCPA', 'WCAG / Accessibility'];
+
+interface FrameworkSignal {
+  label: string;
+  status: ComplianceSignalStatus;
+}
+
+function buildFrameworkSignals(
+  p5Findings: Finding[],
+): { framework: string; signals: FrameworkSignal[] }[] {
+  // Seed all known frameworks so sections appear even with zero signals.
+  const map = new Map<string, FrameworkSignal[]>(
+    FRAMEWORK_ORDER.map((fw) => [fw, []]),
+  );
+
+  for (const finding of p5Findings) {
+    // Extract the base module prefix (e.g. "P5-01" from "P5-01-cookie-consent").
+    const moduleKey = finding.module.slice(0, 5); // "P5-XX"
+    const frameworks = P5_MODULE_FRAMEWORKS[moduleKey];
+    if (!frameworks) continue;
+
+    const status = deriveComplianceStatus(finding);
+    const label =
+      finding.title.length <= 80 ? finding.title : finding.title.slice(0, 77) + '…';
+
+    for (const fw of frameworks) {
+      const signals = map.get(fw);
+      if (signals) signals.push({ label, status });
+    }
+  }
+
+  return FRAMEWORK_ORDER.filter((fw) => map.has(fw)).map((fw) => ({
+    framework: fw,
+    signals: map.get(fw)!,
+  }));
+}
+
+// ── Status chip colour palette ────────────────────────────────────────────────
+// Deliberately neutral: no red/green that implies pass/fail on a regulatory
+// claim surface. Amber/blue/grey avoids accidental compliance verdicts.
+const STATUS_CHIP_STYLE: Record<ComplianceSignalStatus, React.CSSProperties> = {
+  observed: {
+    background: 'rgba(13,148,136,0.10)',
+    border: '1px solid rgba(13,148,136,0.30)',
+    color: 'var(--accent)',
+  },
+  'not-observed': {
+    background: 'rgba(234,179,8,0.10)',
+    border: '1px solid rgba(234,179,8,0.35)',
+    color: '#B45309',
+  },
+  'not-evaluated': {
+    background: 'var(--surface-secondary)',
+    border: '1px solid var(--border)',
+    color: 'var(--text-tertiary)',
+  },
+};
+
+function ComplianceDisclaimerBadge({ text }: { text: string }) {
   return (
-    <div style={{
-      background: 'var(--surface-secondary)',
-      border: '1px dashed var(--border)',
-      borderRadius: 12,
-      padding: '28px 24px',
-      textAlign: 'center',
-    }}>
-      <div style={{ fontSize: 28, marginBottom: 12 }} aria-hidden="true">🏛️</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
-        Compliance checks — coming soon
+    <div
+      role="note"
+      aria-label="Compliance disclaimer"
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 8,
+        padding: '10px 12px',
+        background: 'rgba(234,179,8,0.07)',
+        border: '1px solid rgba(234,179,8,0.30)',
+        borderRadius: 8,
+        marginBottom: 12,
+        fontSize: 12,
+        color: '#92400E',
+        lineHeight: 1.5,
+      }}
+    >
+      <span style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">⚠️</span>
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function ComplianceSection({ findings }: { findings: Finding[] }) {
+  const t = useTranslations('report.compliance');
+
+  // Filter to P5 findings only. If none exist (old scan / feature off), show the
+  // empty state cleanly — no crash, no false compliance claim.
+  const p5Findings = useMemo(
+    () => findings.filter((f) => f.module.startsWith('P5-')),
+    [findings],
+  );
+
+  const frameworkSignals = useMemo(
+    () => buildFrameworkSignals(p5Findings),
+    [p5Findings],
+  );
+
+  if (p5Findings.length === 0) {
+    return (
+      <div style={{
+        background: 'var(--surface-secondary)',
+        border: '1px dashed var(--border)',
+        borderRadius: 12,
+        padding: '28px 24px',
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: 28, marginBottom: 12 }} aria-hidden="true">🏛️</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+          {t('emptyTitle')}
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 auto', maxWidth: 480 }}>
+          {t('emptyBody')}
+        </p>
       </div>
-      <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 auto', maxWidth: 480 }}>
-        Automated signal-gathering for regulatory frameworks (GDPR, PCI-DSS, CCPA) will surface here when the
-        Phase 4.9 compliance modules ship. We won&apos;t make compliance claims we can&apos;t back with specific checks.
-      </p>
+    );
+  }
+
+  const statusLabel: Record<ComplianceSignalStatus, string> = {
+    observed: t('signalObserved'),
+    'not-observed': t('signalNotObserved'),
+    'not-evaluated': t('signalNotEvaluated'),
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 20 }}>
+        {t('sectionTitle')}
+      </div>
+
+      {frameworkSignals.map(({ framework, signals }) => (
+        <div
+          key={framework}
+          style={{
+            marginBottom: 24,
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 12,
+            padding: '18px 20px',
+          }}
+        >
+          {/* Framework heading */}
+          <div style={{
+            fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.08em', color: 'var(--text-tertiary)',
+            marginBottom: 12,
+          }}>
+            {framework}
+          </div>
+
+          {/* Disclaimer co-located with every framework block — never a single
+              far-away line. This satisfies the acceptance criterion. */}
+          <ComplianceDisclaimerBadge text={t('disclaimer')} />
+
+          {/* Signal list */}
+          {signals.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+              {t('signalNotEvaluated')}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {signals.map((sig, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    fontSize: 13,
+                    color: 'var(--text)',
+                  }}
+                >
+                  {/* Status chip — neutral colour palette, not red/green */}
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      ...STATUS_CHIP_STYLE[sig.status],
+                    }}
+                  >
+                    {statusLabel[sig.status]}
+                  </span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{sig.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Raw P5 findings grouped by category, matching the pattern used by
+          other tabs (TabFindingsList). Gives the user access to full
+          finding detail (evidence, fix steps) without a numeric summary. */}
+      {p5Findings.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.08em', color: 'var(--text-tertiary)',
+            marginBottom: 16,
+          }}>
+            {t('findingsTitle')}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {p5Findings.map((finding) => (
+              <div key={finding.id} style={{
+                padding: '12px 14px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                fontSize: 13,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      ...STATUS_CHIP_STYLE[deriveComplianceStatus(finding)],
+                    }}
+                  >
+                    {statusLabel[deriveComplianceStatus(finding)]}
+                  </span>
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>{finding.title}</span>
+                </div>
+                {finding.explanation && (
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    {finding.explanation}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

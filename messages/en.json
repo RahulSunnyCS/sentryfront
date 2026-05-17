@@ -531,6 +531,17 @@
       "desktopSubordinateNote": "Informational — the headline grade is mobile (Google's default)",
       "cacheStalenessNote": "Results may be cached for up to ~5 minutes",
       "realUsersSlowBanner": "Real users are experiencing slow performance even though the lab simulation looks acceptable"
+    },
+    "compliance": {
+      "sectionTitle": "Compliance Signals",
+      "emptyTitle": "Compliance checks — not yet evaluated",
+      "emptyBody": "Compliance signal detection (GDPR, CCPA, WCAG) will appear here once the scan has run the Phase 5 modules. No compliance claim is made for this scan.",
+      "signalObserved": "Observed",
+      "signalNotObserved": "Not observed",
+      "signalNotEvaluated": "Not evaluated",
+      "disclaimer": "Not legal advice. Not a compliance attestation. Signal detection only.",
+      "findingsTitle": "Compliance findings",
+      "categoryLabel": "Signals"
     }
   },
   "scan": {

@@ -531,6 +531,17 @@
       "desktopSubordinateNote": "Informativo — la nota principal es la de móvil (el criterio predeterminado de Google)",
       "cacheStalenessNote": "Los resultados pueden estar en caché hasta ~5 minutos",
       "realUsersSlowBanner": "Los usuarios reales experimentan un rendimiento lento aunque la simulación de laboratorio parece aceptable"
+    },
+    "compliance": {
+      "sectionTitle": "Señales de cumplimiento",
+      "emptyTitle": "Verificaciones de cumplimiento — aún no evaluadas",
+      "emptyBody": "La detección de señales de cumplimiento (GDPR, CCPA, WCAG) aparecerá aquí cuando el análisis ejecute los módulos de Fase 5. No se hace ninguna afirmación de cumplimiento para este análisis.",
+      "signalObserved": "Observado",
+      "signalNotObserved": "No observado",
+      "signalNotEvaluated": "No evaluado",
+      "disclaimer": "Not legal advice. Not a compliance attestation. Signal detection only.",
+      "findingsTitle": "Hallazgos de cumplimiento",
+      "categoryLabel": "Señales"
     }
   },
   "scan": {
