@@ -1,0 +1,17 @@
+{
+  "lcp": 1800,
+  "fcp": 900,
+  "cls": 0.02,
+  "tbt": 150,
+  "ttfb": 600,
+  "opportunities": [],
+  "fieldData": {
+    "overallCategory": "FAST",
+    "lcp": { "percentile": 1900, "category": "FAST", "distributions": [] },
+    "inp": null,
+    "cls": null,
+    "fcp": { "percentile": 900, "category": "FAST", "distributions": [] },
+    "ttfb": null
+  },
+  "fieldDataVerdict": "FAST"
+}

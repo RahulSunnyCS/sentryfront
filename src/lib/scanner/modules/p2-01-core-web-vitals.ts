@@ -31,6 +31,19 @@ const FCP_NEEDS_IMPROVEMENT = 3000;
 // const TBT_GOOD = 200; // ms (Total Blocking Time)
 const TBT_NEEDS_IMPROVEMENT = 600;
 
+// --- Transparency INFO thresholds ---
+// These are the "Poor" band lower bounds for each Core Web Vital.
+// We emit a separate INFO finding when a single metric is in the Poor band
+// even if the overall blended Lighthouse performance score looks acceptable.
+// This is purely informational — it does not add any penalty, does not change
+// the severity of any existing finding, and never fires as HIGH.
+// The purpose is to surface a specific metric regression to users who might
+// otherwise read a mid-range overall score as "mostly fine".
+const TRANSPARENCY_LCP_POOR = LCP_NEEDS_IMPROVEMENT; // >= 4000ms → Poor
+const TRANSPARENCY_CLS_POOR = CLS_NEEDS_IMPROVEMENT;  // >= 0.25  → Poor
+const TRANSPARENCY_FCP_POOR = FCP_NEEDS_IMPROVEMENT;  // >= 3000ms → Poor
+const TRANSPARENCY_TBT_POOR = TBT_NEEDS_IMPROVEMENT;  // >= 600ms  → Poor
+
 export function runCoreWebVitalsModule(metrics: LighthouseMetrics): RawFinding[] {
   const findings: RawFinding[] = [];
 
@@ -149,7 +162,7 @@ export function runCoreWebVitalsModule(metrics: LighthouseMetrics): RawFinding[]
   // TBT - Total Blocking Time (proxy for INP until Lighthouse adds native INP support)
   if (metrics.tbt !== null) {
     const tbtMs = Math.round(metrics.tbt);
-    
+
     if (metrics.tbt >= TBT_NEEDS_IMPROVEMENT) {
       findings.push({
         moduleId: 'P2-01',
@@ -169,6 +182,112 @@ export function runCoreWebVitalsModule(metrics: LighthouseMetrics): RawFinding[]
         fixAiPrompt: `My Total Blocking Time is ${tbtMs}ms (target < 200ms). Break up long JavaScript tasks and defer non-critical scripts.`,
       });
     }
+  }
+
+  // --- Transparency INFO findings ---
+  // Emitted ADDITIVELY when any individual metric is in the Poor band.
+  // These are purely informational: they never replace or change existing findings
+  // and are never emitted at severity higher than INFO.
+  //
+  // Rationale: a blended Lighthouse performance score can look "decent" even when
+  // one metric is in the Poor band (e.g. LCP=5000ms but FCP/CLS/TBT are all
+  // excellent). Without a per-metric signal a user might read the blended score
+  // and not notice the outlier. These INFO findings surface that outlier explicitly.
+  //
+  // Note: the Poor band for these metrics coincides with the MEDIUM/HIGH thresholds
+  // already checked above, so the INFO finding will accompany a MEDIUM/HIGH in most
+  // cases. That is intentional — the INFO carries a specific "Poor band" label that
+  // is distinct from the main finding's actionable advice.
+
+  if (metrics.lcp !== null && metrics.lcp >= TRANSPARENCY_LCP_POOR) {
+    const lcpSec = (metrics.lcp / 1000).toFixed(2);
+    findings.push({
+      moduleId: 'P2-01',
+      severity: 'INFO',
+      category: 'Performance',
+      title: 'LCP is in the Poor band',
+      location: 'Core Web Vitals (Transparency)',
+      evidence: `LCP: ${lcpSec}s — Poor threshold: ≥ 4.0s`,
+      explanation:
+        'Largest Contentful Paint is in the Poor band (≥ 4.0s). ' +
+        'Even if the overall Lighthouse score is moderate due to other metrics passing, ' +
+        'this individual metric is in the worst category and directly affects user experience.',
+      impact:
+        'LCP in the Poor band signals users are waiting a long time for the page to ' +
+        'look usable. Google uses LCP as a primary Core Web Vitals ranking factor.',
+      fixManual: [
+        'See the Largest Contentful Paint finding above for detailed fix guidance',
+      ],
+      fixAiPrompt: `My LCP (${lcpSec}s) is in the Poor band. What are the most impactful fixes?`,
+    });
+  }
+
+  if (metrics.cls !== null && metrics.cls >= TRANSPARENCY_CLS_POOR) {
+    const clsVal = metrics.cls.toFixed(3);
+    findings.push({
+      moduleId: 'P2-01',
+      severity: 'INFO',
+      category: 'Performance',
+      title: 'CLS is in the Poor band',
+      location: 'Core Web Vitals (Transparency)',
+      evidence: `CLS: ${clsVal} — Poor threshold: ≥ 0.25`,
+      explanation:
+        'Cumulative Layout Shift is in the Poor band (≥ 0.25). ' +
+        'Even if the overall score is moderate, this level of layout instability ' +
+        'causes real frustration: buttons and links move just as users try to interact.',
+      impact:
+        'Poor CLS harms user trust and causes accidental clicks. ' +
+        'Google uses CLS as a primary Core Web Vitals ranking factor.',
+      fixManual: [
+        'See the Cumulative Layout Shift finding above for detailed fix guidance',
+      ],
+      fixAiPrompt: `My CLS (${clsVal}) is in the Poor band. What are the most impactful fixes?`,
+    });
+  }
+
+  if (metrics.fcp !== null && metrics.fcp >= TRANSPARENCY_FCP_POOR) {
+    const fcpSec = (metrics.fcp / 1000).toFixed(2);
+    findings.push({
+      moduleId: 'P2-01',
+      severity: 'INFO',
+      category: 'Performance',
+      title: 'FCP is in the Poor band',
+      location: 'Core Web Vitals (Transparency)',
+      evidence: `FCP: ${fcpSec}s — Poor threshold: ≥ 3.0s`,
+      explanation:
+        'First Contentful Paint is in the Poor band (≥ 3.0s). ' +
+        'Users see no content at all for over 3 seconds, which causes high abandonment.',
+      impact:
+        'Poor FCP creates a perception of a broken or unresponsive page before ' +
+        'any content appears.',
+      fixManual: [
+        'See the First Contentful Paint finding above for detailed fix guidance',
+      ],
+      fixAiPrompt: `My FCP (${fcpSec}s) is in the Poor band. What are the most impactful fixes?`,
+    });
+  }
+
+  if (metrics.tbt !== null && metrics.tbt >= TRANSPARENCY_TBT_POOR) {
+    const tbtMs2 = Math.round(metrics.tbt);
+    findings.push({
+      moduleId: 'P2-01',
+      severity: 'INFO',
+      category: 'Performance',
+      title: 'TBT is in the Poor band',
+      location: 'Core Web Vitals (Transparency)',
+      evidence: `TBT: ${tbtMs2}ms — Poor threshold: ≥ 600ms`,
+      explanation:
+        'Total Blocking Time is in the Poor band (≥ 600ms). ' +
+        'The main thread is heavily blocked, making the page feel unresponsive for ' +
+        'an extended period. This is a strong predictor of a poor INP score.',
+      impact:
+        'Poor TBT means users experience significant input delay during page load. ' +
+        'INP (the 2026 CWV replacement for FID) will be directly harmed.',
+      fixManual: [
+        'See the Total Blocking Time finding above for detailed fix guidance',
+      ],
+      fixAiPrompt: `My TBT (${tbtMs2}ms) is in the Poor band. What are the most impactful fixes?`,
+    });
   }
 
   return findings;

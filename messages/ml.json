@@ -516,7 +516,22 @@
     "impact": "സ്വാധീനം",
     "howToFix": "എങ്ങനെ പരിഹരിക്കാം",
     "copyPrompt": "AI പരിഹാര പ്രോംപ്റ്റ് പകർത്തുക",
-    "openIn": "ഇതിൽ തുറക്കുക"
+    "openIn": "ഇതിൽ തുറക്കുക",
+    "performance": {
+      "labScoreLabel": "ലാബ് സ്കോർ",
+      "realUserLabel": "യഥാർത്ഥ ഉപയോക്തൃ ഡാറ്റ (Chrome ഉപയോക്താക്കൾ)",
+      "realUserVerdictFast": "വേഗത്തിൽ",
+      "realUserVerdictAverage": "ശരാശരി",
+      "realUserVerdictSlow": "സാവധാനം",
+      "noFieldData": "ഈ സൈറ്റിനായി യഥാർത്ഥ ഉപയോക്തൃ ഡാറ്റ ലഭ്യമല്ല",
+      "bestPracticesLabel": "മികച്ച രീതികൾ",
+      "scoreUnavailable": "പ്രകടനം അളന്നിട്ടില്ല (ദാതാവ് താൽക്കാലികമായി ലഭ്യമല്ല)",
+      "desktopSectionLabel": "ഡെസ്ക്ടോപ്പ്",
+      "mobileSectionLabel": "മൊബൈൽ",
+      "desktopSubordinateNote": "വിവരാത്മകം — മുഖ്യ ഗ്രേഡ് മൊബൈൽ അടിസ്ഥാനമാക്കിയുള്ളതാണ് (Google-ന്റെ സ്ഥിരസ്ഥിതി)",
+      "cacheStalenessNote": "ഫലങ്ങൾ ഏകദേശം 5 മിനിറ്റ് വരെ കാഷെ ചെയ്തേക്കാം",
+      "realUsersSlowBanner": "ലാബ് സിമുലേഷൻ സ്വീകാര്യമായി തോന്നുന്നുണ്ടെങ്കിലും യഥാർത്ഥ ഉപയോക്താക്കൾ മന്ദഗതിയിലുള്ള പ്രകടനം അനുഭവിക്കുന്നു"
+    }
   },
   "scan": {
     "title": "സ്കാൻ ചെയ്യുന്നു…",

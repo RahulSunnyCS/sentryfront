@@ -2,6 +2,8 @@
  * Scan worker — orchestrates the full 15-module passive scan pipeline.
  * Phase 4: all modules implemented. No stubs remain.
  * Phase 8: Added 120s timeout enforcement.
+ * T-08: Thread new performance fields (scoreSource, CrUX, bestPractices,
+ *       desktop) into the persisted performanceMetrics JSON blob.
  */
 
 import { prisma } from './prisma';
@@ -10,6 +12,12 @@ import { runScanner } from './scanner';
 import { enrichFindingsWithLLM } from './llm/enrichment';
 import { logger } from './logger';
 import type { RawFinding } from './scanner/types';
+// Pure data helpers live in scanner/performance-metrics.ts (the canonical home).
+// scan-worker only needs buildPerformanceMetricsBlob to assemble the blob for
+// persistence; normalizePerformanceMetrics is imported directly by API routes.
+import {
+  buildPerformanceMetricsBlob,
+} from './scanner/performance-metrics';
 
 // Scan timeout: hard kill at 120 seconds
 const SCAN_TIMEOUT_MS = Number(process.env.SCAN_TIMEOUT_MS ?? 120000); // 120s default
@@ -107,8 +115,10 @@ async function runScanInternal(scanId: string): Promise<void> {
       stack,
       moduleFindingCounts,
       performanceGrade,
-      performanceScore,
-      performanceMetrics,
+      // performanceScore is intentionally NOT destructured: we write it via
+      // `'performanceScore' in scannerResult` so that null (UNAVAILABLE) is
+      // stored rather than skipped. Destructuring it here would shadow that and
+      // cause an @typescript-eslint/no-unused-vars error.
       accessibilityGrade,
       accessibilityScore,
       accessibilityMetrics,
@@ -116,6 +126,16 @@ async function runScanInternal(scanId: string): Promise<void> {
       seoScore,
       seoMetrics,
     } = scannerResult;
+
+    // NOTE: performanceMetrics (the old narrow shape) is intentionally NOT
+    // destructured here. T-08 builds the full blob via buildPerformanceMetricsBlob
+    // which includes scoreSource, fieldData, bestPractices, desktop. Using the
+    // old destructured shape would lose all T-08 fields.
+
+    // Build the full performanceMetrics blob (T-08).
+    // Done here rather than inline in the Prisma update so the logic is testable.
+    // Returns null when the performance feature didn't run (flag off / threw).
+    const performanceMetricsBlob = buildPerformanceMetricsBlob(scannerResult);
 
     await publishEvent(scanId, 'llm_enrichment_started', {
       scan_id: scanId,
@@ -170,10 +190,23 @@ async function runScanInternal(scanId: string): Promise<void> {
         stack,
         summary: JSON.stringify(summary),
         completedAt: new Date(),
-        // Phase 5.5: Store performance results
+        // Phase 5.5: Store performance results.
+        // performanceGrade: only written when truthy (feature ran and grade is not the empty
+        // string). The 'N/A' grade IS written — 'N/A' is truthy, so UNAVAILABLE is persisted.
         ...(performanceGrade && { performanceGrade }),
-        ...(performanceScore !== undefined && { performanceScore }),
-        ...(performanceMetrics && { performanceMetrics: JSON.stringify(performanceMetrics) }),
+        // performanceScore: written when the field is present in scannerResult (i.e. the
+        // feature ran). null is a valid value (UNAVAILABLE path) — we must not skip it.
+        // We use a key-in-object check, not truthiness, so null passes through.
+        ...('performanceScore' in scannerResult && { performanceScore: scannerResult.performanceScore }),
+        // performanceMetricsBlob: the full T-08 blob from buildPerformanceMetricsBlob.
+        // It is non-null whenever scoreSource is set in scannerResult (feature ran).
+        // CRITICAL (T-08): this guard is on performanceMetricsBlob (the built blob),
+        // NOT on the old destructured `performanceMetrics` (which was the narrow legacy
+        // shape and is no longer destructured). The blob is always non-empty when
+        // the feature ran — even on UNAVAILABLE it carries {scoreSource:'unavailable',...}.
+        ...(performanceMetricsBlob !== null && {
+          performanceMetrics: JSON.stringify(performanceMetricsBlob),
+        }),
         // Phase 6.5: Store accessibility results
         ...(accessibilityGrade && { accessibilityGrade }),
         ...(accessibilityScore !== undefined && { accessibilityScore }),

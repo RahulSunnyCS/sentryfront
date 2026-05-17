@@ -516,7 +516,22 @@
     "impact": "Impacto",
     "howToFix": "Cómo arreglarlo",
     "copyPrompt": "Copiar prompt IA",
-    "openIn": "Abrir en"
+    "openIn": "Abrir en",
+    "performance": {
+      "labScoreLabel": "Puntuación de laboratorio",
+      "realUserLabel": "Datos de usuarios reales (usuarios de Chrome)",
+      "realUserVerdictFast": "Rápido",
+      "realUserVerdictAverage": "Promedio",
+      "realUserVerdictSlow": "Lento",
+      "noFieldData": "No hay datos de usuarios reales disponibles para este sitio",
+      "bestPracticesLabel": "Buenas prácticas",
+      "scoreUnavailable": "Rendimiento no medido (proveedor temporalmente no disponible)",
+      "desktopSectionLabel": "Escritorio",
+      "mobileSectionLabel": "Móvil",
+      "desktopSubordinateNote": "Informativo — la nota principal es la de móvil (el criterio predeterminado de Google)",
+      "cacheStalenessNote": "Los resultados pueden estar en caché hasta ~5 minutos",
+      "realUsersSlowBanner": "Los usuarios reales experimentan un rendimiento lento aunque la simulación de laboratorio parece aceptable"
+    }
   },
   "scan": {
     "title": "Escaneando…",

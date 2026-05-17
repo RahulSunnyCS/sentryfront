@@ -43,11 +43,17 @@ vi.mock('@/lib/logger', () => ({
 // ── Imports after mocks ───────────────────────────────────────────────────────
 
 import { runScan } from '@/lib/scan-worker';
+// normalizePerformanceMetrics lives in its canonical home; scan-worker.ts no
+// longer re-exports it. Import directly so the test covers the real module.
+import { normalizePerformanceMetrics } from '@/lib/scanner/performance-metrics';
 import { prisma } from '@/lib/prisma';
 import { runScanner } from '@/lib/scanner';
 import { enrichFindingsWithLLM } from '@/lib/llm/enrichment';
 import { publishEvent } from '@/lib/events';
 import type { RawFinding } from '@/lib/scanner/types';
+// Fixtures for back-compat normaliser tests
+import preChangeBlobRaw from '../fixtures/performance-metrics/pre-change-blob.json';
+import newCodePartialBlobRaw from '../fixtures/performance-metrics/new-code-partial-blob.json';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -92,16 +98,49 @@ function makeRawFinding(severity: RawFinding['severity'] = 'LOW'): RawFinding {
 }
 
 function makeScannerResult(findings: RawFinding[] = []) {
+  // T-08: fixture now includes all new fields (scoreSource, fieldData/Verdict,
+  // bestPractices, and the optional desktop sub-object). The performanceMetrics
+  // narrow shape is still present for the blob builder — the blob builder reads
+  // it for lcp/fcp/cls/tbt/ttfb/opportunities. All new data lives at the top
+  // level of ScannerResult (scored/sourced fields) and in the blob that
+  // buildPerformanceMetricsBlob assembles from those top-level fields.
   return {
     findings,
     stack: 'Next.js',
     moduleFindingCounts: {},
+    // Performance headline (mobile)
     performanceGrade: 'A',
     performanceScore: 95,
-    performanceMetrics: {},
+    scoreSource: 'lab' as const,
+    // CrUX field data — named-field shape, as produced by lighthouse.ts parseCrUXBlock
+    fieldDataVerdict: 'FAST' as const,
+    fieldData: {
+      overallCategory: 'FAST' as const,
+      lcp: { percentile: 1800, category: 'FAST' as const, distributions: [] },
+      inp: null,
+      cls: null,
+      fcp: { percentile: 900, category: 'FAST' as const, distributions: [] },
+      ttfb: null,
+    },
+    // Best practices
+    bestPracticesScore: 87,
+    bestPracticesGrade: 'B',
+    // Desktop sub-object (only present when desktopPerformance feature ran)
+    desktopPerformance: {
+      score: 88,
+      grade: 'B',
+      scoreSource: 'lab' as const,
+      metrics: { lcp: 1200, fcp: 600, cls: 0.01, tbt: 80, ttfb: 400, opportunities: [] },
+    },
+    // Narrow metrics shape (for the legacy lcp/fcp/cls/tbt/ttfb fields in the blob)
+    performanceMetrics: {
+      lcp: 2400, fcp: 1200, cls: 0.05, tbt: 300, ttfb: 800, opportunities: [],
+    },
+    // Accessibility
     accessibilityGrade: 'A',
     accessibilityScore: 90,
     accessibilityMetrics: {},
+    // SEO
     seoGrade: 'B',
     seoScore: 80,
     seoMetrics: {},
@@ -327,6 +366,125 @@ describe('runScan()', () => {
 
   // ── Timeout handling ──────────────────────────────────────────────────────────
 
+  // ── T-08: performanceMetrics blob persistence ─────────────────────────────
+
+  it('T-08: persists performanceMetrics JSON containing scoreSource and desktop on success', async () => {
+    vi.mocked(runScanner).mockResolvedValue(makeScannerResult([]) as any);
+    vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult([]) as any);
+
+    await runScanAndDrain();
+
+    // Find the COMPLETED update call and inspect the performanceMetrics JSON
+    const completedCall = vi.mocked(prisma.scan.update).mock.calls.find(
+      ([args]) => (args as any).data?.status === 'COMPLETED',
+    );
+    expect(completedCall).toBeDefined();
+    const data = (completedCall![0] as any).data;
+
+    expect(typeof data.performanceMetrics).toBe('string');
+    const blob = JSON.parse(data.performanceMetrics);
+
+    // Core fields
+    expect(blob.lcp).toBe(2400);
+    expect(blob.fcp).toBe(1200);
+    // T-08 new fields
+    expect(blob.scoreSource).toBe('lab');
+    expect(blob.fieldDataVerdict).toBe('FAST');
+    expect(blob.fieldData).toMatchObject({ overallCategory: 'FAST' });
+    expect(blob.bestPracticesScore).toBe(87);
+    expect(blob.bestPracticesGrade).toBe('B');
+    // Desktop sub-object
+    expect(blob.desktop).toMatchObject({
+      score: 88,
+      grade: 'B',
+      scoreSource: 'lab',
+      metrics: expect.objectContaining({ lcp: 1200 }),
+    });
+  });
+
+  it('T-08: UNAVAILABLE path persists non-empty blob with scoreSource:unavailable and null score', async () => {
+    // Simulate a scan where PSI failed (UNAVAILABLE): scoreSource = 'unavailable',
+    // performanceScore = null, performanceGrade = 'N/A'. The metrics blob must still
+    // be written (non-null) so the UI can distinguish "feature ran, PSI failed"
+    // from "feature was disabled".
+    const unavailableResult = {
+      ...makeScannerResult([]),
+      performanceGrade: 'N/A',
+      performanceScore: null,
+      scoreSource: 'unavailable' as const,
+      fieldDataVerdict: null,
+      fieldData: null,
+      bestPracticesScore: null,
+      bestPracticesGrade: 'N/A',
+      desktopPerformance: undefined,
+      performanceMetrics: {
+        lcp: null, fcp: null, cls: null, tbt: null, ttfb: null, opportunities: [],
+      },
+    };
+
+    vi.mocked(runScanner).mockResolvedValue(unavailableResult as any);
+    vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult([]) as any);
+
+    await runScanAndDrain();
+
+    const completedCall = vi.mocked(prisma.scan.update).mock.calls.find(
+      ([args]) => (args as any).data?.status === 'COMPLETED',
+    );
+    expect(completedCall).toBeDefined();
+    const data = (completedCall![0] as any).data;
+
+    // The blob must be written (non-null) even when PSI failed
+    expect(data.performanceMetrics).toBeDefined();
+    expect(typeof data.performanceMetrics).toBe('string');
+    const blob = JSON.parse(data.performanceMetrics);
+
+    // CRITICAL: scoreSource must be 'unavailable', not absent
+    expect(blob.scoreSource).toBe('unavailable');
+    // Score in the DB column must be null (written via key-in-object guard)
+    expect(data.performanceScore).toBeNull();
+    // Grade is 'N/A' (truthy string — written by the performanceGrade guard)
+    expect(data.performanceGrade).toBe('N/A');
+  });
+
+  it('T-08: round-trip — scoreSource and desktop survive scanner→blob→JSON→normaliser', async () => {
+    // This test asserts the full round-trip:
+    //   makeScannerResult (scanner result shape)
+    //   → buildPerformanceMetricsBlob (called inside scan-worker)
+    //   → JSON.stringify (persisted to DB as a string)
+    //   → JSON.parse (simulates what the route handler does)
+    //   → normalizePerformanceMetrics (the normaliser)
+    //
+    // We capture the raw JSON from the Prisma update, then run it through the
+    // normaliser the same way the API route does, and assert the key fields.
+    vi.mocked(runScanner).mockResolvedValue(makeScannerResult([]) as any);
+    vi.mocked(enrichFindingsWithLLM).mockResolvedValue(makeEnrichmentResult([]) as any);
+
+    await runScanAndDrain();
+
+    const completedCall = vi.mocked(prisma.scan.update).mock.calls.find(
+      ([args]) => (args as any).data?.status === 'COMPLETED',
+    );
+    const rawJson = (completedCall![0] as any).data.performanceMetrics as string;
+
+    // Simulate what the route handler does
+    const raw = JSON.parse(rawJson) as Record<string, unknown>;
+    const normalised = normalizePerformanceMetrics(raw);
+
+    // scoreSource must survive
+    expect(normalised.scoreSource).toBe('lab');
+    // desktop must survive
+    expect(normalised.desktop).toMatchObject({
+      score: 88,
+      grade: 'B',
+      scoreSource: 'lab',
+    });
+    // fieldData must survive
+    expect(normalised.fieldData).toMatchObject({ overallCategory: 'FAST' });
+    // bestPractices must survive
+    expect(normalised.bestPracticesScore).toBe(87);
+    expect(normalised.bestPracticesGrade).toBe('B');
+  });
+
   it('marks scan TIMEOUT and publishes scan_timeout when the timeout fires', async () => {
     // Make runScanner hang forever so the timeout races it
     vi.mocked(runScanner).mockReturnValue(new Promise(() => {})); // never resolves
@@ -352,5 +510,100 @@ describe('runScan()', () => {
       'scan_timeout',
       expect.objectContaining({ scan_id: SCAN_ID, partial_findings: 2 }),
     );
+  });
+});
+
+// ── T-08: normalizePerformanceMetrics back-compat tests ───────────────────────
+//
+// These tests use committed JSON fixtures (pre-change-blob.json and
+// new-code-partial-blob.json) to verify both back-compat rules:
+//
+//   Rule A — PRE-CHANGE blob (no scoreSource, no fieldData):
+//     A pre-T-06 blob was only ever written when PSI succeeded.
+//     → scoreSource MUST default to 'lab' (safe assumption).
+//
+//   Rule B — NEW-CODE PARTIAL blob (fieldData present, scoreSource absent):
+//     Ambiguous state that should not occur in practice but must not silently
+//     default to 'lab' (which could mislabel an UNAVAILABLE scan).
+//     → scoreSource MUST default to 'unavailable' (safe / visible in UI as N/A).
+
+describe('normalizePerformanceMetrics()', () => {
+  it('Rule A — pre-change blob (no scoreSource, no fieldData) → scoreSource:lab', () => {
+    // preChangeBlobRaw has lcp/fcp/cls/tbt/ttfb/opportunities but no scoreSource
+    // and no fieldData. This is a blob from old code that only wrote metrics on
+    // PSI success. Safe to label 'lab'.
+    const result = normalizePerformanceMetrics(preChangeBlobRaw as Record<string, unknown>);
+
+    expect(result.scoreSource).toBe('lab');
+    expect(result.lcp).toBe(2400);
+    expect(result.fcp).toBe(1200);
+    expect(result.cls).toBe(0.05);
+    expect(result.tbt).toBe(300);
+    expect(result.ttfb).toBe(800);
+    expect(result.opportunities).toEqual([]);
+    // fieldData/fieldDataVerdict should be absent/undefined for a pre-change blob
+    // (the normaliser only populates them when scoreSource or fieldData was present)
+    expect(result.fieldData).toBeUndefined();
+    expect(result.fieldDataVerdict).toBeUndefined();
+  });
+
+  it('Rule B — new-code partial blob (fieldData present, scoreSource absent) → scoreSource:unavailable', () => {
+    // newCodePartialBlobRaw has fieldData and fieldDataVerdict but NO scoreSource.
+    // This is ambiguous — we cannot tell if it came from a lab run or a failed one.
+    // The safe default is 'unavailable' (UI shows N/A) rather than 'lab'
+    // (which would display a potentially wrong grade).
+    const result = normalizePerformanceMetrics(newCodePartialBlobRaw as Record<string, unknown>);
+
+    expect(result.scoreSource).toBe('unavailable');
+    // fieldData should be carried through (it IS in the blob)
+    expect(result.fieldData).toMatchObject({ overallCategory: 'FAST' });
+    expect(result.fieldDataVerdict).toBe('FAST');
+    // Core metrics are still available
+    expect(result.lcp).toBe(1800);
+    expect(result.fcp).toBe(900);
+  });
+
+  it('honours stored scoreSource:lab verbatim', () => {
+    const blob = {
+      lcp: 1500, fcp: 700, cls: 0.01, tbt: 100, ttfb: 300,
+      opportunities: [],
+      scoreSource: 'lab',
+      fieldDataVerdict: 'AVERAGE',
+      fieldData: { overallCategory: 'AVERAGE' },
+      bestPracticesScore: 92,
+      bestPracticesGrade: 'A',
+    };
+    const result = normalizePerformanceMetrics(blob as Record<string, unknown>);
+    expect(result.scoreSource).toBe('lab');
+    expect(result.bestPracticesScore).toBe(92);
+    expect(result.bestPracticesGrade).toBe('A');
+  });
+
+  it('honours stored scoreSource:unavailable verbatim', () => {
+    const blob = {
+      lcp: null, fcp: null, cls: null, tbt: null, ttfb: null,
+      opportunities: [],
+      scoreSource: 'unavailable',
+      fieldDataVerdict: null,
+      fieldData: null,
+      bestPracticesScore: null,
+      bestPracticesGrade: 'N/A',
+    };
+    const result = normalizePerformanceMetrics(blob as Record<string, unknown>);
+    expect(result.scoreSource).toBe('unavailable');
+    expect(result.lcp).toBeNull();
+    expect(result.bestPracticesScore).toBeUndefined(); // null → undefined via nullish coalesce
+  });
+
+  it('treats a corrupted scoreSource value as unavailable (fail-safe)', () => {
+    // If somehow an invalid string was stored, we fall back to 'unavailable'
+    // rather than silently labelling as 'lab'.
+    const blob = {
+      lcp: 1000, fcp: 500, cls: 0.0, tbt: 50, ttfb: 200,
+      opportunities: [],
+      scoreSource: 'corrupted-value',
+    };
+    const result = normalizePerformanceMetrics(blob as Record<string, unknown>);
+    expect(result.scoreSource).toBe('unavailable');
   });
 });

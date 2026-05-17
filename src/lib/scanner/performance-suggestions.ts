@@ -232,7 +232,7 @@ export function generateImprovementPlan(
 
   // ── Generate AI Prompt Bundle ────────────────────────────────────────────────
 
-  const aiPromptBundle = generateAIPromptBundle(suggestions, metrics, performanceGrade);
+  const aiPromptBundle = generateAIPromptBundle(suggestions, metrics, performanceGrade, performanceScore);
 
   return {
     overallGrade: performanceGrade,
@@ -246,18 +246,23 @@ export function generateImprovementPlan(
 }
 
 /**
- * Generate a single comprehensive AI prompt for all improvements
+ * Generate a single comprehensive AI prompt for all improvements.
+ *
+ * @param score  The already-converted 0-100 integer performance score (the single *100
+ *               conversion happens in performance.ts — this function must NOT re-multiply
+ *               metrics.performanceScore by 100 again).
  */
 function generateAIPromptBundle(
   suggestions: ImprovementSuggestion[],
   metrics: LighthouseMetrics,
-  grade: string
+  grade: string,
+  score: number,
 ): string {
   const prompt = `# Performance Optimization Request
 
 ## Current Performance
 - **Grade**: ${grade}
-- **Lighthouse Score**: ${metrics.performanceScore ? Math.round(metrics.performanceScore * 100) : 0}/100
+- **Lighthouse Score**: ${score}/100
 - **LCP**: ${metrics.lcp ? (metrics.lcp / 1000).toFixed(2) : 'N/A'}s (target: <2.0s)
 - **CLS**: ${metrics.cls !== null ? metrics.cls.toFixed(3) : 'N/A'} (target: <0.08)
 - **TBT**: ${metrics.tbt ? Math.round(metrics.tbt) : 'N/A'}ms (target: <200ms)

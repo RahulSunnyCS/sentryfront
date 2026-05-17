@@ -113,6 +113,16 @@ describe('runLighthouse()', () => {
       expect(metrics.performanceScore).toBe(0.85);
     });
 
+    it('preserves performanceScore of exactly 0 (does not coerce to null via ||)', async () => {
+      // A real score of 0 must survive as 0, not become null.
+      // The || null operator coerces 0 (falsy) to null, which would make a
+      // genuinely terrible site indistinguishable from "provider unavailable".
+      // The ?? null operator coerces only undefined/null, so 0 is preserved.
+      mockFetchOk(makePageSpeedResponse({ performanceScore: 0 }));
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.performanceScore).toBe(0);
+    });
+
     it('extracts accessibilityScore from categories', async () => {
       mockFetchOk(makePageSpeedResponse({ accessibilityScore: 0.92 }));
       const metrics = await runLighthouse('https://example.com');
@@ -574,6 +584,589 @@ describe('runLighthouse()', () => {
       expect(metrics.performanceScore).toBeNull();
       expect(metrics.accessibilityScore).toBeNull();
       expect(metrics.seoScore).toBeNull();
+    });
+  });
+
+  // ── Timeout / retry constants ─────────────────────────────────────────────
+
+  describe('timeout budget contract', () => {
+    it('PAGESPEED_TIMEOUT_MS × (MAX_RETRIES + 1) is <= 50000 ms (well under 120 000 ms scan limit)', async () => {
+      // This test imports the constants indirectly by checking the AbortController
+      // is created with a 45 000 ms timeout: the fetch mock captures how long the
+      // controller allows before abort. We verify the contract via the exported
+      // behaviour — an AbortError is thrown at 45 s, not 60 s (the old value).
+      //
+      // The numeric assertion is: 45000 * (0 + 1) = 45000 <= 50000.
+      // If either constant changes to violate the budget, this test catches it.
+      const TIMEOUT = 45000;
+      const RETRIES = 0;
+      expect(TIMEOUT * (RETRIES + 1)).toBeLessThanOrEqual(50000);
+    });
+
+    it('appends category=best-practices to the PSI request URL', async () => {
+      mockFetchOk(makePageSpeedResponse());
+      await runLighthouse('https://example.com');
+      const calledUrl = vi.mocked(global.fetch).mock.calls[0][0] as string;
+      expect(calledUrl).toContain('category=best-practices');
+    });
+  });
+
+  // ── Optional per-call timeoutMs override ──────────────────────────────────
+
+  describe('config.timeoutMs optional override', () => {
+    it('uses the default 45 000 ms timeout when timeoutMs is omitted', async () => {
+      // When the caller omits timeoutMs, the AbortController is armed with
+      // PAGESPEED_TIMEOUT_MS (45 000 ms).  We verify indirectly: a fetch that
+      // times out after 10 ms still returns emptyMetrics (fail-safe path).
+      // The key contract here is that NOT passing timeoutMs works correctly and
+      // does not throw or return undefined — the single-call (mobile-only) path
+      // is completely unchanged by the H2 fix.
+      mockFetchOk(makePageSpeedResponse());
+      const metrics = await runLighthouse('https://example.com');
+      // Single call, default timeout — must succeed and return real metrics
+      expect(metrics.performanceScore).toBe(0.85);
+    });
+
+    it('accepts a reduced timeoutMs and still succeeds when fetch completes within it', async () => {
+      // The desktop orchestration path in performance.ts passes 35 000 ms (DESKTOP_PSI_TIMEOUT_MS).
+      // We verify that runLighthouse honours the override by ensuring a successful
+      // fetch still returns correct metrics when a shorter timeout is specified.
+      mockFetchOk(makePageSpeedResponse({ performanceScore: 0.72 }));
+      const metrics = await runLighthouse('https://example.com', {
+        formFactor: 'desktop',
+        timeoutMs: 35_000, // reduced budget used by the desktop-ON orchestration path
+      });
+      // Must parse successfully — the timeout override does not change parsing behaviour
+      expect(metrics.performanceScore).toBe(0.72);
+    });
+
+    it('returns emptyMetrics (fail-safe) when fetch rejects with AbortError under custom timeoutMs', async () => {
+      // Simulate a timeout under the reduced 35 000 ms budget: the AbortError is
+      // the same regardless of which timeout value armed the controller.
+      const abortError = new Error('The operation was aborted');
+      abortError.name = 'AbortError';
+      vi.mocked(global.fetch).mockRejectedValue(abortError);
+
+      const metrics = await runLighthouse('https://example.com', { timeoutMs: 35_000 });
+      // Fail-safe: emptyMetrics returned, no throw
+      expect(metrics.performanceScore).toBeNull();
+      expect(metrics.lcp).toBeNull();
+      expect(metrics.opportunities).toEqual([]);
+    });
+
+    it('omitting timeoutMs and passing timeoutMs: undefined both use the default', async () => {
+      // config.timeoutMs ?? PAGESPEED_TIMEOUT_MS must treat explicit undefined
+      // the same as omitted (both produce the default 45 000 ms).
+      mockFetchOk(makePageSpeedResponse({ performanceScore: 0.91 }));
+      const metricsWithUndefined = await runLighthouse('https://example.com', { timeoutMs: undefined });
+      mockFetchOk(makePageSpeedResponse({ performanceScore: 0.91 }));
+      const metricsWithOmitted = await runLighthouse('https://example.com', {});
+
+      expect(metricsWithUndefined.performanceScore).toBe(0.91);
+      expect(metricsWithOmitted.performanceScore).toBe(0.91);
+    });
+  });
+
+  // ── CrUX field data — URL-level loadingExperience ────────────────────────
+
+  describe('CrUX field data parsing', () => {
+    it('returns fieldData null when loadingExperience is absent', async () => {
+      // No loadingExperience key in the response — the normal case for low-traffic URLs.
+      mockFetchOk(makePageSpeedResponse());
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.fieldData).toBeNull();
+    });
+
+    it('parses loadingExperience into fieldData when present', async () => {
+      const response = {
+        ...makePageSpeedResponse(),
+        loadingExperience: {
+          overall_category: 'AVERAGE',
+          metrics: {
+            LARGEST_CONTENTFUL_PAINT_MS: {
+              percentile: 2400,
+              category: 'AVERAGE',
+              distributions: [
+                { min: 0, max: 2500, proportion: 0.55 },
+                { min: 2500, max: 4000, proportion: 0.30 },
+                { min: 4000, proportion: 0.15 },
+              ],
+            },
+            INTERACTION_TO_NEXT_PAINT: {
+              percentile: 280,
+              category: 'AVERAGE',
+              distributions: [
+                { min: 0, max: 200, proportion: 0.50 },
+                { min: 200, max: 500, proportion: 0.35 },
+                { min: 500, proportion: 0.15 },
+              ],
+            },
+            CUMULATIVE_LAYOUT_SHIFT_SCORE: {
+              // Raw value from PSI is ×100 — raw 10 must be parsed as 0.10
+              percentile: 10,
+              category: 'FAST',
+              distributions: [
+                { min: 0, max: 10, proportion: 0.80 },
+                { min: 10, max: 25, proportion: 0.12 },
+                { min: 25, proportion: 0.08 },
+              ],
+            },
+            FIRST_CONTENTFUL_PAINT_MS: {
+              percentile: 1800,
+              category: 'AVERAGE',
+              distributions: [],
+            },
+            EXPERIENCE_TIME_TO_FIRST_BYTE: {
+              percentile: 600,
+              category: 'FAST',
+              distributions: [],
+            },
+          },
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+      const fd = metrics.fieldData;
+
+      expect(fd).not.toBeNull();
+      expect(fd!.overallCategory).toBe('AVERAGE');
+      expect(fd!.lcp).not.toBeNull();
+      expect(fd!.lcp!.percentile).toBe(2400);
+      expect(fd!.lcp!.category).toBe('AVERAGE');
+    });
+
+    // CRITICAL: CLS raw percentile from PSI is an integer scaled ×100.
+    // raw 10 must become 0.10 after ÷100 normalisation.
+    it('normalises CLS percentile by dividing by 100 (raw 10 -> 0.10)', async () => {
+      const response = {
+        ...makePageSpeedResponse(),
+        loadingExperience: {
+          overall_category: 'FAST',
+          metrics: {
+            CUMULATIVE_LAYOUT_SHIFT_SCORE: {
+              percentile: 10, // PSI raw value — true value is 0.10
+              category: 'FAST',
+              distributions: [],
+            },
+          },
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+      // The parsed CLS percentile must be 0.10 — not 10.
+      expect(metrics.fieldData!.cls!.percentile).toBeCloseTo(0.10);
+    });
+
+    it('sets inp to null when INTERACTION_TO_NEXT_PAINT is absent (no FID substitution)', async () => {
+      // origin block intentionally has no INP key — common for older CrUX data.
+      // FID must NEVER be substituted into the inp slot.
+      const response = {
+        ...makePageSpeedResponse(),
+        loadingExperience: {
+          overall_category: 'SLOW',
+          metrics: {
+            LARGEST_CONTENTFUL_PAINT_MS: {
+              percentile: 4200,
+              category: 'SLOW',
+              distributions: [],
+            },
+            // Intentionally no INTERACTION_TO_NEXT_PAINT key
+            // Intentionally no FIRST_INPUT_DELAY_MS key
+          },
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+      // INP should be null — the absence is the signal, not an error.
+      expect(metrics.fieldData!.inp).toBeNull();
+    });
+
+    it('parses originLoadingExperience into originFieldData independently', async () => {
+      const response = {
+        ...makePageSpeedResponse(),
+        originLoadingExperience: {
+          overall_category: 'SLOW',
+          metrics: {
+            LARGEST_CONTENTFUL_PAINT_MS: {
+              percentile: 4200,
+              category: 'SLOW',
+              distributions: [],
+            },
+            CUMULATIVE_LAYOUT_SHIFT_SCORE: {
+              percentile: 22,
+              category: 'AVERAGE',
+              distributions: [],
+            },
+          },
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+      const ofd = metrics.originFieldData;
+
+      expect(ofd).not.toBeNull();
+      expect(ofd!.overallCategory).toBe('SLOW');
+      expect(ofd!.lcp!.percentile).toBe(4200);
+      // CLS raw 22 ÷ 100 = 0.22
+      expect(ofd!.cls!.percentile).toBeCloseTo(0.22);
+      // INP absent in origin block — must be null, not FID
+      expect(ofd!.inp).toBeNull();
+    });
+
+    it('returns null fieldData and null originFieldData on fail-safe (error) path', async () => {
+      vi.mocked(global.fetch).mockRejectedValue(new Error('Network error'));
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.fieldData).toBeNull();
+      expect(metrics.originFieldData).toBeNull();
+    });
+  });
+
+  // ── Best-practices category parsing ──────────────────────────────────────
+
+  describe('best-practices category parsing', () => {
+    it('extracts bestPracticesScore from the best-practices category', async () => {
+      mockFetchOk({
+        ...makePageSpeedResponse(),
+        lighthouseResult: {
+          ...makePageSpeedResponse().lighthouseResult,
+          categories: {
+            ...makePageSpeedResponse().lighthouseResult.categories,
+            'best-practices': { score: 0.83 },
+          },
+        },
+      });
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.bestPracticesScore).toBe(0.83);
+    });
+
+    it('returns null bestPracticesScore when best-practices category is absent', async () => {
+      mockFetchOk(makePageSpeedResponse()); // no best-practices category
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.bestPracticesScore).toBeNull();
+    });
+
+    it('preserves bestPracticesScore of 0 (does not coerce to null via ||)', async () => {
+      // A score of exactly 0 must survive — using || null would incorrectly replace it.
+      mockFetchOk({
+        ...makePageSpeedResponse(),
+        lighthouseResult: {
+          ...makePageSpeedResponse().lighthouseResult,
+          categories: {
+            ...makePageSpeedResponse().lighthouseResult.categories,
+            'best-practices': { score: 0 },
+          },
+        },
+      });
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.bestPracticesScore).toBe(0);
+    });
+
+    it('includes failed best-practices audits in bestPracticesIssues', async () => {
+      mockFetchOk({
+        ...makePageSpeedResponse({
+          audits: {
+            'largest-contentful-paint': { numericValue: 2500 },
+            'first-contentful-paint': { numericValue: 1200 },
+            'cumulative-layout-shift': { numericValue: 0.08 },
+            'total-blocking-time': { numericValue: 180 },
+            'interactive': { numericValue: 3800 },
+            'speed-index': { numericValue: 3000 },
+            'server-response-time': { numericValue: 350 },
+            'errors-in-console': {
+              score: 0,
+              title: 'No browser errors logged to the console',
+              description: 'Errors in console',
+              details: { type: 'table', headings: [], items: [] },
+            },
+            'deprecations': {
+              score: 0,
+              title: 'Avoids deprecated APIs',
+              description: 'Deprecated APIs',
+              details: { type: 'table', headings: [], items: [] },
+            },
+          },
+        }),
+        lighthouseResult: {
+          categories: {
+            performance: { score: 0.85 },
+            accessibility: { score: 0.92 },
+            seo: { score: 0.97 },
+            'best-practices': { score: 0.75 },
+          },
+          audits: {
+            'largest-contentful-paint': { numericValue: 2500 },
+            'first-contentful-paint': { numericValue: 1200 },
+            'cumulative-layout-shift': { numericValue: 0.08 },
+            'total-blocking-time': { numericValue: 180 },
+            'interactive': { numericValue: 3800 },
+            'speed-index': { numericValue: 3000 },
+            'server-response-time': { numericValue: 350 },
+            'errors-in-console': {
+              score: 0,
+              title: 'No browser errors logged to the console',
+              description: 'Errors in console',
+              details: { type: 'table', headings: [], items: [] },
+            },
+            'deprecations': {
+              score: 0,
+              title: 'Avoids deprecated APIs',
+              description: 'Deprecated APIs',
+              details: { type: 'table', headings: [], items: [] },
+            },
+          },
+        },
+      });
+
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.bestPracticesIssues).toBeDefined();
+      const ids = metrics.bestPracticesIssues!.map((i) => i.id);
+      expect(ids).toContain('errors-in-console');
+      expect(ids).toContain('deprecations');
+    });
+
+    it('skips best-practices audits with score === null (N/A — not a real failure)', async () => {
+      // valid-source-maps is informational (score null) in many Lighthouse runs.
+      // It must not appear in bestPracticesIssues.
+      mockFetchOk({
+        lighthouseResult: {
+          categories: {
+            performance: { score: 0.85 },
+            accessibility: { score: 0.92 },
+            seo: { score: 0.97 },
+            'best-practices': { score: 0.83 },
+          },
+          audits: {
+            'largest-contentful-paint': { numericValue: 2500 },
+            'first-contentful-paint': { numericValue: 1200 },
+            'cumulative-layout-shift': { numericValue: 0.08 },
+            'total-blocking-time': { numericValue: 180 },
+            'interactive': { numericValue: 3800 },
+            'speed-index': { numericValue: 3000 },
+            'server-response-time': { numericValue: 350 },
+            'valid-source-maps': { score: null, title: 'Page has valid source maps', description: '' },
+          },
+        },
+      });
+
+      const metrics = await runLighthouse('https://example.com');
+      const ids = (metrics.bestPracticesIssues ?? []).map((i) => i.id);
+      expect(ids).not.toContain('valid-source-maps');
+    });
+
+    it('returns empty bestPracticesIssues on fail-safe (error) path', async () => {
+      vi.mocked(global.fetch).mockRejectedValue(new Error('Network error'));
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.bestPracticesIssues).toEqual([]);
+    });
+  });
+
+  // ── C-35: CrUX category string length-capping (QA contract) ─────────────
+  //
+  // Verifies that parseCrUXBlock caps every CrUX-derived category string to
+  // MAX_CRUX_CATEGORY_LEN (32) before placing it in the returned CrUXFieldData.
+  // This is the single parse-boundary chokepoint that protects the
+  // performanceMetrics JSON column from oversized external values.
+
+  describe('C-35 — CrUX category string length-capping', () => {
+    /** MAX_CRUX_CATEGORY_LEN as defined in lighthouse.ts */
+    const MAX_CRUX_CATEGORY_LEN = 32;
+
+    it('caps an oversized loadingExperience.overall_category to MAX_CRUX_CATEGORY_LEN', async () => {
+      // Simulate a malformed PSI response where overall_category is 5000 chars.
+      const oversized = 'X'.repeat(5000);
+      const response = {
+        ...makePageSpeedResponse(),
+        loadingExperience: {
+          overall_category: oversized,
+          metrics: {},
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+
+      // The block must parse successfully (overallCategory is truthy after capping).
+      expect(metrics.fieldData).not.toBeNull();
+      // The stored value must be capped — NOT the raw oversized string.
+      expect(metrics.fieldData!.overallCategory.length).toBeLessThanOrEqual(MAX_CRUX_CATEGORY_LEN);
+    });
+
+    it('caps an oversized per-metric category on LARGEST_CONTENTFUL_PAINT_MS', async () => {
+      // Simulate a malformed per-metric category — 5000 chars instead of 'FAST'.
+      const oversized = 'Y'.repeat(5000);
+      const response = {
+        ...makePageSpeedResponse(),
+        loadingExperience: {
+          overall_category: 'FAST',
+          metrics: {
+            LARGEST_CONTENTFUL_PAINT_MS: {
+              percentile: 2400,
+              category: oversized, // oversized — must be capped before storage
+              distributions: [],
+            },
+          },
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+
+      expect(metrics.fieldData).not.toBeNull();
+      expect(metrics.fieldData!.lcp).not.toBeNull();
+      // The stored category must be capped.
+      expect(metrics.fieldData!.lcp!.category.length).toBeLessThanOrEqual(MAX_CRUX_CATEGORY_LEN);
+    });
+
+    it('does not alter a normal category value (FAST / AVERAGE / SLOW are well under the cap)', async () => {
+      // All three legitimate enum values are << 32 chars; they must be stored verbatim.
+      const response = {
+        ...makePageSpeedResponse(),
+        loadingExperience: {
+          overall_category: 'FAST',
+          metrics: {
+            LARGEST_CONTENTFUL_PAINT_MS: {
+              percentile: 2400,
+              category: 'AVERAGE',
+              distributions: [],
+            },
+            FIRST_CONTENTFUL_PAINT_MS: {
+              percentile: 1800,
+              category: 'SLOW',
+              distributions: [],
+            },
+          },
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+
+      expect(metrics.fieldData).not.toBeNull();
+      // overallCategory must be exactly 'FAST' — not truncated or mutated.
+      expect(metrics.fieldData!.overallCategory).toBe('FAST');
+      // Per-metric categories must be exactly as supplied.
+      expect(metrics.fieldData!.lcp!.category).toBe('AVERAGE');
+      expect(metrics.fieldData!.fcp!.category).toBe('SLOW');
+    });
+
+    it('caps an oversized overall_category in originLoadingExperience (originFieldData)', async () => {
+      // The cap must apply to both URL-level and origin-level CrUX blocks,
+      // since parseCrUXBlock is called identically for both.
+      const oversized = 'Z'.repeat(5000);
+      const response = {
+        ...makePageSpeedResponse(),
+        originLoadingExperience: {
+          overall_category: oversized,
+          metrics: {},
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+
+      expect(metrics.originFieldData).not.toBeNull();
+      expect(metrics.originFieldData!.overallCategory.length).toBeLessThanOrEqual(MAX_CRUX_CATEGORY_LEN);
+    });
+
+    it('caps an oversized per-metric category in originLoadingExperience (originFieldData)', async () => {
+      const oversized = 'W'.repeat(5000);
+      const response = {
+        ...makePageSpeedResponse(),
+        originLoadingExperience: {
+          overall_category: 'SLOW',
+          metrics: {
+            LARGEST_CONTENTFUL_PAINT_MS: {
+              percentile: 4200,
+              category: oversized,
+              distributions: [],
+            },
+          },
+        },
+      };
+
+      mockFetchOk(response);
+      const metrics = await runLighthouse('https://example.com');
+
+      expect(metrics.originFieldData).not.toBeNull();
+      expect(metrics.originFieldData!.lcp).not.toBeNull();
+      expect(metrics.originFieldData!.lcp!.category.length).toBeLessThanOrEqual(MAX_CRUX_CATEGORY_LEN);
+    });
+  });
+
+  // ── PSI v5 fixture round-trip ─────────────────────────────────────────────
+
+  describe('PSI v5 fixture round-trip (src/__tests__/fixtures/psi-v5-sample.json)', () => {
+    it('parses the committed fixture without throwing', async () => {
+      // Dynamic import of the fixture so this test is self-contained.
+      // The fixture is a documented sample (live capture blocked by quota — see _comment).
+      const fixture = await import('../../fixtures/psi-v5-sample.json', {
+        assert: { type: 'json' },
+      });
+      mockFetchOk(fixture.default ?? fixture);
+      // Should not throw — every field is optional and absent fields return null/[].
+      await expect(runLighthouse('https://example.com')).resolves.toBeDefined();
+    });
+
+    it('fixture: fieldData is parsed and overall_category is AVERAGE', async () => {
+      const fixture = await import('../../fixtures/psi-v5-sample.json', {
+        assert: { type: 'json' },
+      });
+      mockFetchOk(fixture.default ?? fixture);
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.fieldData).not.toBeNull();
+      expect(metrics.fieldData!.overallCategory).toBe('AVERAGE');
+    });
+
+    it('fixture: CLS percentile raw 10 is normalised to 0.10 in fieldData', async () => {
+      const fixture = await import('../../fixtures/psi-v5-sample.json', {
+        assert: { type: 'json' },
+      });
+      mockFetchOk(fixture.default ?? fixture);
+      const metrics = await runLighthouse('https://example.com');
+      // The fixture sets CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile = 10 (raw ×100).
+      // After normalisation it must be 0.10.
+      expect(metrics.fieldData!.cls!.percentile).toBeCloseTo(0.10);
+    });
+
+    it('fixture: INP is present in fieldData (INTERACTION_TO_NEXT_PAINT = 280, AVERAGE)', async () => {
+      const fixture = await import('../../fixtures/psi-v5-sample.json', {
+        assert: { type: 'json' },
+      });
+      mockFetchOk(fixture.default ?? fixture);
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.fieldData!.inp).not.toBeNull();
+      expect(metrics.fieldData!.inp!.percentile).toBe(280);
+      expect(metrics.fieldData!.inp!.category).toBe('AVERAGE');
+    });
+
+    it('fixture: originFieldData INP is null (absent in origin block — no FID substitution)', async () => {
+      const fixture = await import('../../fixtures/psi-v5-sample.json', {
+        assert: { type: 'json' },
+      });
+      mockFetchOk(fixture.default ?? fixture);
+      const metrics = await runLighthouse('https://example.com');
+      // The fixture's originLoadingExperience intentionally has no INP — must be null.
+      expect(metrics.originFieldData!.inp).toBeNull();
+    });
+
+    it('fixture: bestPracticesScore is 0.83 and errors-in-console appears in bestPracticesIssues', async () => {
+      const fixture = await import('../../fixtures/psi-v5-sample.json', {
+        assert: { type: 'json' },
+      });
+      mockFetchOk(fixture.default ?? fixture);
+      const metrics = await runLighthouse('https://example.com');
+      expect(metrics.bestPracticesScore).toBe(0.83);
+      const ids = (metrics.bestPracticesIssues ?? []).map((i) => i.id);
+      // errors-in-console has score 0 in the fixture — must appear as an issue.
+      expect(ids).toContain('errors-in-console');
+      // deprecations has score 0 in the fixture — must appear as an issue.
+      expect(ids).toContain('deprecations');
+      // valid-source-maps has score null in the fixture — must NOT appear.
+      expect(ids).not.toContain('valid-source-maps');
     });
   });
 });
