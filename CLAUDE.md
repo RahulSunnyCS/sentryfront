@@ -86,11 +86,12 @@ Rules:
   - Opus + max     : 30k – 80k
 - The Phase 7 Final Summary Report reads this file and produces a cost estimate. The log is working state — it is deleted along with the rest of `pipeline/` after Gate 3 approval.
 
-**Soft per-phase budgets (live control):** After each delegation, check whether
-the running Phase 1 total has exceeded its soft cap for the lane. If it has,
-surface a one-line nudge before starting the next sub-phase: "Phase 1 is over
-soft budget (~Xk / cap Yk tokens) — continue as-is or trim?" Do not block;
-the nudge is informational and the user may approve continuing.
+**Soft per-phase budgets (live notification — no stop):** After each delegation,
+check whether the running Phase 1 total has exceeded its soft cap for the lane.
+If it has, send a one-line notification to the user: "ℹ️ Phase 1 over soft budget
+(~Xk / cap Yk tokens) — continuing." Then **keep working immediately** — do not
+pause, do not ask for approval, do not wait for a reply. The notification is
+purely informational; the pipeline does not stop for it.
 
 Soft Phase 1 caps by lane (the highest-spend phase):
 - express          : n/a (no Phase 1)
