@@ -33,8 +33,20 @@ export async function GET(
     );
   }
 
-  // Check if performance data exists
-  if (!scan.performanceGrade || !scan.performanceScore || !scan.performanceMetrics) {
+  // Check if performance data exists.
+  //
+  // IMPORTANT: we use explicit null/undefined checks here instead of a simple
+  // falsy guard (`!scan.performanceScore`). A real worst-performing site can
+  // legitimately score 0, which is falsy but is NOT the same as "no data".
+  // A null performanceScore means the provider was unavailable (scoreSource
+  // 'unavailable') — that is the only case we should 404.
+  //
+  // `== null` covers both null and undefined without requiring two comparisons.
+  if (
+    scan.performanceGrade == null ||
+    scan.performanceScore == null ||
+    scan.performanceMetrics == null
+  ) {
     return NextResponse.json({
       error: 'No performance data available for this scan.',
       hint: 'Performance scanning may be disabled or may have failed. Check scan logs.',

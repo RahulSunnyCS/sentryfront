@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { PerformanceGrade } from './performance-grade';
 import { CoreWebVitals } from './core-web-vitals';
 import { AIImprovementSuggestions } from './ai-improvement-suggestions';
@@ -11,8 +12,13 @@ import { AIImprovementSuggestions } from './ai-improvement-suggestions';
  */
 
 interface PerformanceData {
-  performanceGrade: string;
-  performanceScore: number;
+  // performanceGrade and performanceScore are nullable when the performance
+  // provider (PSI/Lighthouse) was temporarily unavailable (scoreSource:
+  // 'unavailable'). A score of 0 is a real score for the worst-performing
+  // sites and must NOT be treated as missing — only null means "no data".
+  performanceGrade: string | null;
+  performanceScore: number | null;
+  scoreSource?: 'lab' | 'unavailable';
   performanceMetrics: {
     lcp: number | null;
     fcp: number | null;
@@ -57,11 +63,27 @@ interface PerformanceSectionProps {
 }
 
 export function PerformanceSection({ scanId, performanceData }: PerformanceSectionProps) {
+  // t() is used only when performanceScore is null (scoreSource 'unavailable').
+  // The namespace 'report' matches the key path report.performance.scoreUnavailable.
+  const t = useTranslations('report');
   const [suggestions, setSuggestions] = useState<PerformanceSuggestions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // True when the PSI/Lighthouse provider was unavailable (null score). A
+  // genuine score of 0 is NOT unavailable — the provider ran and returned 0.
+  const scoreUnavailable = performanceData.performanceScore === null;
+
   useEffect(() => {
+    // When the provider was unavailable there is no performance score and
+    // therefore no suggestions to fetch. Skip the request entirely to avoid
+    // a 404 that would land in the error state and show a confusing error
+    // message alongside the 'not measured' banner.
+    if (scoreUnavailable) {
+      setLoading(false);
+      return;
+    }
+
     async function fetchSuggestions() {
       try {
         const res = await fetch(`/api/v1/scans/${scanId}/performance-suggestions`);
@@ -78,7 +100,7 @@ export function PerformanceSection({ scanId, performanceData }: PerformanceSecti
       }
     }
     fetchSuggestions();
-  }, [scanId]);
+  }, [scanId, scoreUnavailable]);
 
   return (
     <div style={{
@@ -91,21 +113,49 @@ export function PerformanceSection({ scanId, performanceData }: PerformanceSecti
     }}>
       {/* Header with Performance Grade */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 32, marginBottom: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <PerformanceGrade
-          grade={performanceData.performanceGrade}
-          score={performanceData.performanceScore}
-          size={120}
-        />
+        {scoreUnavailable ? (
+          // Provider was unavailable — render a neutral placeholder instead of
+          // PerformanceGrade, which requires a non-null grade and score.
+          <div style={{
+            width: 120,
+            height: 120,
+            borderRadius: '50%',
+            backgroundColor: 'var(--surface-secondary)',
+            border: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 36,
+            flexShrink: 0,
+          }}>
+            —
+          </div>
+        ) : (
+          // performanceScore is a real number (0 is valid — worst site score).
+          // Non-null assertion is safe here: scoreUnavailable guards the null branch.
+          <PerformanceGrade
+            grade={performanceData.performanceGrade!}
+            score={performanceData.performanceScore!}
+            size={120}
+          />
+        )}
         <div style={{ flex: 1, minWidth: 240 }}>
           <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>
             Performance Analysis
           </h2>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-            {performanceData.performanceScore >= 90 
+            {scoreUnavailable
+              // Null score means the provider was temporarily unavailable.
+              // Use the i18n string so every locale shows the correct message.
+              ? t('performance.scoreUnavailable')
+              // For all real scores (including 0) use the threshold-based copy.
+              // The >= comparisons are now only reached when score is a number,
+              // so 0 correctly falls through to the "needs attention" branch.
+              : performanceData.performanceScore! >= 90
               ? 'Excellent performance! Your site loads fast and provides a great user experience.'
-              : performanceData.performanceScore >= 75
+              : performanceData.performanceScore! >= 75
               ? 'Good performance, but there\'s room for improvement. Focus on Core Web Vitals.'
-              : performanceData.performanceScore >= 50
+              : performanceData.performanceScore! >= 50
               ? 'Moderate performance. Addressing key issues will significantly improve user experience.'
               : 'Performance needs attention. Prioritize critical issues for maximum impact.'}
           </p>
