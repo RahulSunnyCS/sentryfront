@@ -1,0 +1,20 @@
+{
+  "task_id": "FIX-02",
+  "title": "C3 shared compliance module + C2 parse-once in orchestrator + data.ts comment",
+  "assigned_to": "implementor",
+  "risk_flags": ["regulatory-claim-surface"],
+  "scope": {
+    "files_to_create": ["src/lib/scanner/compliance-shared.ts"],
+    "files_to_modify": ["src/lib/scanner/modules/compliance.ts", "src/lib/data.ts"],
+    "files_forbidden": ["any p5-0X module", "src/lib/scanner/index.ts", "report-view.tsx", "print-report.tsx", "src/lib/scanner/types.ts"]
+  },
+  "acceptance_criteria": [
+    "Create src/lib/scanner/compliance-shared.ts exporting the single source of truth: deriveComplianceStatus(finding) -> 'observed'|'not-observed'|'not-evaluated', the FAIL_CLOSED_KEYWORDS list, MODULE_FRAMEWORKS map, and FRAMEWORK_ORDER. Logic must be byte-equivalent to the current compliance.ts derivation (no behaviour change)",
+    "Refactor compliance.ts to import and use compliance-shared.ts (delete its local copies of the rule/map/order)",
+    "C2: in runComplianceModules, parse the chosen HTML (cleanedHtml ?? renderedHtml ?? html) with cheerio EXACTLY ONCE, set it on the ctx passed to the modules as ctx.dom (the optional field added by FIX-01). Guard for empty/absent html (do not pass a dom built from undefined). No behaviour change vs per-module parsing",
+    "Fix the stale 'No runtime wiring yet' comment in data.ts (wiring exists in index.ts)",
+    "Orchestrator stays pure (no outbound request). `npm run lint` clean; `npx tsc --noEmit` clean; `npm run test` passes"
+  ],
+  "dependencies": ["FIX-01"],
+  "output_format": "code plus plain English explanation of every non-obvious decision"
+}

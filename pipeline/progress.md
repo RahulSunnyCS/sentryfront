@@ -8,9 +8,12 @@
 - [x] Phase 0 — Triage (HIGH, feature-full)
 - [x] Phase 1 — Planning (Gate 1 PASSED; all decisions resolved; R1+R2 accepted)
 - [x] Phase 2 — Decomposition (11 task contracts; approved)
-- [~] Phase 3 — Implementation: T-01..T-07,T-11 DONE & pushed; T-08 running;
-      T-09, T-10 pending. Note: src/types/index.ts pre-existing build fix
-      (CrUXFieldData import) made under T-01 — record for blast-radius.
+- [x] Phase 3 — Implementation: all 11 tasks DONE & pushed. Note:
+      src/types/index.ts pre-existing build fix (CrUXFieldData) under T-01,
+      and print-report.tsx (not page.tsx) under T-10 — record for blast-radius.
+- [x] Phase 4 — Specialist review: 3× CONDITIONAL PASS. Gate 2: APPROVED
+      WITH CONDITIONS (C1+C2+C3 + cheap Lows).
+- [~] Phase 6 — Fix cycle: FIX-01 → FIX-02 → FIX-03 (sequential).
 - [ ] Phase 4 — Specialist review
 - [ ] Phase 5 — Tests/docs
 - [ ] Phase 6 — Test execution
