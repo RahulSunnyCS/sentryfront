@@ -51,7 +51,12 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
 - [x] Phase 2 — Decomposition (10 task contracts T-01..T-10; T-09 depends on T-07 for shared performance-section.tsx)
 - [ ] Phase 3 — Parallel implementation
   - Wave A ✅ DONE: T-01 (47 tests pass, +amendment: performanceScore `?? null` so 0 survives), T-03 (committed 92d2caa), T-05 (13 keys × 5 catalogs, parity verified)
-  - Wave B: T-04 ✅ done (psi-cache.ts, 35 tests pass, lint clean) · T-02 ⏳ running
+  - Wave B ✅ DONE: T-02 (P2-07/P2-08/P2-01-transparency; 606 module tests pass; clamps on untrusted text), T-04 (committed af7db0d)
+  - Wave C ⏳ next: T-06 (integration hub)
+
+### Cross-task notes from T-02 (carry to T-06 / Phase 4)
+- P2-07 also emits INFO for URL-level AVERAGE and for "URL SLOW but lab<50" (additive transparency beyond the strict HIGH/origin-INFO/absent-none contract). Acceptable (additive INFO on real URL-level data, not "no data" noise) — flag for Phase 4 architecture review as a minor scope nuance.
+- Lab-score threshold: `performanceScore` is 0–1; P2-07 treats `>=0.5` as "lab >= 50". T-06 MUST keep performanceScore as 0–1 out of the scanner and apply `×100` ONLY in calculatePerformanceGrade (per plan), or P2-07's predicate desyncs.
 
 ### Cross-task caveats from T-01 (carry downstream)
 - CrUX `distributions` for CLS are also scaled ×100 and forwarded verbatim; any consumer reading `distributions` for CLS must ÷100 (relevant to T-02 P2-07 and T-09 UI — pass into their prompts).

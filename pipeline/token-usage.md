@@ -21,3 +21,4 @@
 | Phase 3 | T-01 amendment: performanceScore ?? null | implementor | sonnet | high | ~13k |
 | Phase 3 | T-05: i18n 13 keys × 5 catalogs | implementor | sonnet | high | ~24k |
 | Phase 3 | T-04: in-memory PSI LRU cache | implementor | sonnet | high | ~22k |
+| Phase 3 | T-02: P2-07/P2-08/P2-01 finding modules | implementor | sonnet | high | ~32k |
