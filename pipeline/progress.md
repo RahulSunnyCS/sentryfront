@@ -46,8 +46,10 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
 - [x] Pre-plan research — performance subsystem + downstream path mapped (2 Explore agents)
 - [x] Phase 1 — Planning + Red Team loop (3 sprints, converged) — internal score 9/9/9/9 (Completeness/Security/Feasibility/Clarity)
 - [x] Phase 1 — QA Planner (qa-checklist.md: 🔴17 / 🟡21 / 🟢6)
-- [ ] Phase 1 — Translator pass on Plan Report (in progress)
-- [ ] HUMAN GATE 1 (awaiting presentation)
+- [x] Phase 1 — Translator pass on Plan Report
+- [x] HUMAN GATE 1 — **APPROVED** (round 1; recommended scoring approved, R1+R2 folded in)
+- [x] Phase 2 — Decomposition (10 task contracts T-01..T-10; T-09 depends on T-07 for shared performance-section.tsx)
+- [ ] Phase 3 — awaiting user "proceed with implementation?"
 - [ ] Phase 2 — Decomposition
 - [ ] Phase 3 — Parallel implementation
 - [ ] Phase 4 — Specialist review (security + performance + architecture) + Translator

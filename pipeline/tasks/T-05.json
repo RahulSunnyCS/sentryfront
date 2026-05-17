@@ -1,0 +1,28 @@
+{
+  "task_id": "T-05",
+  "title": "i18n key manifest + new report strings across all 5 catalogs",
+  "assigned_to": "implementor",
+  "risk_flags": ["i18n-completeness", "next-intl-missing-key"],
+  "scope": {
+    "files_to_create": [],
+    "files_to_modify": [
+      "messages/en.json",
+      "messages/hi.json",
+      "messages/ml.json",
+      "messages/es.json",
+      "messages/de.json"
+    ],
+    "files_forbidden": [
+      "any source, component, route, scanner, or test file"
+    ]
+  },
+  "acceptance_criteria": [
+    "Add a stable, documented set of new report strings under the existing report/scan sections, the SAME key paths in all 5 catalogs (en, hi, ml, es, de). Keys must cover: lab-score label, real-user verdict label + the verbatim Google categories (FAST/AVERAGE/SLOW shown to users in localized words), 'no real-user data for this site', best-practices grade label, the 'performance not measured (provider unavailable)' UNAVAILABLE state, the desktop section label + the subordinate disclaimer 'informational — headline grade is mobile (Google's default)', and the cache-staleness disclosure 'results may be cached up to ~5 minutes'.",
+    "English (en.json) carries the authoritative human copy; the other 4 locales carry faithful translations consistent with the existing tone of each catalog (do not leave English placeholders in non-en files).",
+    "Key names/paths are identical across all 5 files (no missing key in any locale — next-intl must not fall back/break).",
+    "A short key manifest comment or section is provided in the task output listing every new key path so T-08 (UI) consumes exactly these keys.",
+    "Existing keys are untouched; JSON remains valid; npm run lint and npm run test pass."
+  ],
+  "dependencies": [],
+  "output_format": "the exact new key manifest (list of key paths) plus the JSON edits, and a one-line note per locale confirming translation (not placeholder)"
+}

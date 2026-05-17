@@ -1,0 +1,30 @@
+{
+  "task_id": "T-02",
+  "title": "New finding modules: P2-07 Real-User Field Experience, P2-08 Web Best Practices, P2-01 transparency INFO",
+  "assigned_to": "implementor",
+  "risk_flags": ["untrusted-external-input-parsing", "severity-accuracy", "finding-noise"],
+  "scope": {
+    "files_to_create": [
+      "src/lib/scanner/modules/p2-07-real-user-field.ts",
+      "src/lib/scanner/modules/p2-08-best-practices.ts"
+    ],
+    "files_to_modify": ["src/lib/scanner/modules/p2-01-core-web-vitals.ts"],
+    "files_forbidden": [
+      "src/lib/scanner/modules/performance.ts",
+      "src/lib/scanner/lighthouse.ts",
+      "src/lib/scanner/index.ts",
+      "src/lib/scan-worker.ts",
+      "any component, route handler, or message catalog"
+    ]
+  },
+  "acceptance_criteria": [
+    "P2-07 (runRealUserFieldModule) consumes the parsed CrUX field data from LighthouseMetrics (shape from T-01). It emits a HIGH finding ONLY when URL-level loadingExperience.overall_category === 'SLOW' AND the lab score is >= 50. When only originLoadingExperience exists (no URL-level), it emits at most an INFO finding and NEVER a HIGH. When no field data at all is present it emits NO finding (no 'no data' noise).",
+    "P2-07 never emits a banner/HIGH from origin-level data; the module returns plain RawFinding[] and carries enough structure for the UI to render the mobile-only banner decision (the banner gating itself is enforced in the aggregator/UI tasks).",
+    "P2-08 (runBestPracticesModule) maps the failed best-practices audits parsed in T-01 into RawFinding[] with category 'Best Practices'; it is tolerant of an empty/absent best-practices set (returns []), and never throws on missing audits.",
+    "P2-01 core-web-vitals module additionally emits an INFO (not HIGH/penalty) finding when any single LAB Core Web Vital is in the Poor band, even if the overall blended score is decent — this is transparency only and must not change severity of existing findings.",
+    "All three modules follow the existing module signature/return conventions (async or sync per existing P2 pattern, RawFinding[]), correct moduleId strings ('P2-07','P2-08','P2-01'), and never invent findings, upgrade severity, or emit unredacted untrusted strings (length-cap any echoed audit/field text).",
+    "Unit tests for each module covering: P2-07 url-SLOW+lab>=50 -> HIGH, origin-only -> INFO max, absent -> none, url-SLOW but lab<50 -> not HIGH; P2-08 mapping + empty set; P2-01 single-Poor-CWV INFO. npm run lint and npm run test pass for touched code."
+  ],
+  "dependencies": ["T-01"],
+  "output_format": "code plus a plain-English explanation of the P2-07 fire predicate and the P2-01 transparency rationale"
+}

@@ -1,0 +1,29 @@
+{
+  "task_id": "T-07",
+  "title": "Null/zero-safety for every real performanceScore consumer",
+  "assigned_to": "implementor",
+  "risk_flags": ["null-safety", "confirmed-live-bug", "worst-case-site-regression"],
+  "scope": {
+    "files_to_create": [],
+    "files_to_modify": [
+      "src/app/api/v1/scans/[id]/performance-suggestions/route.ts",
+      "src/components/performance-section.tsx"
+    ],
+    "files_forbidden": [
+      "src/lib/scanner/modules/performance.ts",
+      "src/lib/scanner/performance-suggestions.ts",
+      "src/lib/scan-worker.ts",
+      "src/components/core-web-vitals.tsx",
+      "any message catalog"
+    ]
+  },
+  "acceptance_criteria": [
+    "performance-suggestions/route.ts: the guard that currently does `!scan.performanceScore` (which 404s a genuine score of 0) is changed to an explicit `scan.performanceScore === null || scan.performanceScore === undefined` (and equivalent for grade/metrics) so a real worst-performing site with score 0 still gets suggestions, while a true UNAVAILABLE (null) is correctly treated as no-data.",
+    "performance-section.tsx: the falsy `>=` comparison chain (the block around the current lines ~104-109 that branches on the score) is made explicit-null-safe so score 0 renders as 0 (not treated as missing) and a null/UNAVAILABLE score renders the 'not measured' state, never NaN and never a misleading grade.",
+    "Only genuinely existing consumers are touched. The previously-assumed 'better than X% of sites' percentile does NOT exist in the codebase and must NOT be invented; if a PDF/print path consuming performanceScore is found within these two files' render tree it is made null/0-safe too, otherwise it is handled by T-08's owner of the relevant file (do not modify files outside scope — report any additional consumer found).",
+    "No behavioural change for a normal numeric score (1-100); only the 0 and null/undefined edges change.",
+    "Unit/component tests cover: score 0 -> suggestions returned (no 404) and rendered as 0; score null -> 'not measured' state, no NaN; normal score unchanged. npm run lint and npm run test pass."
+  ],
+  "dependencies": ["T-06"],
+  "output_format": "code plus a plain-English explanation of the 0-vs-null distinction and a list of any additional consumers discovered (for the orchestrator to route)"
+}

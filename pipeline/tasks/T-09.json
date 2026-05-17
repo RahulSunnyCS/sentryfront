@@ -1,0 +1,33 @@
+{
+  "task_id": "T-09",
+  "title": "Report UI: lab/real-user/best-practices/desktop/UNAVAILABLE rendering",
+  "assigned_to": "implementor",
+  "risk_flags": ["xss-untrusted-scanned-site", "backward-compat", "two-verdict-trust", "i18n-consumption"],
+  "scope": {
+    "files_to_create": [],
+    "files_to_modify": [
+      "src/components/performance-section.tsx",
+      "src/components/core-web-vitals.tsx",
+      "src/app/[locale]/report/[id]/report-view.tsx"
+    ],
+    "files_forbidden": [
+      "src/app/api/v1/scans/[id]/performance-suggestions/route.ts",
+      "src/lib/scanner/modules/performance.ts",
+      "src/lib/scan-worker.ts",
+      "src/types/index.ts",
+      "any message catalog",
+      "any scanner module or lib file"
+    ]
+  },
+  "acceptance_criteria": [
+    "The performance card renders: the Lighthouse-accurate headline score/grade (mobile), Google's verbatim real-user verdict beside it, the best-practices grade, INP shown in the Core Web Vitals where present, and an explicit 'performance not measured (provider unavailable)' state when scoreSource==='unavailable' (never a fake F/0, never NaN).",
+    "When the chosen score is from lab only (no field data) a clear 'no real-user data for this site' label is shown; the cache-staleness disclosure string is shown where appropriate.",
+    "Desktop (when present in the data) renders as a VISUALLY SUBORDINATE section with the disclaimer 'informational — headline grade is mobile (Google's default)'; desktop never shows the HIGH banner, never drives the grade. The 'real users SLOW' banner is mobile + URL-level only (consumes the structure from T-02/T-06; does not re-derive it).",
+    "SECURITY: every new CrUX/best-practices string (audit titles/descriptions, verdict text) is rendered ONLY via React's default escaping — NO dangerouslySetInnerHTML on any new field, in both the on-screen report and the PDF/print render path that uses these components. Length is capped at render. A test feeds <script> and javascript: payloads through the new audit/field props and asserts they are escaped (not executed) in the rendered output.",
+    "All user-facing strings come from the next-intl catalogs using EXACTLY the key manifest produced by T-05 (no hardcoded English, no missing-key fallback).",
+    "Back-compat: a scan whose performanceData has no desktop block / no scoreSource / no field block renders the mobile-only view with no crash and no empty desktop section (covered by a component test with a pre-change fixture).",
+    "Component tests cover: field-present, field-absent (lab label), UNAVAILABLE state, desktop-present subordinate render, desktop-absent, XSS payload escaped, old-shape back-compat. npm run lint and npm run test pass."
+  ],
+  "dependencies": ["T-08", "T-05", "T-07"],
+  "output_format": "code plus a plain-English explanation of the escaping approach, the subordinate-desktop treatment, and the UNAVAILABLE rendering"
+}

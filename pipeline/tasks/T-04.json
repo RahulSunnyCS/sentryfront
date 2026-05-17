@@ -1,0 +1,33 @@
+{
+  "task_id": "T-04",
+  "title": "Short-TTL in-memory PSI result cache module (LRU, fail-soft, success-only)",
+  "assigned_to": "implementor",
+  "risk_flags": ["memory-dos", "stale-data", "fail-soft", "untrusted-cache-key"],
+  "scope": {
+    "files_to_create": [
+      "src/lib/scanner/psi-cache.ts",
+      "src/lib/scanner/__tests__/psi-cache.test.ts"
+    ],
+    "files_to_modify": [],
+    "files_forbidden": [
+      "src/lib/scanner/lighthouse.ts",
+      "src/lib/scanner/modules/performance.ts",
+      "src/lib/scan-worker.ts",
+      "src/lib/features.ts",
+      "any component, route handler, or message catalog"
+    ]
+  },
+  "acceptance_criteria": [
+    "A self-contained in-memory LRU cache module (NO Redis — explicitly out of scope for this delivery) exposing a small API: get(key), set(key,value), and a wrapper helper the lighthouse call will use in T-06. No external/process dependency; safe to import in the scan-worker process.",
+    "Cache key is composed from normalized(targetUrl) + strategy ('mobile'|'desktop') ONLY. The category set is invariant today — do NOT key on it; add a code comment stating this and to revisit if onlyCategories is ever wired through.",
+    "Hard ENTRY-COUNT cap of 200 with LRU eviction (oldest/least-recently-used evicted first). A test inserts 10,000 distinct keys and asserts cache size never exceeds 200.",
+    "TTL is configurable via env PSI_CACHE_TTL_MS, default 300000 (5 minutes). An expired entry behaves as a miss (forces a fresh fetch). Test covers hit, miss, and expiry.",
+    "A force-refresh / bypass option is supported by the API (e.g. an option flag on the wrapper) so an explicit user-initiated re-scan can skip the cache entirely; test covers bypass returning a fresh value and not serving the cached one.",
+    "Fail-soft: any internal cache error in get/set must be swallowed and result in a normal miss (caller proceeds to live fetch); the cache NEVER throws to its caller. Test simulates an internal failure and asserts the wrapper still returns the live value.",
+    "Only successful results are cacheable: the module provides a way for the caller to NOT cache failure/UNAVAILABLE/empty-metrics responses (e.g. set is only called on success, or set rejects a sentinel). Test asserts a failure/UNAVAILABLE value is not served from cache on the next call.",
+    "Over-long normalized URL keys (beyond a sane cap) are not cached (skipped) rather than stored. Documented note that per-URL keying means an attacker can only affect their own URL's entry (no cross-URL poisoning).",
+    "npm run lint and npm run test pass for the new files."
+  ],
+  "dependencies": ["T-01"],
+  "output_format": "code plus a plain-English explanation of the LRU cap, TTL choice (5 min vs fix-then-rescan), fail-soft, and the no-cache-on-failure rule"
+}

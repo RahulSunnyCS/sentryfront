@@ -14,3 +14,5 @@
 | Phase 1 | Gate 1 round 1 (R1+R2 accepted) + form-factor Q | orchestrator | opus | low | ~2k |
 | Phase 1 | Red Team — R1+R2 delta sprint | red-team | opus | max | ~54k |
 | Phase 1 | QA Planner — R1+R2 delta refresh | qa-planner | sonnet | medium | ~30k |
+| Phase 1 | Translator — updated Plan Report (re-plan r1) | translator | haiku | medium | ~8k |
+| Phase 2 | Decomposition (10 task contracts) | orchestrator | opus | high | ~14k |

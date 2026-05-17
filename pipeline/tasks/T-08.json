@@ -1,0 +1,34 @@
+{
+  "task_id": "T-08",
+  "title": "Persistence threading + ScannerResult/PerformanceData types + API pass-through",
+  "assigned_to": "implementor",
+  "risk_flags": ["persistence-correctness", "backward-compat", "no-migration", "unavailable-state-integrity"],
+  "scope": {
+    "files_to_create": [],
+    "files_to_modify": [
+      "src/lib/scan-worker.ts",
+      "src/lib/scanner/index.ts",
+      "src/app/api/v1/scans/[id]/route.ts",
+      "src/types/index.ts"
+    ],
+    "files_forbidden": [
+      "src/lib/scanner/modules/performance.ts",
+      "src/lib/scanner/lighthouse.ts",
+      "src/components/performance-section.tsx",
+      "src/components/core-web-vitals.tsx",
+      "prisma/schema.prisma",
+      "any message catalog"
+    ]
+  },
+  "acceptance_criteria": [
+    "NO Prisma migration: all new data (scoreSource, the CrUX/field block, bestPracticesGrade/Score, and the desktop sub-object) is nested INSIDE the existing Scan.performanceMetrics JSON-string column. prisma/schema.prisma is explicitly forbidden and must not change.",
+    "scan-worker.ts threads the FULL new performanceMetrics object returned by the scanner through JSON.stringify. The persist guard for the metrics blob must ensure the UNAVAILABLE path still persists a NON-EMPTY object containing scoreSource:'unavailable' (close the existing line-175-vs-176 spread-guard coupling: the metrics object is written whenever it is non-empty, independent of whether the scalar performanceScore is null).",
+    "ScannerResult (src/lib/scanner/index.ts) and the PerformanceData type (src/types/index.ts) are extended with the new optional fields (scoreSource, field/CrUX verdict block, bestPractices grade/score, optional desktop sub-object) — all optional so old persisted scans typecheck and render.",
+    "The /api/v1/scans/[id]/route.ts JSON.parse pass-through carries the new keys transparently and is null-safe (a null performanceScore / missing performanceMetrics must not throw).",
+    "Back-compat: a reader given a PRE-CHANGE performanceMetrics blob (no scoreSource, no field block) resolves scoreSource to 'lab' and field block to none; a reader given a NEW-CODE PARTIAL blob (field block present but scoreSource missing) resolves to a safe explicit state, not a silent 'lab'. Both covered by tests with committed fixtures.",
+    "A round-trip test asserts scoreSource and the desktop sub-object survive scanner-result -> scan-worker persist -> API parse -> reader.",
+    "If a PDF/print export path that consumes performanceScore is discovered, it is REPORTED to the orchestrator (not modified out of scope). Update the scan-worker.test.ts makeScannerResult fixture if its shape changes. npm run lint and npm run test pass."
+  ],
+  "dependencies": ["T-06"],
+  "output_format": "code plus a plain-English explanation of the JSON-blob storage decision, the UNAVAILABLE non-empty-object guarantee, and the back-compat defaulting"
+}

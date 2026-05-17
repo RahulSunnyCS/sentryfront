@@ -1,0 +1,32 @@
+{
+  "task_id": "T-01",
+  "title": "PSI/CrUX parser + best-practices + LighthouseMetrics types + committed fixture + timeout bound",
+  "assigned_to": "implementor",
+  "risk_flags": ["untrusted-external-input-parsing", "scan-timeout-contract", "backward-compat"],
+  "scope": {
+    "files_to_create": ["src/__tests__/fixtures/psi-v5-sample.json"],
+    "files_to_modify": ["src/lib/scanner/lighthouse.ts"],
+    "files_forbidden": [
+      "src/lib/scanner/modules/performance.ts",
+      "src/lib/scanner/performance-suggestions.ts",
+      "src/lib/scan-worker.ts",
+      "src/lib/scanner/index.ts",
+      "src/lib/features.ts",
+      "any component, route handler, or message catalog"
+    ]
+  },
+  "acceptance_criteria": [
+    "PSI request additionally appends category 'best-practices' alongside performance/accessibility/seo (single call).",
+    "Parses data.loadingExperience (URL-level) and data.originLoadingExperience (origin-level) defensively — every field optional, total absence is the normal case and must not throw.",
+    "CLS field percentile (CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile) is normalized by dividing by 100; a unit test asserts raw 10 -> 0.10.",
+    "INP (INTERACTION_TO_NEXT_PAINT) parsed when present; when absent it is treated as no-INP-field-signal and FID is NEVER substituted into an INP slot.",
+    "The real-user verdict captured is Google's verbatim values only: per-metric `category` and the top-level `overall_category` exactly as PSI returns them (no self-computed Good/NI/Poor bucketing).",
+    "categories['best-practices'].score parsed into a new nullable LighthouseMetrics field; a curated set of failed best-practices audits parsed via the existing parseAudit, tolerant of audits missing per Lighthouse version, with NO reliance on the removed 'no-vulnerable-libraries' audit.",
+    "LighthouseMetrics interface extended with new OPTIONAL/nullable fields (fieldData, originFieldData, bestPracticesScore, bestPracticesIssues, and per-metric CrUX p75+category); the emptyMetrics / fail-safe object includes every new field as null/[] so all existing fail-soft return paths stay valid.",
+    "For the multi-category call PAGESPEED_TIMEOUT_MS is 45000 and MAX_RETRIES is 0; a test asserts PAGESPEED_TIMEOUT_MS * (MAX_RETRIES + 1) <= 50000 (well under SCAN_TIMEOUT_MS=120000).",
+    "A real captured PSI v5 JSON response is committed at src/__tests__/fixtures/psi-v5-sample.json (must contain a real loadingExperience block with CLS, INP, LCP and a best-practices category); a test parses it and asserts all new fields populate without error. If a live capture cannot be obtained, use a documented Google-published sample and record the provenance in a top-level _comment field.",
+    "All existing lighthouse.ts behaviour (existing return shape consumers, 429/403/timeout fail-safe paths) is preserved; npm run lint and npm run test pass for touched code."
+  ],
+  "dependencies": [],
+  "output_format": "code plus a plain-English explanation of every non-obvious decision (CLS normalization, INP/FID handling, fixture provenance, timeout math)"
+}
