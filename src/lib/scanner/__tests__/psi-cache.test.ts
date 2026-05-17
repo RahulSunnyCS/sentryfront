@@ -161,37 +161,64 @@ describe('get() / set()', () => {
 // ─── TTL expiry ───────────────────────────────────────────────────────────────
 
 describe('TTL expiry', () => {
-  it('returns null for an expired entry (treated as a miss)', async () => {
-    // Set TTL to 1 ms so the entry expires almost immediately.
-    process.env.PSI_CACHE_TTL_MS = '1';
+  // Capture the env value set by the outer beforeEach so we can restore it
+  // exactly. This prevents leaking a mutated PSI_CACHE_TTL_MS into other tests.
+  let savedTtl: string | undefined;
+
+  beforeEach(() => {
+    savedTtl = process.env.PSI_CACHE_TTL_MS;
+    // Use fake timers so Date.now() is deterministic and controlled by
+    // vi.advanceTimersByTime(). This avoids relying on a real 1-2 ms wall-clock
+    // margin which is non-deterministic under full-suite load.
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    // Always restore real timers first, even if the test threw, so ambient
+    // timer state cannot leak into subsequent tests in the suite.
+    vi.useRealTimers();
+    // Restore the env var to the value the outer beforeEach established
+    // ('999999') so TTL state cannot leak into the rest of the suite.
+    if (savedTtl === undefined) {
+      delete process.env.PSI_CACHE_TTL_MS;
+    } else {
+      process.env.PSI_CACHE_TTL_MS = savedTtl;
+    }
+  });
+
+  it('returns null for an expired entry (treated as a miss)', () => {
+    // TTL = 50 ms; advance time by 1000 ms — well past expiry.
+    // No real waiting needed: vi.advanceTimersByTime moves Date.now() forward
+    // deterministically so isExpired() sees the elapsed time immediately.
+    process.env.PSI_CACHE_TTL_MS = '50';
     const key = shortKey('ttl-test.com');
     set(key, makeMetrics());
 
-    // Wait 2 ms to guarantee expiry.
-    await new Promise((r) => setTimeout(r, 2));
+    vi.advanceTimersByTime(1000);
 
     expect(get(key)).toBeNull();
   });
 
-  it('purges the expired entry so it no longer occupies a slot', async () => {
-    process.env.PSI_CACHE_TTL_MS = '1';
+  it('purges the expired entry so it no longer occupies a slot', () => {
+    process.env.PSI_CACHE_TTL_MS = '50';
     const key = shortKey('purge-test.com');
     set(key, makeMetrics());
-    await new Promise((r) => setTimeout(r, 2));
+
+    vi.advanceTimersByTime(1000);
 
     // Access triggers lazy purge.
     get(key);
     expect(cacheSize()).toBe(0);
   });
 
-  it('does not expire an entry whose TTL has not elapsed', async () => {
-    // TTL = 5 s; sleep 5 ms — entry must still be live.
+  it('does not expire an entry whose TTL has not elapsed', () => {
+    // TTL = 5000 ms; advance only 100 ms — well within the TTL, entry stays live.
     process.env.PSI_CACHE_TTL_MS = '5000';
     const key = shortKey('fresh.com');
     const metrics = makeMetrics({ lcp: 777 });
     set(key, metrics);
 
-    await new Promise((r) => setTimeout(r, 5));
+    vi.advanceTimersByTime(100);
 
     expect(get(key)).toEqual(metrics);
   });
@@ -324,15 +351,42 @@ describe('getOrFetch() — cache miss', () => {
 // ─── getOrFetch — TTL expiry ──────────────────────────────────────────────────
 
 describe('getOrFetch() — TTL expiry', () => {
+  // Same fake-timer + env-restore pattern as the 'TTL expiry' describe above.
+  // Scoping fake timers to this block prevents interference with the async
+  // getOrFetch() — bypass and other describe blocks that rely on real Promises.
+  let savedTtl: string | undefined;
+
+  beforeEach(() => {
+    savedTtl = process.env.PSI_CACHE_TTL_MS;
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    if (savedTtl === undefined) {
+      delete process.env.PSI_CACHE_TTL_MS;
+    } else {
+      process.env.PSI_CACHE_TTL_MS = savedTtl;
+    }
+  });
+
   it('calls the fetcher again after an entry expires', async () => {
-    process.env.PSI_CACHE_TTL_MS = '1';
+    // TTL = 50 ms; advance 1000 ms between the two getOrFetch calls so the
+    // first entry is deterministically expired when the second call reads it.
+    process.env.PSI_CACHE_TTL_MS = '50';
     const key = shortKey('expiry-fetch.com');
     const first = makeMetrics({ lcp: 111 });
     const second = makeMetrics({ lcp: 222 });
     const fetcher = vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
 
+    // getOrFetch is async (awaits the fetcher); use runAllTimersAsync so Vitest
+    // drains any micro/macro-task queue that fake timers may gate. First call.
     const r1 = await getOrFetch(key, fetcher);
-    await new Promise((r) => setTimeout(r, 2)); // let TTL expire
+
+    // Advance fake clock past TTL so the stored entry is treated as expired.
+    vi.advanceTimersByTime(1000);
+
+    // Second call: cache miss because entry is expired; fetcher called again.
     const r2 = await getOrFetch(key, fetcher);
 
     expect(r1?.lcp).toBe(111);

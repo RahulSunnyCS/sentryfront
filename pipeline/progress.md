@@ -61,8 +61,9 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
 ### Known limitation (Phase 4 / epic-doc): PDF/print export
 - `src/app/[locale]/report/[id]/print/page.tsx` + `print-report.tsx` read only the SCALAR performanceScore (already null-safe — `performanceScore !== null` guard; no crash on UNAVAILABLE) and do NOT surface scoreSource/fieldData/bestPractices/desktop. No regression (scalar behaviour preserved). Rich-data in PDF is a deliberate non-goal of this delivery — candidate follow-up. Flag for Phase 4 architecture review + epic doc limitations.
 
-### Full-suite status after T-08
-- `npm run test`: 1526 passed / 10 skipped / **1 failed** = `psi-cache.test.ts:173` (T-04 flaky real-time TTL test; passes isolated, fails under load via ambient fake-timer/ordering contamination). Deterministic fix delegated (fake timers + env restore). NOT a T-08 regression.
+### Full-suite status
+- After T-08: 1526 passed / **1 failed** (`psi-cache.test.ts:173` flaky real-time TTL).
+- After deterministic TTL fix (fake timers + env restore, scoped to the TTL describe blocks): **`npm run test` → 92 files, 1527 passed / 10 skipped / 0 failed** (independently re-verified by orchestrator). Phase 3 implementation is green end-to-end except T-09 (UI, not yet run).
   - Note: README "What's Included" numbered module list still says 15 (separate section, out of T-10 scope) — follow-up for Phase 5 docs-writer / epic doc.
 
 ### Cross-task notes from T-06 (carry to T-08 / Phase 4)
