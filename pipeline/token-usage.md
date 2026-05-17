@@ -19,3 +19,14 @@
 | Phase 4 | Security audit | security-auditor | opus | max | ~45k |
 | Phase 4 | Performance review | performance-reviewer | sonnet | high | ~15k |
 | Phase 4 | Architecture review | architecture-reviewer | sonnet | high | ~18k |
+| Phase 4 | Synthesis | orchestrator | opus | high | ~10k |
+| Phase 6 | FIX-01 | implementor | sonnet | high | ~16k |
+| Phase 6 | FIX-02 | implementor | sonnet | high | ~14k |
+| Phase 6 | FIX-03 | implementor | sonnet | high | ~16k |
+| Phase 5 | Unit tests | test-writer | opus | high | ~38k |
+| Phase 5 | Integration tests | test-writer | sonnet | medium | ~16k |
+| Phase 5 | E2E tests | e2e-test-writer | sonnet | medium | ~14k |
+| Phase 5 | Docs | docs-writer | haiku | low | ~6k |
+| Phase 5/6 | Blast-radius/Triage/Gate | orchestrator | haiku | low | ~3k |
+| Phase 7 | Epic doc | epic-doc-writer | sonnet | medium | ~12k |
+| Phase 7 | Final review | orchestrator | opus | high | ~10k |
