@@ -63,8 +63,9 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
   - Blocking H1: CrUX 3-way shape mismatch → per-metric real-user cards dead in prod (all 3 reviewers).
   - Blocking H2: desktop-ON path can exceed 120s SCAN_TIMEOUT (~38s crawl + 90s 2×PSI).
   - M1: relocate normalizePerformanceMetrics out of scan-worker. M2: strip non-perf arrays before caching.
-- [ ] Phase 4 — Translator pass on Synthesis Review Report (in progress)
-- [ ] HUMAN GATE 2 (awaiting presentation)
+- [x] HUMAN GATE 2 — **APPROVED** with bounded fix cycle (H1,H2,M1,M2). User capacity Q answered: cache is process-wide 200-cap LRU (constant ~4MB after M2, NOT per-user) → not an infra trigger; real free-tier friction = PSI quota (429/403) + worker concurrency. Levers + triggers to be recorded in epic doc.
+- [ ] Phase 4.5 — Bounded fix cycle (sequential, verify between each): FIX-A H1 (canonical CrUX type) → FIX-B H2 (desktop timeout) → FIX-C M2 (trim cache payload) → FIX-D M1 (relocate normalizePerformanceMetrics) → full-suite re-verify
+- [ ] Phase 5 — Tests + docs + E2E
 
 ### Known limitation (Phase 4 / epic-doc): PDF/print export
 - `src/app/[locale]/report/[id]/print/page.tsx` + `print-report.tsx` read only the SCALAR performanceScore (already null-safe — `performanceScore !== null` guard; no crash on UNAVAILABLE) and do NOT surface scoreSource/fieldData/bestPractices/desktop. No regression (scalar behaviour preserved). Rich-data in PDF is a deliberate non-goal of this delivery — candidate follow-up. Flag for Phase 4 architecture review + epic doc limitations.
