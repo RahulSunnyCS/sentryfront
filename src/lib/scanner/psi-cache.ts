@@ -6,11 +6,22 @@
  *   by the user must return fresh data. 5 minutes balances API-quota savings
  *   against stale-data risk for the typical single-session workflow
  *   (scan → read report → optionally re-scan after a fix).
- * - LRU cap (200 entries): bounds worst-case memory use. At ~20 KB per cached
- *   LighthouseMetrics value that is ~4 MB max. An attacker can flood us with
- *   unique URLs, but they can only displace earlier entries — they cannot grow
- *   unbounded memory or read another URL's cached result (per-URL keying means
- *   each entry is its own namespace, so there is no cross-URL poisoning).
+ * - LRU cap (200 entries): bounds worst-case memory use. The cache stores a
+ *   PERFORMANCE-ONLY projection of LighthouseMetrics (see toPerfOnlyMetrics in
+ *   performance.ts): accessibilityViolations and seoIssues are NOT cached here
+ *   — those arrays are populated by accessibility.ts / seo.ts which call
+ *   runLighthouse() directly and bypass this cache entirely.  With the trimmed
+ *   projection, a typical entry is approximately:
+ *     ~200 bytes  — 9 numeric perf fields (lcp/fcp/cls/tbt/tti/si/ttfb/
+ *                   performanceScore/bestPracticesScore) + JSON overhead
+ *     ~10 KB      — up to 10 opportunities (ParsedAudit with description/nodes)
+ *     ~3 KB       — bestPracticesIssues (a few failed audits)
+ *     ~1 KB       — fieldData + originFieldData (CrUX blocks)
+ *   ≈ ~15 KB per entry → ~3 MB max at the 200-entry cap.
+ *   An attacker can flood us with unique URLs, but they can only displace earlier
+ *   entries — they cannot grow unbounded memory or read another URL's cached
+ *   result (per-URL keying means each entry is its own namespace, so there is no
+ *   cross-URL poisoning).
  * - FAIL-SOFT: every internal cache operation is wrapped so that a bug in the
  *   cache implementation NEVER surfaces as an error to the scan pipeline. On
  *   any exception the caller gets a cache miss and calls the live API.

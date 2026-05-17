@@ -289,6 +289,59 @@ function normalizeUrlForCacheKey(url: string): string {
   }
 }
 
+// ─── Performance-only projection helper ──────────────────────────────────────
+
+/**
+ * Return a copy of the given LighthouseMetrics with the accessibility and SEO
+ * payload stripped — the fields that are NOT used by any P2-0x module.
+ *
+ * Why: the PSI cache is the EXCLUSIVE store for performance path results.
+ * The accessibility modules (accessibility.ts) and SEO modules (seo.ts) each
+ * call runLighthouse() directly and NEVER read from this cache.  Caching the
+ * full LighthouseMetrics object (which includes up to 16 accessibilityViolations
+ * audits plus 12 seoIssues audits with DOM-node items) inflates every cached
+ * entry from the intended ~15 KB to ~50–90 KB — a 3-4× overrun at the 200-entry
+ * LRU cap.  Trimming these arrays before we hand the object to the cache brings
+ * the footprint back in line with the documented estimate.
+ *
+ * Contract:
+ * - The returned object is a VALID LighthouseMetrics (all keys present).
+ * - accessibilityViolations and seoIssues become [] (empty, not deleted).
+ * - accessibilityScore and seoScore become null (unknown from perf path only).
+ * - Every performance-relevant field is preserved unchanged:
+ *   lcp / fcp / cls / tbt / tti / si / ttfb / performanceScore /
+ *   opportunities / fieldData / originFieldData / bestPracticesScore /
+ *   bestPracticesIssues.
+ * - The original metrics object passed in is NOT mutated.
+ */
+function toPerfOnlyMetrics(m: LighthouseMetrics): LighthouseMetrics {
+  return {
+    // ── Core Web Vitals + performance scores (preserved verbatim) ────────────
+    lcp:              m.lcp,
+    fcp:              m.fcp,
+    cls:              m.cls,
+    tbt:              m.tbt,
+    tti:              m.tti,
+    si:               m.si,
+    ttfb:             m.ttfb,
+    performanceScore: m.performanceScore,
+    opportunities:    m.opportunities,
+    fieldData:        m.fieldData,
+    originFieldData:  m.originFieldData,
+    bestPracticesScore:  m.bestPracticesScore,
+    bestPracticesIssues: m.bestPracticesIssues,
+
+    // ── Accessibility / SEO payload — zeroed out for cache economy ───────────
+    // These fields are populated by accessibility.ts / seo.ts which make their
+    // own separate runLighthouse() calls.  The performance path (the only
+    // consumer of THIS cache) never reads these arrays or scores.
+    accessibilityViolations: [],
+    accessibilityScore:      null,
+    seoIssues:               [],
+    seoScore:                null,
+  };
+}
+
 // ─── PSI fetch wrapper ────────────────────────────────────────────────────────
 
 /**
@@ -344,9 +397,15 @@ async function fetchPsi(
     const key = buildPsiCacheKey(normalizedUrl, strategy);
     const result = await getOrFetch(
       key,
-      // Pass timeoutMs only when provided; omitting it lets runLighthouse use its
-      // own 45 000 ms default (unchanged behaviour for the mobile-only path).
-      () => runLighthouse(targetUrl, { formFactor: strategy, ...(timeoutMs !== undefined && { timeoutMs }) }),
+      // Trim the full LighthouseMetrics returned by runLighthouse to the
+      // performance-relevant fields BEFORE handing it to the cache.
+      // Accessibility and SEO payloads (accessibilityViolations, seoIssues,
+      // accessibilityScore, seoScore) are not used by any P2-0x module and
+      // would inflate each 200-entry LRU slot from ~15 KB to ~50–90 KB.
+      // toPerfOnlyMetrics does NOT mutate the original object.
+      async () => toPerfOnlyMetrics(
+        await runLighthouse(targetUrl, { formFactor: strategy, ...(timeoutMs !== undefined && { timeoutMs }) }),
+      ),
       {
         bypass,
         // Only cache results where PSI returned a real performance score.

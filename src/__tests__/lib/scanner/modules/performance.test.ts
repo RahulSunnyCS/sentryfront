@@ -637,6 +637,178 @@ describe('runPerformanceModules — findings aggregation (regression from prior 
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+describe('runPerformanceModules — perf-only cache projection (M2 fix)', () => {
+  // These tests verify that the value handed to the PSI cache (and returned to
+  // the performance path) has the accessibility/SEO payload stripped, while
+  // every performance-relevant field is preserved intact.
+  //
+  // Rationale: accessibility.ts and seo.ts call runLighthouse() independently and
+  // never read from psi-cache; caching the full LighthouseMetrics inflated each
+  // 200-slot LRU entry from ~15 KB to ~50–90 KB.  toPerfOnlyMetrics trims the
+  // non-performance payload before the result is passed to getOrFetch.
+  //
+  // We verify the shape of what getOrFetch receives: the fetcher it gets wraps
+  // toPerfOnlyMetrics(runLighthouse(...)), so when we capture the fetcher result
+  // (by making getOrFetch actually call it), the returned object must carry the
+  // trimmed shape.
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mutableFeatures.desktopPerformance = false;
+    // Make getOrFetch a pass-through so the fetcher is actually called.
+    // This lets us observe the trimmed object the fetcher returns.
+    mockGetOrFetch.mockImplementation(async (_key: unknown, fetcher: () => unknown) => fetcher());
+  });
+
+  it('the fetcher passed to getOrFetch strips accessibilityViolations and seoIssues to empty arrays', async () => {
+    // Simulate runLighthouse returning a full object with accessibility/SEO payload.
+    mockRunLighthouse.mockResolvedValue(
+      makeMetrics({
+        performanceScore: 0.85,
+        accessibilityViolations: [
+          // A stub ParsedAudit — the real shape has more fields, but type-wise
+          // this is a valid array element.
+          { id: 'color-contrast', title: 'Color contrast', description: 'fails', score: 0,
+            displayValue: '', details: [], type: 'table' } as unknown as import('@/lib/scanner/audit-parser').ParsedAudit,
+        ],
+        seoIssues: [
+          { id: 'meta-description', title: 'Missing meta', description: 'no meta', score: 0,
+            displayValue: '', details: [], type: 'table' } as unknown as import('@/lib/scanner/audit-parser').ParsedAudit,
+        ],
+        accessibilityScore: 0.92,
+        seoScore: 0.88,
+      }),
+    );
+
+    // Capture the value that is ultimately returned by the fetcher by intercepting
+    // the getOrFetch call: we call the fetcher and record its result.
+    let capturedFetcherResult: LighthouseMetrics | undefined;
+    mockGetOrFetch.mockImplementation(async (_key: unknown, fetcher: () => unknown) => {
+      const value = await fetcher();
+      capturedFetcherResult = value as LighthouseMetrics;
+      return value;
+    });
+
+    await runPerformanceModules('https://example.com');
+
+    expect(capturedFetcherResult).toBeDefined();
+    // Accessibility/SEO arrays MUST be empty — they bloat the cache by 3-4×
+    expect(capturedFetcherResult!.accessibilityViolations).toEqual([]);
+    expect(capturedFetcherResult!.seoIssues).toEqual([]);
+    // Scores MUST be null — we have no real perf-path read of them
+    expect(capturedFetcherResult!.accessibilityScore).toBeNull();
+    expect(capturedFetcherResult!.seoScore).toBeNull();
+  });
+
+  it('performance fields are preserved in the trimmed projection', async () => {
+    const fieldDataFixture = {
+      overallCategory: 'AVERAGE' as const,
+      lcp: null, inp: null, cls: null, fcp: null, ttfb: null,
+    };
+    const originFieldDataFixture = {
+      overallCategory: 'SLOW' as const,
+      lcp: null, inp: null, cls: null, fcp: null, ttfb: null,
+    };
+    const opportunitiesFixture = [
+      { id: 'unused-js', title: 'Remove unused JS', description: 'save 200 KB',
+        score: 0.5, displayValue: '200 KB', details: [], type: 'opportunity' } as unknown as import('@/lib/scanner/audit-parser').ParsedAudit,
+    ];
+    const bestPracticesIssuesFixture = [
+      { id: 'no-vulnerable-libraries', title: 'Vulnerable libraries', description: 'old dep',
+        score: 0, displayValue: '', details: [], type: 'table' } as unknown as import('@/lib/scanner/audit-parser').ParsedAudit,
+    ];
+
+    mockRunLighthouse.mockResolvedValue(
+      makeMetrics({
+        performanceScore:    0.72,
+        lcp:                 3500,
+        fcp:                 1800,
+        cls:                 0.12,
+        tbt:                 300,
+        tti:                 5000,
+        si:                  4000,
+        ttfb:                700,
+        bestPracticesScore:  0.83,
+        opportunities:       opportunitiesFixture,
+        bestPracticesIssues: bestPracticesIssuesFixture,
+        fieldData:           fieldDataFixture,
+        originFieldData:     originFieldDataFixture,
+        // Noise that must be stripped
+        accessibilityScore: 0.90,
+        seoScore:           0.95,
+        accessibilityViolations: [
+          { id: 'aria-required-attr', title: 'aria attr', description: '', score: 0,
+            displayValue: '', details: [], type: 'table' } as unknown as import('@/lib/scanner/audit-parser').ParsedAudit,
+        ],
+      }),
+    );
+
+    let capturedFetcherResult: LighthouseMetrics | undefined;
+    mockGetOrFetch.mockImplementation(async (_key: unknown, fetcher: () => unknown) => {
+      const value = await fetcher();
+      capturedFetcherResult = value as LighthouseMetrics;
+      return value;
+    });
+
+    const result = await runPerformanceModules('https://example.com');
+
+    // The full PerformanceResult must still carry correct performance scores —
+    // confirming the sub-modules received the preserved fields.
+    expect(result.performanceScore).toBe(72);
+    expect(result.performanceGrade).toBe('C');
+    expect(result.fieldData).toEqual(fieldDataFixture);
+    expect(result.fieldDataVerdict).toBe('AVERAGE');
+
+    // Now verify the cached projection directly.
+    expect(capturedFetcherResult).toBeDefined();
+    // Performance fields preserved
+    expect(capturedFetcherResult!.lcp).toBe(3500);
+    expect(capturedFetcherResult!.fcp).toBe(1800);
+    expect(capturedFetcherResult!.cls).toBe(0.12);
+    expect(capturedFetcherResult!.tbt).toBe(300);
+    expect(capturedFetcherResult!.tti).toBe(5000);
+    expect(capturedFetcherResult!.si).toBe(4000);
+    expect(capturedFetcherResult!.ttfb).toBe(700);
+    expect(capturedFetcherResult!.performanceScore).toBe(0.72);
+    expect(capturedFetcherResult!.bestPracticesScore).toBe(0.83);
+    expect(capturedFetcherResult!.opportunities).toEqual(opportunitiesFixture);
+    expect(capturedFetcherResult!.bestPracticesIssues).toEqual(bestPracticesIssuesFixture);
+    expect(capturedFetcherResult!.fieldData).toEqual(fieldDataFixture);
+    expect(capturedFetcherResult!.originFieldData).toEqual(originFieldDataFixture);
+    // Non-performance payload zeroed
+    expect(capturedFetcherResult!.accessibilityViolations).toEqual([]);
+    expect(capturedFetcherResult!.seoIssues).toEqual([]);
+    expect(capturedFetcherResult!.accessibilityScore).toBeNull();
+    expect(capturedFetcherResult!.seoScore).toBeNull();
+  });
+
+  it('toPerfOnlyMetrics does not affect cache hit path — a cached trimmed value is returned as-is', async () => {
+    // When the cache has a hit, getOrFetch never calls the fetcher.
+    // The returned value is whatever the cache stored (already trimmed from a
+    // previous miss). Verify that a cache hit still produces correct PerformanceResult.
+    const trimmedCachedMetrics = makeMetrics({
+      performanceScore:        0.88,
+      accessibilityViolations: [], // already trimmed by a previous store
+      seoIssues:               [],
+      accessibilityScore:      null,
+      seoScore:                null,
+    });
+
+    mockGetOrFetch.mockResolvedValueOnce(trimmedCachedMetrics);
+
+    const result = await runPerformanceModules('https://example.com');
+
+    // runLighthouse must not have been called (cache served the result)
+    expect(mockRunLighthouse).not.toHaveBeenCalled();
+    expect(result.performanceScore).toBe(88);
+    expect(result.performanceGrade).toBe('B');
+    expect(result.metrics.accessibilityViolations).toEqual([]);
+    expect(result.metrics.seoIssues).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 describe('runPerformanceModules — error path (top-level throw)', () => {
   beforeEach(() => {
     vi.clearAllMocks();

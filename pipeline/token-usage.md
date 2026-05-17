@@ -36,3 +36,4 @@
 | Phase 4.5 | FIX-A: H1 canonical CrUX type | implementor | sonnet | high | ~30k |
 | Phase 4.5 | FIX-B: H2 desktop timeout (impl) | implementor | sonnet | high | ~26k |
 | Phase 4.5 | FIX-B: H2 honest-bound tighten | implementor | sonnet | high | ~19k |
+| Phase 4.5 | FIX-C: M2 trim cache payload | implementor | sonnet | high | ~22k |
