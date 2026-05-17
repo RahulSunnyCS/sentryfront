@@ -17,3 +17,6 @@
 | Phase 1 | Translator — updated Plan Report (re-plan r1) | translator | haiku | medium | ~8k |
 | Phase 2 | Decomposition (10 task contracts) | orchestrator | opus | high | ~14k |
 | Phase 3 | T-03: desktop opt-in feature flag | implementor | sonnet | high | ~14k |
+| Phase 3 | T-01: PSI/CrUX + best-practices parser + fixture | implementor | sonnet | high | ~24k |
+| Phase 3 | T-01 amendment: performanceScore ?? null | implementor | sonnet | high | ~13k |
+| Phase 3 | T-05: i18n 13 keys × 5 catalogs | implementor | sonnet | high | ~24k |

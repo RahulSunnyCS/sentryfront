@@ -50,7 +50,12 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
 - [x] HUMAN GATE 1 — **APPROVED** (round 1; recommended scoring approved, R1+R2 folded in)
 - [x] Phase 2 — Decomposition (10 task contracts T-01..T-10; T-09 depends on T-07 for shared performance-section.tsx)
 - [ ] Phase 3 — Parallel implementation
-  - Wave A: T-03 ✅ done · T-01 ⏳ running · T-05 ⏳ running
+  - Wave A ✅ DONE: T-01 (47 tests pass, +amendment: performanceScore `?? null` so 0 survives), T-03 (committed 92d2caa), T-05 (13 keys × 5 catalogs, parity verified)
+  - Wave B ⏳ next: T-02 (modules), T-04 (cache)
+
+### Cross-task caveats from T-01 (carry downstream)
+- CrUX `distributions` for CLS are also scaled ×100 and forwarded verbatim; any consumer reading `distributions` for CLS must ÷100 (relevant to T-02 P2-07 and T-09 UI — pass into their prompts).
+- `accessibilityScore`/`seoScore` still use `|| null` (pre-existing, deliberately out of T-01 scope) — a genuine 0 there still coerces to null. Note for Phase 4 architecture review as a non-blocking known follow-up.
 - [ ] Phase 2 — Decomposition
 - [ ] Phase 3 — Parallel implementation
 - [ ] Phase 4 — Specialist review (security + performance + architecture) + Translator

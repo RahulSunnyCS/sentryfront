@@ -516,7 +516,22 @@
     "impact": "प्रभाव",
     "howToFix": "कैसे ठीक करें",
     "copyPrompt": "AI फिक्स प्रॉम्प्ट कॉपी करें",
-    "openIn": "इसमें खोलें"
+    "openIn": "इसमें खोलें",
+    "performance": {
+      "labScoreLabel": "लैब स्कोर",
+      "realUserLabel": "वास्तविक उपयोगकर्ता डेटा (Chrome उपयोगकर्ता)",
+      "realUserVerdictFast": "तेज़",
+      "realUserVerdictAverage": "औसत",
+      "realUserVerdictSlow": "धीमा",
+      "noFieldData": "इस साइट के लिए कोई वास्तविक उपयोगकर्ता डेटा उपलब्ध नहीं है",
+      "bestPracticesLabel": "सर्वोत्तम प्रथाएँ",
+      "scoreUnavailable": "प्रदर्शन नहीं मापा गया (प्रदाता अस्थायी रूप से अनुपलब्ध)",
+      "desktopSectionLabel": "डेस्कटॉप",
+      "mobileSectionLabel": "मोबाइल",
+      "desktopSubordinateNote": "सूचनात्मक — मुख्य ग्रेड मोबाइल पर आधारित है (Google का डिफ़ॉल्ट)",
+      "cacheStalenessNote": "परिणाम लगभग 5 मिनट तक कैश हो सकते हैं",
+      "realUsersSlowBanner": "लैब सिमुलेशन स्वीकार्य दिखने के बावजूद वास्तविक उपयोगकर्ता धीमा अनुभव कर रहे हैं"
+    }
   },
   "scan": {
     "title": "स्कैन हो रहा है…",

@@ -28,8 +28,8 @@
 
 ## Phase 3 execution waves (no concurrent shared-file writes within a wave)
 
-- **Wave A** (no deps): T-01, T-03, T-05  — parallel
-- **Wave B** (deps in A): T-02, T-04  — parallel
+- **Wave A** (no deps): T-01 ✅, T-03 ✅, T-05 ✅  — DONE
+- **Wave B** (deps in A): T-02, T-04  — parallel (next)
 - **Wave C**: T-06  — single (integration hub)
 - **Wave D** (deps T-06): T-07, T-08, T-10  — parallel (distinct files)
 - **Wave E**: T-09  — after T-07 (shared `performance-section.tsx`) and T-08/T-05

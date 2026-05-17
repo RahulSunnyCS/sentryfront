@@ -516,7 +516,22 @@
     "impact": "Auswirkung",
     "howToFix": "Wie beheben",
     "copyPrompt": "KI-Fix-Prompt kopieren",
-    "openIn": "Öffnen in"
+    "openIn": "Öffnen in",
+    "performance": {
+      "labScoreLabel": "Lab-Wert",
+      "realUserLabel": "Echte Nutzerdaten (Chrome-Nutzer)",
+      "realUserVerdictFast": "Schnell",
+      "realUserVerdictAverage": "Durchschnittlich",
+      "realUserVerdictSlow": "Langsam",
+      "noFieldData": "Keine echten Nutzerdaten für diese Website verfügbar",
+      "bestPracticesLabel": "Best Practices",
+      "scoreUnavailable": "Performance nicht gemessen (Anbieter vorübergehend nicht verfügbar)",
+      "desktopSectionLabel": "Desktop",
+      "mobileSectionLabel": "Mobil",
+      "desktopSubordinateNote": "Informativ — die Hauptnote basiert auf Mobilgeräten (Googles Standard)",
+      "cacheStalenessNote": "Ergebnisse können bis zu ~5 Minuten zwischengespeichert sein",
+      "realUsersSlowBanner": "Echte Nutzer erleben eine langsame Performance, obwohl die Lab-Simulation akzeptabel erscheint"
+    }
   },
   "scan": {
     "title": "Wird gescannt…",

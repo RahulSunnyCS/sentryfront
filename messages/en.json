@@ -516,7 +516,22 @@
     "impact": "Impact",
     "howToFix": "How to fix",
     "copyPrompt": "Copy AI fix prompt",
-    "openIn": "Open in"
+    "openIn": "Open in",
+    "performance": {
+      "labScoreLabel": "Lab score",
+      "realUserLabel": "Real-user data (Chrome users)",
+      "realUserVerdictFast": "Fast",
+      "realUserVerdictAverage": "Average",
+      "realUserVerdictSlow": "Slow",
+      "noFieldData": "No real-user data available for this site",
+      "bestPracticesLabel": "Best practices",
+      "scoreUnavailable": "Performance not measured (provider temporarily unavailable)",
+      "desktopSectionLabel": "Desktop",
+      "mobileSectionLabel": "Mobile",
+      "desktopSubordinateNote": "Informational — the headline grade is mobile (Google's default)",
+      "cacheStalenessNote": "Results may be cached for up to ~5 minutes",
+      "realUsersSlowBanner": "Real users are experiencing slow performance even though the lab simulation looks acceptable"
+    }
   },
   "scan": {
     "title": "Scanning…",
