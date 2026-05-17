@@ -42,3 +42,5 @@
 | Phase 5 | E2E test writer (78 tagged Playwright tests) | e2e-test-writer | sonnet | medium | ~30k |
 | Phase 5 | QA-gap test-writer (+21 tests, found C-35 bug) | test-writer | sonnet | medium | ~28k |
 | Phase 5 | FIX-E: C-35 cap CrUX strings at parse | implementor | sonnet | high | ~14k |
+| Phase 6 | Blast-radius + regression triage + automation gate | orchestrator | haiku | low | ~6k |
+| Phase 7 | Epic doc writer | epic-doc-writer | sonnet | medium | ~20k |
