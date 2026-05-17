@@ -195,8 +195,10 @@ interface CmpDetectionResult {
   method: string; // human-readable summary of how detection fired
 }
 
-function detectCmp(dom: string, hostnames: Set<string>): CmpDetectionResult {
-  const $ = cheerio.load(dom);
+// detectCmp accepts a pre-parsed CheerioAPI so the caller can supply the
+// orchestrator-shared DOM (ctx.dom) and avoid a redundant cheerio.load call
+// when other P5 modules have already parsed the same HTML.
+function detectCmp($: cheerio.CheerioAPI, dom: string, hostnames: Set<string>): CmpDetectionResult {
   const detectedNames: string[] = [];
   const methods: string[] = [];
 
@@ -272,10 +274,7 @@ const CATEGORY = 'Privacy & Compliance';
 
 export function runCookieConsentModule(
   crawl: CrawlResult,
-  // ctx is intentionally accepted so the signature is forward-compatible with
-  // the compliance module orchestrator — future P5 modules may need ctx fields.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _ctx: ComplianceContext,
+  ctx: ComplianceContext,
 ): RawFinding[] {
   // ── FAIL-CLOSED: no rendered DOM → single INFO, no negative finding ─────────
   //
@@ -311,7 +310,10 @@ export function runCookieConsentModule(
   // ── Rendered path ─────────────────────────────────────────────────────────
   const findings: RawFinding[] = [];
   const hostnames = scriptHostnames(crawl);
-  const cmpResult = detectCmp(renderedDom, hostnames);
+  // Use the orchestrator-supplied pre-parsed DOM when available to avoid
+  // re-parsing the same HTML that other P5 modules have already parsed.
+  const $ = ctx.dom ?? cheerio.load(renderedDom);
+  const cmpResult = detectCmp($, renderedDom, hostnames);
 
   if (cmpResult.detected) {
     // CMP is present — emit a factual INFO observation. No verdict, no score.

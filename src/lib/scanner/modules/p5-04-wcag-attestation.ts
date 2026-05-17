@@ -16,6 +16,27 @@
 import * as cheerio from 'cheerio';
 import type { CrawlResult, RawFinding, ComplianceContext } from '../types';
 
+/**
+ * Strip the query string and fragment from a scanned-site href before it is
+ * written into finding evidence or location. Query strings may contain PII
+ * (tokens, email addresses, session identifiers) that must not appear in scan output.
+ *
+ * Uses URL() with the page's finalUrl as base so relative hrefs resolve. Falls
+ * back to a simple string-split on '?' / '#' when parsing fails.
+ */
+function stripQueryAndFragment(href: string, base: string): string {
+  if (!href) return href;
+  try {
+    const u = new URL(href, base);
+    return u.origin + u.pathname;
+  } catch {
+    const qi = href.indexOf('?');
+    const hi = href.indexOf('#');
+    const cut = qi === -1 ? hi : hi === -1 ? qi : Math.min(qi, hi);
+    return cut === -1 ? href : href.slice(0, cut);
+  }
+}
+
 // Regex matches link text or href patterns associated with accessibility
 // statements. Intentionally broad — presence detection only.
 const A11Y_STATEMENT_RE = /accessibility[- ]?statement|accessibility/i;
@@ -26,14 +47,19 @@ const A11Y_HREF_RE = /accessibility/i;
  * accessibility statement. Uses cleanedHtml first (noise-reduced), falls
  * back through renderedHtml to raw html.
  *
- * Returns the href string if found, null otherwise.
+ * Returns the href string (query/fragment stripped) if found, null otherwise.
  */
-function detectAccessibilityStatementLink(crawl: CrawlResult): string | null {
+function detectAccessibilityStatementLink(
+  crawl: CrawlResult,
+  ctx: ComplianceContext,
+): string | null {
   // Prefer the noise-reduced version; fall through to rendered then raw HTML.
   const source = crawl.cleanedHtml ?? crawl.renderedHtml ?? crawl.html;
   if (!source) return null;
 
-  const $ = cheerio.load(source);
+  // Use the orchestrator-supplied pre-parsed DOM when available to avoid
+  // re-parsing the same HTML that other P5 modules have already parsed.
+  const $ = ctx.dom ?? cheerio.load(source);
   let found: string | null = null;
 
   $('a').each((_i, el) => {
@@ -44,9 +70,10 @@ function detectAccessibilityStatementLink(crawl: CrawlResult): string | null {
 
     // Match on anchor text OR href — presence detection, not content validation.
     if (A11Y_STATEMENT_RE.test(text) || A11Y_HREF_RE.test(href)) {
-      // Capture whatever href is there (may be relative or absolute); callers
-      // treat this as an observed signal, not a verified URL.
-      found = href || '(no href)';
+      // Strip query string and fragment before storing — query params can carry
+      // PII (tokens, email addresses). Use '(no href)' sentinel when href is empty.
+      const rawHref = href || '';
+      found = rawHref ? stripQueryAndFragment(rawHref, crawl.finalUrl) : '(no href)';
     }
   });
 
@@ -137,7 +164,7 @@ export function runWcagAttestationModule(crawl: CrawlResult, ctx: ComplianceCont
   }
 
   // Detect an accessibility statement link (presence only — not validated).
-  const a11yStatementHref = detectAccessibilityStatementLink(crawl);
+  const a11yStatementHref = detectAccessibilityStatementLink(crawl, ctx);
   const statementNote = a11yStatementHref
     ? `An accessibility statement link was detected (href: "${a11yStatementHref}").`
     : 'No accessibility statement link was detected on this page.';

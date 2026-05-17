@@ -69,6 +69,10 @@ function hasAuthSurface($: cheerio.CheerioAPI): boolean {
  * in the page's meta without surfacing an interactive control.
  */
 
+// Catastrophic-backtracking safety note: none of these regexes have nested
+// unbounded quantifiers. Each uses \s+ or \s* on a single character class
+// (never wrapping another quantified group), and optional groups like
+// (?:personal\s+)? are guarded by a single outer `?` — not repeated. Safe.
 const DELETE_ACCOUNT_RE = /delete\s+(?:my\s+)?account|close\s+(?:my\s+)?account/i;
 const EXPORT_DATA_RE = /download\s+(?:my\s+)?data|export\s+(?:my\s+)?data|data\s+export/i;
 // CCPA "Do Not Sell" and its variations (California Consumer Privacy Act, §1798.120)
@@ -150,14 +154,12 @@ const AFFORDANCE_CHECKS: AffordanceCheck[] = [
  * runUserRightsModule scans the crawled DOM for user-rights affordances.
  *
  * @param crawl - The crawl result; uses cleanedHtml ?? renderedHtml ?? html.
- * @param _ctx  - ComplianceContext (received for API consistency; not used in
- *               this module — accessibility score and render mode are not
- *               relevant to DOM-link detection).
+ * @param ctx   - ComplianceContext. When ctx.dom is supplied, the module reuses
+ *               the orchestrator-shared pre-parsed DOM instead of re-parsing.
  */
 export function runUserRightsModule(
   crawl: CrawlResult,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _ctx: ComplianceContext,
+  ctx: ComplianceContext,
 ): RawFinding[] {
   const findings: RawFinding[] = [];
 
@@ -190,7 +192,9 @@ export function runUserRightsModule(
     return findings;
   }
 
-  const $ = cheerio.load(dom);
+  // Use the orchestrator-supplied pre-parsed DOM when available to avoid
+  // re-parsing the same HTML that other P5 modules have already parsed.
+  const $ = ctx.dom ?? cheerio.load(dom);
 
   // If the page has no account surface, rights affordances are not applicable.
   // Informational sites should not be flagged. Return a single INFO finding.

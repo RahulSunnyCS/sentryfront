@@ -100,6 +100,15 @@ export interface ComplianceContext {
   accessibilityScore?: number;
   accessibilityScoreSource?: 'lab' | 'unavailable';
   renderMode?: 'headless' | 'fetch-only';
+  /**
+   * Pre-parsed cheerio DOM supplied by the compliance orchestrator. When
+   * present, individual P5 modules MUST use this instance instead of calling
+   * cheerio.load() themselves, so the six modules share a single parse pass
+   * over the page HTML rather than each re-parsing the same document.
+   * Modules fall back to cheerio.load(<their html source>) when this is absent,
+   * preserving identical behaviour for callers that do not supply a shared DOM.
+   */
+  dom?: import('cheerio').CheerioAPI;
 }
 
 /**

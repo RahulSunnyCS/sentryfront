@@ -1,6 +1,30 @@
 import * as cheerio from 'cheerio';
 import type { CrawlResult, ComplianceContext, RawFinding } from '../types';
 
+/**
+ * Strip the query string and fragment from a scanned-site href before it is
+ * written into finding.evidence or finding.location. Query strings can carry
+ * PII (tokens, email addresses, user IDs) that must not appear in scan output.
+ *
+ * Strategy: parse with URL() using the page's finalUrl as base so that relative
+ * hrefs resolve correctly. Emit only origin + pathname. If parsing fails (truly
+ * malformed input), fall back to a simple string-split that removes everything
+ * from the first '?' or '#'.
+ */
+function stripQueryAndFragment(href: string, base: string): string {
+  if (!href) return href;
+  try {
+    const u = new URL(href, base);
+    return u.origin + u.pathname;
+  } catch {
+    // Safe fallback: strip from first '?' or '#', whichever comes first.
+    const qi = href.indexOf('?');
+    const hi = href.indexOf('#');
+    const cut = qi === -1 ? hi : hi === -1 ? qi : Math.min(qi, hi);
+    return cut === -1 ? href : href.slice(0, cut);
+  }
+}
+
 // Anchor text patterns that indicate a privacy policy link.
 // Covers English, German (Datenschutz), and Spanish (Privacidad / Política de privacidad).
 const PRIVACY_TEXT_RE =
@@ -46,17 +70,14 @@ function hrefMatchesPrivacy(href: string): boolean {
  */
 export function runPrivacyPolicyModule(
   crawl: CrawlResult,
-  // ctx is accepted for interface consistency with other P5 modules but is not
-  // used in this module — this module derives everything from crawled HTML only.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _ctx: ComplianceContext,
+  ctx: ComplianceContext,
 ): RawFinding[] {
   // Prefer cleanedHtml (strips script/style noise) > renderedHtml > raw html.
-  const dom = crawl.cleanedHtml ?? crawl.renderedHtml ?? crawl.html;
+  const htmlSource = crawl.cleanedHtml ?? crawl.renderedHtml ?? crawl.html;
 
   // FAIL-CLOSED: if there is effectively no DOM we cannot evaluate the signal.
   // Emit a neutral INFO rather than a false-negative signal finding.
-  if (!dom || dom.trim().length === 0) {
+  if (!htmlSource || htmlSource.trim().length === 0) {
     return [
       {
         moduleId: 'P5-02',
@@ -75,7 +96,9 @@ export function runPrivacyPolicyModule(
     ];
   }
 
-  const $ = cheerio.load(dom);
+  // Use the orchestrator-supplied pre-parsed DOM when available to avoid
+  // re-parsing the same HTML that other P5 modules have already parsed.
+  const $ = ctx.dom ?? cheerio.load(htmlSource);
 
   // Track the first matching anchor and where in the document it sits.
   let found = false;
@@ -121,6 +144,10 @@ export function runPrivacyPolicyModule(
   });
 
   if (found) {
+    // Strip query string and fragment before writing the href into any finding
+    // field — query strings can carry PII (tokens, emails, user IDs).
+    const safeHref = stripQueryAndFragment(foundHref, crawl.finalUrl);
+
     // Observed: emit factual INFO — link was found, no verdict.
     return [
       {
@@ -128,9 +155,9 @@ export function runPrivacyPolicyModule(
         severity: 'INFO',
         category: 'Privacy & Compliance',
         title: 'Privacy policy link observed',
-        location: foundHref || crawl.finalUrl,
+        location: safeHref || crawl.finalUrl,
         evidence:
-          `Link text: "${foundText}" | href: "${foundHref}" | ` +
+          `Link text: "${foundText}" | href: "${safeHref}" | ` +
           `Placement: ${prominence}`,
         explanation:
           'A link matching common privacy policy text or URL patterns was found ' +

@@ -27,6 +27,18 @@ import type { CrawlResult, ComplianceContext, RawFinding } from '../types';
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /**
+ * Cap a header value string to MAX_HEADER_EVIDENCE_LEN characters to prevent
+ * unexpectedly long or attacker-controlled header values from inflating scan
+ * output. Mirrors the clip() pattern used in p1-17-service-worker.ts.
+ */
+const MAX_HEADER_EVIDENCE_LEN = 200;
+function clipHeader(value: string): string {
+  return value.length > MAX_HEADER_EVIDENCE_LEN
+    ? `${value.slice(0, MAX_HEADER_EVIDENCE_LEN)}…`
+    : value;
+}
+
+/**
  * Case-insensitive header lookup. CrawlResult.headers keys should already be
  * lower-cased by the crawler, but we normalise the key here so the module
  * does not silently miss a header if the crawler ever changes behaviour.
@@ -288,7 +300,8 @@ export function runDataProtectionHeadersModule(
       const strong = check.validate(value!);
       if (strong) continue; // header present and value is acceptable
 
-      // Header present but weak
+      // Header present but weak. Cap the raw header value to prevent an
+      // attacker-controlled or unusually long header from inflating evidence.
       findings.push({
         moduleId: 'P5-03',
         category: 'Data Protection',
@@ -296,8 +309,8 @@ export function runDataProtectionHeadersModule(
         title: check.weakTitle ?? check.missingTitle,
         location: 'HTTP response headers',
         evidence: check.weakEvidence
-          ? check.weakEvidence(check.header, value!)
-          : `${check.header}: ${value} (insufficient)`,
+          ? check.weakEvidence(check.header, clipHeader(value!))
+          : `${check.header}: ${clipHeader(value!)} (insufficient)`,
         explanation: check.weakExplanation ?? check.explanation,
         impact: check.impact,
         fixManual: check.fixManual,

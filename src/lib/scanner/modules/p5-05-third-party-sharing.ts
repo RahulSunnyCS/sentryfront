@@ -86,13 +86,13 @@ function registrableHost(hostname: string): string {
 }
 
 // --- Privacy-policy link detector ---
-// Operates on HTML text only (no fetch). Checks anchor text and href for the
-// word "privacy" (case-insensitive). This is intentionally a heuristic — it
-// detects presence of a visible link, not whether the policy content meets any
-// legal standard.
-function hasPrivacyPolicyLink(html: string): boolean {
+// Accepts a pre-parsed CheerioAPI so the caller can supply the orchestrator-
+// shared DOM (ctx.dom) and avoid re-parsing the same HTML. Checks anchor text
+// and href for the word "privacy" (case-insensitive). This is intentionally a
+// heuristic — it detects presence of a visible link, not whether the policy
+// content meets any legal standard.
+function hasPrivacyPolicyLink($: cheerio.CheerioAPI): boolean {
   try {
-    const $ = cheerio.load(html);
     let found = false;
     $('a').each((_i, el) => {
       if (found) return;
@@ -114,10 +114,7 @@ function hasPrivacyPolicyLink(html: string): boolean {
 
 export function runThirdPartyDataSharingModule(
   crawl: CrawlResult,
-  // ctx is accepted for API consistency with other P5 modules even though
-  // this module does not currently use accessibilityScore or renderMode.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _ctx: ComplianceContext,
+  ctx: ComplianceContext,
 ): RawFinding[] {
   const findings: RawFinding[] = [];
 
@@ -193,8 +190,11 @@ export function runThirdPartyDataSharingModule(
 
   // Privacy-policy link heuristic — preference order: cleanedHtml (noise-
   // reduced), then renderedHtml (post-JS), then raw html (pre-JS fetch).
+  // Use the orchestrator-supplied pre-parsed DOM when available to avoid
+  // re-parsing the same HTML that other P5 modules have already parsed.
   const htmlToSearch = crawl.cleanedHtml ?? crawl.renderedHtml ?? crawl.html;
-  const privacyLinkObserved = hasPrivacyPolicyLink(htmlToSearch);
+  const $forPrivacy = ctx.dom ?? cheerio.load(htmlToSearch);
+  const privacyLinkObserved = hasPrivacyPolicyLink($forPrivacy);
 
   // Build human-readable processor list for evidence strings.
   const entries = Array.from(processors.entries());
