@@ -1,11 +1,24 @@
 /**
- * Tests for PerformanceSection component — T-07 null/zero-safety contract.
+ * Tests for PerformanceSection component.
  *
- * Covers:
+ * Covers (T-07 contract — preserved):
  *   - score 0 → renders "0" (not treated as missing) and shows grade F copy
  *   - score null → renders 'not measured' state (no NaN, no misleading grade)
  *   - score null → no fetch to the suggestions API (avoids confusing 404)
  *   - normal score (73) → unchanged render path
+ *
+ * Covers (T-09 contract — new):
+ *   - field present → verbatim real-user verdict shown via i18n key
+ *   - field absent / no verdict → verdict chip absent
+ *   - UNAVAILABLE state → scoreUnavailable, no NaN (preserves T-07 tests)
+ *   - desktop present → subordinate section with disclaimer, no extra slow banner
+ *   - desktop absent → no desktop section rendered
+ *   - XSS payloads in CrUX fields → escaped as plain text, not executed as HTML
+ *   - old-shape back-compat → no crash, no empty desktop section
+ *   - best-practices grade shown when score is available
+ *   - cache staleness note shown for real scores
+ *   - real-users-slow banner mobile-only (SLOW + real score)
+ *   - real-users-slow banner NOT shown for scoreUnavailable
  *
  * Child components (PerformanceGrade, CoreWebVitals, AIImprovementSuggestions)
  * are mocked to isolate the behaviour under test in PerformanceSection itself.
@@ -329,5 +342,563 @@ describe('PerformanceSection — normal score 73', () => {
         '/api/v1/scans/scan-1/performance-suggestions',
       );
     });
+  });
+});
+
+// ===========================================================================
+// T-09 NEW TESTS
+// ===========================================================================
+
+/** Metrics block with CrUX field data (FAST verdict) */
+const METRICS_WITH_FIELD_FAST = {
+  ...METRICS,
+  scoreSource: 'lab' as const,
+  fieldDataVerdict: 'FAST',
+  fieldData: {
+    overallCategory: 'FAST' as const,
+    metrics: {
+      LARGEST_CONTENTFUL_PAINT_MS: { percentile: 1800, category: 'FAST' },
+      FIRST_CONTENTFUL_PAINT_MS:   { percentile: 900,  category: 'FAST' },
+    },
+  },
+  bestPracticesScore: 92,
+  bestPracticesGrade: 'A',
+};
+
+/** Metrics block with CrUX field data (SLOW verdict) */
+const METRICS_WITH_FIELD_SLOW = {
+  ...METRICS,
+  scoreSource: 'lab' as const,
+  fieldDataVerdict: 'SLOW',
+  fieldData: {
+    overallCategory: 'SLOW' as const,
+    metrics: {
+      LARGEST_CONTENTFUL_PAINT_MS: { percentile: 6000, category: 'SLOW' },
+    },
+  },
+  bestPracticesScore: 75,
+  bestPracticesGrade: 'C',
+};
+
+/** Metrics block with no field data (lab-only) */
+const METRICS_NO_FIELD = {
+  ...METRICS,
+  scoreSource: 'lab' as const,
+  bestPracticesScore: 85,
+  bestPracticesGrade: 'B',
+};
+
+/** Desktop sub-object for tests */
+const DESKTOP_DATA = {
+  score: 88,
+  grade: 'B',
+  scoreSource: 'lab' as const,
+  metrics: { lcp: 1200, fcp: 700, cls: 0.05, tbt: 100, ttfb: 200 },
+};
+
+// ---------------------------------------------------------------------------
+// T-09: Field data present — verbatim real-user verdict via i18n key
+// ---------------------------------------------------------------------------
+describe('PerformanceSection — field data present (T-09)', () => {
+  it('shows verbatim real-user verdict for FAST via i18n key', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'A',
+          performanceScore: 92,
+          performanceMetrics: METRICS_WITH_FIELD_FAST,
+        }}
+      />,
+    );
+
+    // Wait for grade render; i18n mock returns 'report.performance.realUserVerdictFast'
+    await screen.findByTestId('performance-grade');
+    expect(
+      screen.getByTestId('real-user-verdict'),
+    ).toHaveTextContent('report.performance.realUserVerdictFast');
+  });
+
+  it('shows verbatim real-user verdict for SLOW via i18n key', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'D',
+          performanceScore: 35,
+          performanceMetrics: METRICS_WITH_FIELD_SLOW,
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    expect(
+      screen.getByTestId('real-user-verdict'),
+    ).toHaveTextContent('report.performance.realUserVerdictSlow');
+  });
+
+  it('does NOT show the verdict chip when there is no overallCategory', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'B',
+          performanceScore: 80,
+          performanceMetrics: METRICS_NO_FIELD,
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    expect(screen.queryByTestId('real-user-verdict')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-09: Best-practices grade displayed
+// ---------------------------------------------------------------------------
+describe('PerformanceSection — best practices grade (T-09)', () => {
+  it('shows best-practices grade and score when available', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'A',
+          performanceScore: 92,
+          performanceMetrics: METRICS_WITH_FIELD_FAST,
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    const bpEl = screen.getByTestId('best-practices-grade');
+    // Should contain 'A' (grade) and '92' (score) from bestPracticesGrade='A', bestPracticesScore=92
+    expect(bpEl).toHaveTextContent('A');
+    expect(bpEl).toHaveTextContent('92');
+  });
+
+  it('shows N/A for best-practices when score is null', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'C',
+          performanceScore: 73,
+          performanceMetrics: { ...METRICS, bestPracticesScore: null, bestPracticesGrade: 'N/A' },
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    expect(screen.getByTestId('best-practices-grade')).toHaveTextContent('N/A');
+  });
+
+  it('does NOT show best-practices section when provider score is unavailable', () => {
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: null,
+          performanceScore: null,
+          performanceMetrics: METRICS,
+        }}
+      />,
+    );
+
+    expect(screen.queryByTestId('best-practices-grade')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-09: Cache staleness note
+// ---------------------------------------------------------------------------
+describe('PerformanceSection — cache staleness note (T-09)', () => {
+  it('shows cache staleness note for a real score', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'B',
+          performanceScore: 80,
+          performanceMetrics: METRICS_NO_FIELD,
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    // i18n mock returns 'report.performance.cacheStalenessNote'
+    expect(screen.getByText('report.performance.cacheStalenessNote')).toBeInTheDocument();
+  });
+
+  it('does NOT show cache staleness note when score is unavailable', () => {
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: null,
+          performanceScore: null,
+          performanceMetrics: METRICS,
+        }}
+      />,
+    );
+
+    expect(screen.queryByText('report.performance.cacheStalenessNote')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-09: Desktop present — subordinate section with disclaimer, no extra slow banner
+// ---------------------------------------------------------------------------
+describe('PerformanceSection — desktop section present (T-09)', () => {
+  it('renders the desktop section with subordinate note when desktop data is present', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'A',
+          performanceScore: 92,
+          performanceMetrics: {
+            ...METRICS_NO_FIELD,
+            desktop: DESKTOP_DATA,
+          },
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    expect(screen.getByTestId('desktop-section')).toBeInTheDocument();
+    // Subordinate disclaimer must appear inside the desktop block
+    expect(screen.getByTestId('desktop-subordinate-note')).toHaveTextContent(
+      'report.performance.desktopSubordinateNote',
+    );
+  });
+
+  it('shows the desktop section label', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'A',
+          performanceScore: 92,
+          performanceMetrics: {
+            ...METRICS_NO_FIELD,
+            desktop: DESKTOP_DATA,
+          },
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    // i18n mock returns 'report.performance.desktopSectionLabel'
+    expect(screen.getByText('report.performance.desktopSectionLabel')).toBeInTheDocument();
+  });
+
+  it('does NOT add a second real-users-slow banner for the desktop section', async () => {
+    // The slow banner is mobile-only — desktop must not produce its own copy.
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'D',
+          performanceScore: 35,
+          performanceMetrics: {
+            ...METRICS_WITH_FIELD_SLOW,
+            desktop: DESKTOP_DATA,
+          },
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    // Mobile SLOW + real score → exactly ONE banner total (never duplicated by desktop)
+    const banners = screen.getAllByTestId('real-users-slow-banner');
+    expect(banners).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-09: Desktop absent — no desktop section rendered
+// ---------------------------------------------------------------------------
+describe('PerformanceSection — desktop section absent (T-09)', () => {
+  it('does NOT render the desktop section when desktop data is absent', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'B',
+          performanceScore: 80,
+          performanceMetrics: METRICS_NO_FIELD,
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    expect(screen.queryByTestId('desktop-section')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-09: Real-users-slow banner (mobile + URL-level only)
+// ---------------------------------------------------------------------------
+describe('PerformanceSection — real-users-slow banner (T-09)', () => {
+  it('shows the slow banner when mobile verdict is SLOW and score is real', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'D',
+          performanceScore: 35,
+          performanceMetrics: METRICS_WITH_FIELD_SLOW,
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    expect(screen.getByTestId('real-users-slow-banner')).toBeInTheDocument();
+    expect(screen.getByTestId('real-users-slow-banner')).toHaveTextContent(
+      'report.performance.realUsersSlowBanner',
+    );
+  });
+
+  it('does NOT show the slow banner when verdict is FAST', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'A',
+          performanceScore: 92,
+          performanceMetrics: METRICS_WITH_FIELD_FAST,
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+    expect(screen.queryByTestId('real-users-slow-banner')).not.toBeInTheDocument();
+  });
+
+  it('does NOT show the slow banner when score is unavailable (even if SLOW verdict present)', () => {
+    // Banner requires !scoreUnavailable — provider down means no reliable lab score
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: null,
+          performanceScore: null,
+          performanceMetrics: METRICS_WITH_FIELD_SLOW,
+        }}
+      />,
+    );
+
+    expect(screen.queryByTestId('real-users-slow-banner')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-09: XSS security — CrUX-derived strings are escaped as plain text
+// ---------------------------------------------------------------------------
+describe('PerformanceSection — XSS payload escaping (T-09)', () => {
+  it('renders <script>alert(1)</script> in overallCategory as escaped text, not injected HTML', async () => {
+    // An attacker controlling the scanned URL could theoretically influence
+    // CrUX data. Feed a malicious string through overallCategory and confirm
+    // it is rendered as escaped text — React's JSX escaping applies; no raw HTML.
+    const xssPayload = '<script>alert(1)</script>';
+
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    const { container } = render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'B',
+          performanceScore: 80,
+          performanceMetrics: {
+            ...METRICS_NO_FIELD,
+            fieldDataVerdict: xssPayload,
+            fieldData: {
+              // Cast to feed an adversarial value past the type guard
+              overallCategory: xssPayload as 'FAST' | 'AVERAGE' | 'SLOW',
+              metrics: {},
+            },
+          },
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+
+    // innerHTML must NOT contain an unescaped <script> element
+    expect(container.innerHTML).not.toContain('<script>alert(1)</script>');
+    // No script element must be present in the rendered DOM
+    expect(container.querySelectorAll('script')).toHaveLength(0);
+  });
+
+  it('renders javascript: payload in bestPracticesGrade as escaped plain text', async () => {
+    const jsPayload = 'javascript:alert(1)';
+
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    const { container } = render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'C',
+          performanceScore: 60,
+          performanceMetrics: {
+            ...METRICS_NO_FIELD,
+            bestPracticesGrade: jsPayload,
+            bestPracticesScore: 60,
+          },
+        }}
+      />,
+    );
+
+    await screen.findByTestId('performance-grade');
+
+    // textContent must contain the (capped) payload as a plain string, not executed code
+    const bpEl = screen.getByTestId('best-practices-grade');
+    expect(bpEl.textContent).toContain('javascript');
+    // Must not appear as an anchor href that could execute
+    expect(container.innerHTML).not.toContain('href="javascript:');
+    // No script element injected
+    expect(container.querySelectorAll('script')).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-09: Old-shape back-compat — pre-T-06 scan blobs
+// ---------------------------------------------------------------------------
+describe('PerformanceSection — old-shape back-compat (T-09)', () => {
+  it('renders mobile-only view without crash when desktop/scoreSource/fieldData are absent', async () => {
+    // Simulates a persisted scan blob from before T-06 — only legacy fields present.
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'B',
+          performanceScore: 78,
+          // Old shape: no scoreSource, no fieldData, no fieldDataVerdict, no desktop,
+          // no bestPracticesScore/Grade
+          performanceMetrics: { lcp: 2000, fcp: 1200, cls: 0.08, tbt: 250, ttfb: 350 },
+        }}
+      />,
+    );
+
+    // Grade must render correctly
+    const gradeEl = await screen.findByTestId('performance-grade');
+    expect(gradeEl).toHaveTextContent('B/78');
+
+    // No empty desktop section must appear
+    expect(screen.queryByTestId('desktop-section')).not.toBeInTheDocument();
+  });
+
+  it('contains no NaN in the output for old-shape data', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeSuggestionsResponse(),
+    });
+
+    const { container } = render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'B',
+          performanceScore: 78,
+          performanceMetrics: { lcp: 2000, fcp: 1200, cls: 0.08, tbt: 250, ttfb: 350 },
+        }}
+      />,
+    );
+    await screen.findByTestId('performance-grade');
+    expect(container.textContent).not.toContain('NaN');
+  });
+
+  it('renders without crash when performanceMetrics is null (very old blob)', () => {
+    // Some persisted blobs may have performanceMetrics set to null.
+    // The component must default to empty metrics instead of crashing.
+    const { container } = render(
+      <PerformanceSection
+        scanId="scan-1"
+        performanceData={{
+          performanceGrade: 'C',
+          performanceScore: 65,
+          // Bypass the type system to simulate null coming from the DB
+          performanceMetrics: null as unknown as { lcp: null; fcp: null; cls: null; tbt: null; ttfb: null },
+        }}
+      />,
+    );
+
+    // No crash — and no NaN in the output
+    expect(container.textContent).not.toContain('NaN');
+    expect(screen.queryByTestId('desktop-section')).not.toBeInTheDocument();
   });
 });
