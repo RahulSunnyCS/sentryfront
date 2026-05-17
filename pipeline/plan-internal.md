@@ -97,11 +97,18 @@ report UI. No regulatory verdicts/attestations (CLAIMS_RULES / Phase 2.5.1).
 - Single-page crawl: multi-page-only policy links may be missed.
 - Fetch-only fallback yields "not evaluated" for DOM-dependent signals.
 
-## Open Gate-1 decisions
-1. Exact non-binding indicator wording (non-numeric signal list grouped by
-   framework heading — confirm this satisfies the user's chosen framing).
-2. `complianceScanning` default true (sibling-consistent) vs false (opt-in).
-3. Confirm content-quality fetch deferral (recommended: defer — SSRF + budget).
+## Gate-1 decisions (RESOLVED by user)
+1. Indicator wording: NON-NUMERIC signal list grouped by framework heading
+   (no score/fraction anywhere). CONFIRMED.
+2. `complianceScanning` default: TRUE (sibling-consistent). CONFIRMED.
+3. Content-quality fetch: DEFERRED to a later AI-enrichment-layer step
+   (no new outbound request in v1 — SSRF + budget + legal-claim reasons).
+4. R1 ACCEPTED: strike "suitable for audits / due diligence" from
+   docs/modules/COMPLIANCE_MODULES.md.
+5. R2 ACCEPTED: P5-03 ships with NO regulatory verb framing (plain
+   "data-protection-relevant headers", no "GDPR Art. 32 non-compliant").
+(recommendation_rounds_used = 1; R1/R2 were already fully specified in this
+ revised plan — folded in, no material re-plan needed; Gate 1 complete.)
 
 ## Internal score (post-revision)
 Completeness 9 · Security depth 9 · Feasibility 9 · Clarity 8 → 8.5/10. Proceed.

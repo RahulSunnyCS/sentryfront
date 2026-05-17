@@ -6,8 +6,8 @@
 
 ## Phase state
 - [x] Phase 0 — Triage (HIGH, feature-full)
-- [~] Phase 1 — Planning (research + scope decision pending at Gate 1)
-- [ ] Phase 2 — Decomposition
+- [x] Phase 1 — Planning (Gate 1 PASSED; all decisions resolved; R1+R2 accepted)
+- [~] Phase 2 — Decomposition (11 task contracts written; awaiting go-ahead)
 - [ ] Phase 3 — Implementation
 - [ ] Phase 4 — Specialist review
 - [ ] Phase 5 — Tests/docs
