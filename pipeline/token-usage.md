@@ -25,3 +25,5 @@
 | Phase 3 | T-06: scoring hub + desktop + cache + UNAVAILABLE | implementor | sonnet | high | ~34k |
 | Phase 3 | T-10: README performance section | implementor | sonnet | high | ~9k |
 | Phase 3 | T-07: null/0-safety (route + section UI) | implementor | sonnet | high | ~28k |
+| Phase 3 | T-08: persistence + types + API + back-compat | implementor | sonnet | high | ~30k |
+| Phase 3 | T-04 flaky TTL test fix (deterministic timers) | implementor | sonnet | high | ~12k |

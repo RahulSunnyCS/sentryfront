@@ -55,6 +55,14 @@ Re-plan round 1 of 2: focused Red Team on the R1+R2 delta (base plan already con
   - Wave C ✅ DONE: T-06 (scoring rework, UNAVAILABLE, P2-07/08 wired, desktop orchestration, cache; 1132 scanner tests pass; scope clean)
   - Wave D: T-10 ✅ · T-07 ✅ done (route 0-vs-null guard, UNAVAILABLE UI state; 19 tests pass; PDF/print path confirmed already null-safe — no extra consumer) · T-08 ⏳ running
   - T-07 note: shared `src/types/index.ts` PerformanceData widening is T-08's scope (T-07 correctly did not touch it; TS-valid meanwhile). Confirm T-08 widens it.
+  - Wave D: T-07 ✅ · T-10 ✅ · T-08 ✅ done (scan-worker UNAVAILABLE persistence fix via `'performanceScore' in scannerResult` + blob-guard; normalizePerformanceMetrics 3-case back-compat w/ 2 fixtures; types/index.ts PerformanceData widened; scope clean; lint clean; its own tests pass)
+  - Wave E ⏳ next: T-09 (report UI) — deps T-07, T-08, T-05 (all done)
+
+### Known limitation (Phase 4 / epic-doc): PDF/print export
+- `src/app/[locale]/report/[id]/print/page.tsx` + `print-report.tsx` read only the SCALAR performanceScore (already null-safe — `performanceScore !== null` guard; no crash on UNAVAILABLE) and do NOT surface scoreSource/fieldData/bestPractices/desktop. No regression (scalar behaviour preserved). Rich-data in PDF is a deliberate non-goal of this delivery — candidate follow-up. Flag for Phase 4 architecture review + epic doc limitations.
+
+### Full-suite status after T-08
+- `npm run test`: 1526 passed / 10 skipped / **1 failed** = `psi-cache.test.ts:173` (T-04 flaky real-time TTL test; passes isolated, fails under load via ambient fake-timer/ordering contamination). Deterministic fix delegated (fake timers + env restore). NOT a T-08 regression.
   - Note: README "What's Included" numbered module list still says 15 (separate section, out of T-10 scope) — follow-up for Phase 5 docs-writer / epic doc.
 
 ### Cross-task notes from T-06 (carry to T-08 / Phase 4)

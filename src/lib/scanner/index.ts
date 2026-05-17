@@ -22,16 +22,64 @@ import { runAccessibilityModules, type AccessibilityResult } from './modules/acc
 import { runSEOModules, type SEOResult } from './modules/seo';
 import type { RawFinding } from './types';
 import type { ParsedAudit } from './audit-parser';
+import type { CrUXFieldData } from './lighthouse';
 import { features } from '@/lib/features';
 import { logger } from '@/lib/logger';
+
+/**
+ * Sub-object for desktop performance data. Mirrors the FormFactorResult shape
+ * from modules/performance.ts but is re-declared here (stripped of the internal
+ * LighthouseMetrics reference) so ScannerResult stays self-contained and the
+ * full metrics blob doesn't leak into the scanner-level interface.
+ *
+ * All fields are optional for backward compat with old persisted scans.
+ */
+export interface DesktopPerformanceData {
+  score: number | null;
+  grade: string;
+  scoreSource: 'lab' | 'unavailable';
+  metrics: {
+    lcp: number | null;
+    fcp: number | null;
+    cls: number | null;
+    tbt: number | null;
+    ttfb: number | null;
+    opportunities: ParsedAudit[];
+  };
+}
 
 export interface ScannerResult {
   findings: RawFinding[];
   stack: string;
   moduleFindingCounts: Record<string, number>;
-  // Performance scanning results (Phase 5.5)
-  performanceGrade?: string; // A-F
-  performanceScore?: number; // 0-100
+  // Performance scanning results (Phase 5.5 / T-06 / T-08)
+  performanceGrade?: string; // A-F or 'N/A'
+  // 0-100 integer on success; null on PSI failure.
+  // null is a valid value (UNAVAILABLE path), so we carry it explicitly rather
+  // than omitting it — scan-worker needs to distinguish "feature disabled"
+  // (field absent) from "feature ran but PSI failed" (field present, null).
+  performanceScore?: number | null;
+  /**
+   * 'lab' when a real Lighthouse score was returned; 'unavailable' when PSI
+   * failed. Optional so old pre-T-06 ScannerResult shapes typecheck.
+   */
+  scoreSource?: 'lab' | 'unavailable';
+  /**
+   * CrUX real-user verdict for the mobile result.
+   * Null when the CrUX block was absent from the PSI response.
+   */
+  fieldDataVerdict?: CrUXFieldData['overallCategory'] | null;
+  /** Full URL-level CrUX field data. Null when absent. */
+  fieldData?: CrUXFieldData | null;
+  /** Best-practices Lighthouse category score (0-100). Null when absent or PSI failed. */
+  bestPracticesScore?: number | null;
+  /** A-F grade for best practices; 'N/A' when score is null. */
+  bestPracticesGrade?: string;
+  /**
+   * Desktop sub-object. Only present when features.desktopPerformance is true
+   * AND mobile succeeded. Never drives the headline grade.
+   */
+  desktopPerformance?: DesktopPerformanceData;
   performanceMetrics?: {
     lcp: number | null;
     fcp: number | null;
@@ -203,10 +251,39 @@ export async function runScanner(targetUrl: string): Promise<ScannerResult> {
     findings,
     stack: crawlResult.stack,
     moduleFindingCounts,
-    // Performance results (only if feature is enabled and scan succeeded)
+    // Performance results (only if feature is enabled and scan ran).
+    // IMPORTANT: we spread even when performanceResult exists but PSI failed
+    // (scoreSource === 'unavailable'). The scan-worker must persist scoreSource
+    // so the UNAVAILABLE state survives the round-trip. Using a plain truthiness
+    // guard on performanceResult (non-null) is correct here — it means "the
+    // feature ran", not "PSI succeeded". scoreSource carries the success/fail
+    // distinction within the result.
     ...(performanceResult && {
       performanceGrade: performanceResult.performanceGrade,
-      performanceScore: performanceResult.performanceScore,
+      performanceScore: performanceResult.performanceScore, // may be null (UNAVAILABLE)
+      scoreSource: performanceResult.scoreSource,
+      fieldDataVerdict: performanceResult.fieldDataVerdict,
+      fieldData: performanceResult.fieldData,
+      bestPracticesScore: performanceResult.bestPracticesScore,
+      bestPracticesGrade: performanceResult.bestPracticesGrade,
+      // Desktop sub-object: only present when the feature ran AND desktop is defined.
+      // When features.desktopPerformance is false, performanceResult.desktop is
+      // undefined, so this key is absent — byte-identical to pre-T-06 behaviour.
+      ...(performanceResult.desktop !== undefined && {
+        desktopPerformance: {
+          score: performanceResult.desktop.score,
+          grade: performanceResult.desktop.grade,
+          scoreSource: performanceResult.desktop.scoreSource,
+          metrics: {
+            lcp: performanceResult.desktop.metrics.lcp,
+            fcp: performanceResult.desktop.metrics.fcp,
+            cls: performanceResult.desktop.metrics.cls,
+            tbt: performanceResult.desktop.metrics.tbt,
+            ttfb: performanceResult.desktop.metrics.ttfb,
+            opportunities: performanceResult.desktop.metrics.opportunities,
+          },
+        },
+      }),
       performanceMetrics: {
         lcp: performanceResult.metrics.lcp,
         fcp: performanceResult.metrics.fcp,

@@ -5,6 +5,82 @@ export type GradeStyle = 'ring' | 'shield' | 'letter';
 export type CardStyle = 'elevated' | 'bordered' | 'flat';
 export type ScanStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'TIMEOUT';
 
+/**
+ * CrUX field data block forwarded verbatim from Google's PSI response.
+ * All fields optional — not every PSI response includes a CrUX block.
+ */
+export interface CrUXMetric {
+  /** e.g. 'FAST' | 'AVERAGE' | 'SLOW' */
+  category?: string;
+  /** Histogram buckets: [{ min, max, density }] */
+  histogram?: Array<{ start?: number; end?: number; density?: number }>;
+  /** p75 percentile value */
+  percentile?: number;
+}
+
+export interface CrUXFieldData {
+  /** URL-level overall loading experience verdict */
+  overallCategory?: 'FAST' | 'AVERAGE' | 'SLOW';
+  /** Per-metric CrUX entries (keyed by metric name, e.g. 'LARGEST_CONTENTFUL_PAINT_MS') */
+  metrics?: Record<string, CrUXMetric>;
+}
+
+/**
+ * Desktop performance sub-object.
+ * Only present when features.desktopPerformance is true AND mobile PSI succeeded.
+ * Never drives the headline grade.
+ */
+export interface DesktopPerformanceData {
+  score: number | null;
+  grade: string;
+  scoreSource: 'lab' | 'unavailable';
+  metrics: {
+    lcp: number | null;
+    fcp: number | null;
+    cls: number | null;
+    tbt: number | null;
+    ttfb: number | null;
+    opportunities?: unknown[];
+  };
+}
+
+/**
+ * Performance section of the scan result, as returned by the API and consumed
+ * by the report UI (T-09).
+ *
+ * All fields beyond the legacy core (grade/score/metrics) are optional so that
+ * old persisted scans (pre-T-06) still typecheck and render.
+ */
+export interface PerformanceData {
+  performanceGrade: string;
+  /** 0-100 integer on success; null when PSI failed (UNAVAILABLE). */
+  performanceScore: number | null;
+  performanceMetrics: {
+    lcp: number | null;
+    fcp: number | null;
+    cls: number | null;
+    tbt: number | null;
+    ttfb: number | null;
+    opportunities?: unknown[];
+    // T-08 new fields — all optional for back-compat with pre-T-06 blobs
+    /** 'lab' when Lighthouse ran; 'unavailable' when PSI failed. */
+    scoreSource?: 'lab' | 'unavailable';
+    /** Google CrUX overallCategory verdict (FAST/AVERAGE/SLOW). Null when absent. */
+    fieldDataVerdict?: string | null;
+    /** Full CrUX field data block. Null when absent. */
+    fieldData?: CrUXFieldData | null;
+    /** Best-practices score (0-100). Null when PSI failed or category absent. */
+    bestPracticesScore?: number | null;
+    /** A-F grade for best practices; 'N/A' when null. */
+    bestPracticesGrade?: string;
+    /**
+     * Desktop sub-object. Only present when desktopPerformance feature flag is on
+     * AND mobile PSI succeeded. Never drives the headline grade.
+     */
+    desktop?: DesktopPerformanceData;
+  } | null;
+}
+
 export type FindingDispositionValue =
   | 'helpful'
   | 'dismissed'
@@ -48,17 +124,7 @@ export interface ScanData {
   moduleResults: Record<string, number>;
   findings: Finding[];
   status?: ScanStatus;
-  performanceData?: {
-    performanceGrade: string;
-    performanceScore: number;
-    performanceMetrics: {
-      lcp: number | null;
-      fcp: number | null;
-      cls: number | null;
-      tbt: number | null;
-      ttfb: number | null;
-    };
-  } | null;
+  performanceData?: PerformanceData | null;
   accessibilityData?: {
     accessibilityGrade: string;
     accessibilityScore: number;

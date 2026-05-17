@@ -1,0 +1,8 @@
+{
+  "lcp": 2400,
+  "fcp": 1200,
+  "cls": 0.05,
+  "tbt": 300,
+  "ttfb": 800,
+  "opportunities": []
+}
