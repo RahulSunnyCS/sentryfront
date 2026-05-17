@@ -13,7 +13,8 @@
       and print-report.tsx (not page.tsx) under T-10 — record for blast-radius.
 - [x] Phase 4 — Specialist review: 3× CONDITIONAL PASS. Gate 2: APPROVED
       WITH CONDITIONS (C1+C2+C3 + cheap Lows).
-- [~] Phase 6 — Fix cycle: FIX-01 → FIX-02 → FIX-03 (sequential).
+- [x] Phase 6 — Fix cycle: FIX-01..03 DONE, all conditions resolved, 1596 green
+- [~] Phase 5 — Test+docs generation (unit/integration/e2e/docs)
 - [ ] Phase 4 — Specialist review
 - [ ] Phase 5 — Tests/docs
 - [ ] Phase 6 — Test execution
