@@ -50,7 +50,7 @@ export const FAIL_CLOSED_KEYWORDS: readonly string[] = [
  * claim surface is lower-risk than a false positive.
  */
 export function deriveComplianceStatus(
-  finding: RawFinding,
+  finding: Pick<RawFinding, 'severity' | 'title'>,
 ): 'observed' | 'not-observed' | 'not-evaluated' {
   if (finding.severity === 'INFO') {
     const titleLower = finding.title.toLowerCase();

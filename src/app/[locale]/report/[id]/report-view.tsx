@@ -6,6 +6,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { GRADE_CONFIG, SCAN_MODULES, SEVERITY_RANK } from '@/lib/data';
 import type { ScanData, Finding } from '@/types';
+import {
+  deriveComplianceStatus,
+  MODULE_FRAMEWORKS,
+  FRAMEWORK_ORDER,
+} from '@/lib/scanner/compliance-shared';
 import { GradeDisplay } from '@/components/grade-display';
 import { SeveritySummary } from '@/components/severity-summary';
 import { FindingCard } from '@/components/finding-card';
@@ -695,39 +700,9 @@ function DeeperScanCard({
 }
 
 // ── Compliance signal derivation ─────────────────────────────────────────────
-// Mirrors the server-side logic in src/lib/scanner/modules/compliance.ts
-// (function deriveStatus). Kept in sync intentionally: if compliance.ts changes
-// its derivation rule, this function must be updated to match.
+// deriveComplianceStatus, MODULE_FRAMEWORKS, and FRAMEWORK_ORDER are imported
+// from @/lib/scanner/compliance-shared (single source of truth, C3 fix).
 type ComplianceSignalStatus = 'observed' | 'not-observed' | 'not-evaluated';
-
-function deriveComplianceStatus(finding: Finding): ComplianceSignalStatus {
-  if (finding.severity === 'INFO') {
-    const titleLower = finding.title.toLowerCase();
-    if (
-      titleLower.includes('not evaluated') ||
-      titleLower.includes('unavailable') ||
-      titleLower.includes('not applicable')
-    ) {
-      return 'not-evaluated';
-    }
-    return 'observed';
-  }
-  return 'not-observed';
-}
-
-// Maps P5 module IDs to the frameworks they contribute to.
-// Must stay in sync with MODULE_FRAMEWORKS in compliance.ts.
-const P5_MODULE_FRAMEWORKS: Record<string, string[]> = {
-  'P5-01': ['GDPR', 'CCPA'],
-  'P5-02': ['GDPR', 'CCPA'],
-  'P5-03': ['GDPR'],
-  'P5-04': ['WCAG / Accessibility'],
-  'P5-05': ['GDPR', 'CCPA'],
-  'P5-06': ['GDPR', 'CCPA'],
-};
-
-// Stable display order matching compliance.ts output order.
-const FRAMEWORK_ORDER = ['GDPR', 'CCPA', 'WCAG / Accessibility'];
 
 interface FrameworkSignal {
   label: string;
@@ -736,6 +711,9 @@ interface FrameworkSignal {
 
 function buildFrameworkSignals(
   p5Findings: Finding[],
+  // Pre-computed status map passed in so each finding's status is derived once
+  // and reused here (derive-once fix) and in the raw-findings list below.
+  statusByFindingId: Map<string, ComplianceSignalStatus>,
 ): { framework: string; signals: FrameworkSignal[] }[] {
   // Seed all known frameworks so sections appear even with zero signals.
   const map = new Map<string, FrameworkSignal[]>(
@@ -745,10 +723,11 @@ function buildFrameworkSignals(
   for (const finding of p5Findings) {
     // Extract the base module prefix (e.g. "P5-01" from "P5-01-cookie-consent").
     const moduleKey = finding.module.slice(0, 5); // "P5-XX"
-    const frameworks = P5_MODULE_FRAMEWORKS[moduleKey];
+    const frameworks = MODULE_FRAMEWORKS[moduleKey];
     if (!frameworks) continue;
 
-    const status = deriveComplianceStatus(finding);
+    // Use the pre-computed status from the memoised map — never re-derive here.
+    const status = statusByFindingId.get(finding.id) ?? 'not-evaluated';
     const label =
       finding.title.length <= 80 ? finding.title : finding.title.slice(0, 77) + '…';
 
@@ -820,9 +799,18 @@ function ComplianceSection({ findings }: { findings: Finding[] }) {
     [findings],
   );
 
-  const frameworkSignals = useMemo(
-    () => buildFrameworkSignals(p5Findings),
+  // Derive each finding's status ONCE (Low fix: derive-once).
+  // The Map is keyed by finding.id so both the framework-signals panel and the
+  // raw-findings list consume the same pre-computed value without re-running the
+  // derivation function per render.
+  const statusByFindingId = useMemo(
+    () => new Map(p5Findings.map((f) => [f.id, deriveComplianceStatus(f) as ComplianceSignalStatus])),
     [p5Findings],
+  );
+
+  const frameworkSignals = useMemo(
+    () => buildFrameworkSignals(p5Findings, statusByFindingId),
+    [p5Findings, statusByFindingId],
   );
 
   if (p5Findings.length === 0) {
@@ -934,7 +922,10 @@ function ComplianceSection({ findings }: { findings: Finding[] }) {
             {t('findingsTitle')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {p5Findings.map((finding) => (
+            {p5Findings.map((finding) => {
+              // Look up the already-computed status — no double derivation.
+              const status = statusByFindingId.get(finding.id) ?? 'not-evaluated';
+              return (
               <div key={finding.id} style={{
                 padding: '12px 14px',
                 background: 'var(--surface)',
@@ -949,10 +940,10 @@ function ComplianceSection({ findings }: { findings: Finding[] }) {
                       borderRadius: 6,
                       fontSize: 11,
                       fontWeight: 700,
-                      ...STATUS_CHIP_STYLE[deriveComplianceStatus(finding)],
+                      ...STATUS_CHIP_STYLE[status],
                     }}
                   >
-                    {statusLabel[deriveComplianceStatus(finding)]}
+                    {statusLabel[status]}
                   </span>
                   <span style={{ fontWeight: 600, color: 'var(--text)' }}>{finding.title}</span>
                 </div>
@@ -962,7 +953,8 @@ function ComplianceSection({ findings }: { findings: Finding[] }) {
                   </p>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
