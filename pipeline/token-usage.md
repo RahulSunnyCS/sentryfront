@@ -40,3 +40,4 @@
 | Phase 4.5 | FIX-D: M1 relocate normalizePerformanceMetrics | implementor | sonnet | high | ~16k |
 | Phase 5 | Docs writer (README revert; API-ref deferred) | docs-writer | haiku | low | ~10k |
 | Phase 5 | E2E test writer (78 tagged Playwright tests) | e2e-test-writer | sonnet | medium | ~30k |
+| Phase 5 | QA-gap test-writer (+21 tests, found C-35 bug) | test-writer | sonnet | medium | ~28k |
