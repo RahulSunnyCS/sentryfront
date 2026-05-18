@@ -51,3 +51,4 @@ temp/
 /blob-report/
 /playwright/.cache/
 e2e.db*
+.claude/worktrees/

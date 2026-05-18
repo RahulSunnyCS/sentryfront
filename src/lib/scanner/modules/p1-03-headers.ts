@@ -232,6 +232,257 @@ function checkSri(crawl: CrawlResult): RawFinding | null {
   };
 }
 
+/**
+ * Parse and evaluate the strictness of a CSP header value.
+ *
+ * Strategy:
+ *  1. Find the effective script policy: prefer script-src, fall back to default-src.
+ *  2. If strict-dynamic is present, bail out — it neutralises host-source allowlists
+ *     and unsafe-inline in CSP3, so there is nothing meaningful to flag.
+ *  3. Check for unsafe-inline (HIGH), but only when no nonce or hash is also present
+ *     in the same directive (CSP2 nonce/hash neutralises unsafe-inline).
+ *  4. Check for unsafe-eval (HIGH).
+ *  5. Check for bare wildcard sources: *, http:, https: (HIGH).
+ *     Scoped wildcards like *.googleapis.com are NOT flagged — they restrict
+ *     the origin to a known domain family and are a legitimate pattern.
+ *
+ * Returns [] when the header is absent; the HEADER_CHECKS table handles that case.
+ */
+function checkCsp(crawl: CrawlResult): RawFinding[] {
+  const findings: RawFinding[] = [];
+
+  // Helper that analyses one raw CSP header value and returns findings.
+  // `headerName` is used for evidence; `isReportOnly` downgrades severity to INFO.
+  function analyseCspValue(rawValue: string, headerName: string, isReportOnly: boolean): void {
+    const directives = rawValue.split(';').map((d) => d.trim()).filter(Boolean);
+
+    // Build a map of directive-name → tokens (lower-cased source expressions).
+    // Directive names are case-insensitive per spec.
+    const directiveMap = new Map<string, string[]>();
+    for (const directive of directives) {
+      const [name, ...rest] = directive.split(/\s+/);
+      directiveMap.set(name.toLowerCase(), rest.map((t) => t.toLowerCase()));
+    }
+
+    // Find the effective script policy: script-src takes precedence over default-src.
+    const effectiveTokens =
+      directiveMap.get('script-src') ?? directiveMap.get('default-src') ?? null;
+
+    // No script policy at all — nothing to evaluate here.
+    if (!effectiveTokens) return;
+
+    const directiveName = directiveMap.has('script-src') ? 'script-src' : 'default-src';
+
+    // If strict-dynamic is present, it overrides host-source allowlists and
+    // neutralises unsafe-inline in supporting browsers. Flagging would be a FP.
+    if (effectiveTokens.includes("'strict-dynamic'")) return;
+
+    const severity = isReportOnly ? 'INFO' : 'HIGH';
+    // Suffix appended to titles/evidence for report-only headers so the user
+    // knows the policy is not currently enforced.
+    const roSuffix = isReportOnly ? ' (report-only, not enforced)' : '';
+
+    // ── unsafe-inline check ────────────────────────────────────────────────
+    if (effectiveTokens.includes("'unsafe-inline'")) {
+      // CSP2: a nonce or hash in the same directive neutralises unsafe-inline
+      // in nonce/hash-aware browsers. Only flag when neither is present.
+      const hasNonce = effectiveTokens.some((t) => /^'nonce-/i.test(t));
+      const hasHash = effectiveTokens.some((t) => /^'sha(?:256|384|512)-/i.test(t));
+      if (!hasNonce && !hasHash) {
+        findings.push({
+          moduleId: 'P1-03',
+          severity,
+          category: 'Security Headers',
+          title: `CSP allows 'unsafe-inline' scripts${roSuffix}`,
+          location: 'HTTP response headers',
+          evidence: `${headerName}: ...${directiveName} contains 'unsafe-inline'${roSuffix}`,
+          explanation:
+            "'unsafe-inline' in a script-src (or default-src fallback) directive allows any inline <script> block and javascript: URLs to execute. This completely defeats CSP's ability to block XSS payloads that are injected as inline scripts — the most common XSS vector.",
+          impact:
+            'An attacker who can inject any inline HTML can run arbitrary JavaScript in the victim\'s browser, bypassing CSP protection entirely.',
+          fixManual: [
+            "Remove 'unsafe-inline' from the directive.",
+            "Use nonces: generate a cryptographically random nonce per request, add it to every <script> tag, and add 'nonce-{value}' to script-src.",
+            "Alternatively, add 'strict-dynamic' with a nonce/hash to allow trusted scripts to load others without an allowlist.",
+          ],
+          fixAiPrompt:
+            "My Content-Security-Policy has 'unsafe-inline' in the script-src. Show me how to replace it with per-request nonces in my Next.js app so I can remove 'unsafe-inline' without breaking my scripts.",
+        });
+      }
+    }
+
+    // ── unsafe-eval check ─────────────────────────────────────────────────
+    if (effectiveTokens.includes("'unsafe-eval'")) {
+      findings.push({
+        moduleId: 'P1-03',
+        severity,
+        category: 'Security Headers',
+        title: `CSP allows 'unsafe-eval' scripts${roSuffix}`,
+        location: 'HTTP response headers',
+        evidence: `${headerName}: ...${directiveName} contains 'unsafe-eval'${roSuffix}`,
+        explanation:
+          "'unsafe-eval' enables eval(), new Function(), and similar dynamic code execution APIs. These APIs are a common target in second-stage XSS: an attacker who can control a string can turn it into executable code. CSP's default is to block them.",
+        impact:
+          "If an attacker controls any string value in your application (via stored or reflected XSS), 'unsafe-eval' lets them convert that string into running code, greatly expanding the exploitable surface.",
+        fixManual: [
+          "Remove 'unsafe-eval'. Audit your code and dependencies for use of eval(), new Function(), setTimeout/setInterval with string arguments, and similar.",
+          'Many bundlers (webpack, esbuild) can be configured to avoid generating code that needs eval().',
+          "Some libraries (Handlebars, AngularJS) require eval(); switch to template-literal alternatives or precompile templates at build time.",
+        ],
+        fixAiPrompt:
+          "My Content-Security-Policy has 'unsafe-eval'. Help me find which part of my Next.js app is using eval() or new Function() so I can remove the unsafe-eval allowance.",
+      });
+    }
+
+    // ── bare wildcard sources check ───────────────────────────────────────
+    // Flag: bare * (any origin), http: (any HTTP origin), https: (any HTTPS origin).
+    // Do NOT flag scoped wildcards like *.googleapis.com — those contain a '.'
+    // and restrict the allowed domain to a specific registrar.
+    const BARE_WILDCARDS = new Set(['*', 'http:', 'https:']);
+    for (const token of effectiveTokens) {
+      if (BARE_WILDCARDS.has(token)) {
+        findings.push({
+          moduleId: 'P1-03',
+          severity,
+          category: 'Security Headers',
+          title: `CSP uses a bare wildcard source ('${token}') in ${directiveName}${roSuffix}`,
+          location: 'HTTP response headers',
+          evidence: `${headerName}: ...${directiveName} contains bare source '${token}'${roSuffix}`,
+          explanation: `A bare '${token}' source expression allows scripts from any origin (or any HTTP/HTTPS origin), which is functionally equivalent to having no CSP at all for script loading. An attacker-controlled domain anywhere on the internet becomes a valid script source.`,
+          impact:
+            'Any attacker-controlled server becomes an allowed script source. An XSS that can inject a <script> tag pointing anywhere will bypass this policy.',
+          fixManual: [
+            `Replace '${token}' with an explicit allowlist of domains you actually load scripts from (e.g. 'self', 'https://cdn.jsdelivr.net').`,
+            "Use 'strict-dynamic' with a nonce/hash to avoid needing an allowlist of CDN origins at all.",
+          ],
+          fixAiPrompt: `My Content-Security-Policy has '${token}' as a source in ${directiveName}. Help me replace it with a specific allowlist of the domains I actually load scripts from in my Next.js app.`,
+        });
+        // Break after the first wildcard match: multiple bare wildcards in the same directive
+        // convey the same severity, so one finding is sufficient; the fix addresses all of them.
+        break;
+      }
+    }
+  }
+
+  // ── Enforced CSP ──────────────────────────────────────────────────────────
+  const cspValue = crawl.headers['content-security-policy'];
+  if (cspValue) {
+    analyseCspValue(cspValue, 'content-security-policy', false);
+  }
+  // If CSP absent: return [] — HEADER_CHECKS table emits the MEDIUM absent-CSP finding.
+
+  // ── Report-only CSP ───────────────────────────────────────────────────────
+  // Analysed separately because report-only policies are not enforced by the
+  // browser — the same weak directives are still worth flagging, but at INFO
+  // severity so operators see that the policy would not protect them in production.
+  const reportOnlyValue = crawl.headers['content-security-policy-report-only'];
+  if (reportOnlyValue) {
+    analyseCspValue(reportOnlyValue, 'content-security-policy-report-only', true);
+  }
+
+  return findings;
+}
+
+/**
+ * Validate HSTS max-age and includeSubDomains.
+ *
+ * Returns [] when the header is absent; the HEADER_CHECKS table handles that case.
+ *
+ * Rules:
+ *  - max-age < 15_768_000 (≈6 months): LOW — too short to provide meaningful
+ *    HSTS protection (HSTS preload lists require ≥1 year).
+ *  - max-age ≥ 15_768_000 but missing includeSubDomains: INFO — subdomains
+ *    are reachable over HTTP and could be used to set cookies / conduct
+ *    cookie-injection attacks against the apex domain.
+ *  - Well-formed (≥ 15_768_000 + includeSubDomains): return [].
+ */
+function checkHsts(crawl: CrawlResult): RawFinding[] {
+  const value = crawl.headers['strict-transport-security'];
+  if (!value) return []; // HEADER_CHECKS table emits the MEDIUM absent-HSTS finding.
+
+  const maxAgeMatch = /max-age\s*=\s*(\d+)/i.exec(value);
+  if (!maxAgeMatch) {
+    // Malformed — no max-age directive at all. Emit LOW because HSTS without
+    // max-age is not a valid header and browsers will ignore it.
+    return [
+      {
+        moduleId: 'P1-03',
+        severity: 'LOW',
+        category: 'Security Headers',
+        title: 'Strict-Transport-Security header has no max-age directive',
+        location: 'HTTP response headers',
+        evidence: `strict-transport-security: ${value} (no max-age)`,
+        explanation:
+          'An HSTS header without a max-age directive is invalid and will be ignored by browsers. max-age defines how long (in seconds) the browser should remember to use HTTPS.',
+        impact:
+          'The HSTS header is silently ignored, leaving users unprotected against SSL stripping attacks on subsequent visits.',
+        fixManual: [
+          'Add max-age=31536000 (one year) to your Strict-Transport-Security header.',
+          'Example: Strict-Transport-Security: max-age=31536000; includeSubDomains',
+        ],
+        fixAiPrompt:
+          'My Strict-Transport-Security header is missing a max-age directive. Show me how to set it correctly in my Next.js app.',
+      },
+    ];
+  }
+
+  const maxAge = parseInt(maxAgeMatch[1], 10);
+  // 6 months is the recommended minimum to provide meaningful HSTS protection;
+  // HSTS preload list submission also requires ≥1 year, so this threshold prevents
+  // false negatives for domains that plan to preload later.
+  const SIX_MONTHS_SECONDS = 15_768_000;
+
+  if (maxAge < SIX_MONTHS_SECONDS) {
+    return [
+      {
+        moduleId: 'P1-03',
+        severity: 'LOW',
+        category: 'Security Headers',
+        title: 'Strict-Transport-Security max-age is too short',
+        location: 'HTTP response headers',
+        evidence: `strict-transport-security: ${value} (max-age=${maxAge}, minimum recommended: ${SIX_MONTHS_SECONDS})`,
+        explanation: `HSTS max-age tells the browser how long to remember to always use HTTPS. A value of ${maxAge} seconds (≈${Math.round(maxAge / 86400)} days) is below the recommended minimum of 6 months (${SIX_MONTHS_SECONDS}s). Short max-age values greatly reduce the window of HSTS protection between visits.`,
+        impact:
+          'Users who have not visited for longer than the max-age period lose HSTS protection and could be subjected to SSL stripping on their next visit.',
+        fixManual: [
+          `Raise max-age to at least ${SIX_MONTHS_SECONDS} (6 months), ideally 31536000 (1 year).`,
+          'HSTS preload list submission requires max-age ≥ 31536000.',
+        ],
+        fixAiPrompt:
+          `My HSTS max-age is only ${maxAge} seconds. Show me how to set it to at least 31536000 in my Next.js next.config.js headers config.`,
+      },
+    ];
+  }
+
+  // max-age is long enough — check for includeSubDomains.
+  // Case-insensitive per RFC 6797 §6.1.
+  if (!/includesubdomains/i.test(value)) {
+    return [
+      {
+        moduleId: 'P1-03',
+        severity: 'INFO',
+        category: 'Security Headers',
+        title: 'Strict-Transport-Security missing includeSubDomains',
+        location: 'HTTP response headers',
+        evidence: `strict-transport-security: ${value} (includeSubDomains absent)`,
+        explanation:
+          'Without includeSubDomains, HSTS applies only to the exact hostname, not to subdomains. Subdomains (e.g. api.example.com, login.example.com) can still be reached over plain HTTP and may be vulnerable to cookie-injection attacks against the apex domain.',
+        impact:
+          'Cookie-injection attacks: an attacker can set cookies on subdomains over HTTP (via SSL stripping) that then affect requests to the secured apex domain.',
+        fixManual: [
+          "Add includeSubDomains to your HSTS header: Strict-Transport-Security: max-age=31536000; includeSubDomains",
+          'Ensure all subdomains also respond over HTTPS before enabling this, or HSTS will block HTTP-only subdomains.',
+        ],
+        fixAiPrompt:
+          "My Strict-Transport-Security header is missing includeSubDomains. Show me how to add it safely in my Next.js app, including what to check before enabling it.",
+      },
+    ];
+  }
+
+  // Well-formed: max-age ≥ 6 months + includeSubDomains present.
+  return [];
+}
+
 export function runHeadersModule(crawl: CrawlResult): RawFinding[] {
   const findings: RawFinding[] = [];
 
@@ -266,6 +517,12 @@ export function runHeadersModule(crawl: CrawlResult): RawFinding[] {
     const sriFinding = checkSri(crawl);
     if (sriFinding) findings.push(sriFinding);
   }
+
+  // CSP strictness and HSTS parameter checks are always-on (no feature flag).
+  // They only fire when the header is present; absent-header findings are
+  // already emitted by the HEADER_CHECKS table above.
+  findings.push(...checkCsp(crawl));
+  findings.push(...checkHsts(crawl));
 
   return findings;
 }

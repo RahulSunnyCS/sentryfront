@@ -1,4 +1,5 @@
 import { promises as dns } from 'dns';
+import { parse as parseTld } from 'tldts';
 import type { CrawlResult, RawFinding } from '../types';
 
 async function getTxtRecords(name: string): Promise<string[]> {
@@ -21,9 +22,11 @@ function parseDMARC(records: string[]): string | null {
 export async function runDnsEmailModule(crawl: CrawlResult): Promise<RawFinding[]> {
   const findings: RawFinding[] = [];
   const hostname = new URL(crawl.finalUrl).hostname;
-  // Use apex domain for email records
+  // Use PSL-aware registrable domain (handles .co.uk, .com.au, .gov.uk etc.).
+  // Falls back to naive slice(-2) for unrecognised TLDs or IP addresses.
+  const { domain: registrable } = parseTld(hostname);
   const parts = hostname.split('.');
-  const apex = parts.length > 2 ? parts.slice(-2).join('.') : hostname;
+  const apex = registrable ?? (parts.length > 2 ? parts.slice(-2).join('.') : hostname);
 
   const [apexTxt, dmarcTxt] = await Promise.all([
     getTxtRecords(apex),
@@ -103,6 +106,59 @@ export async function runDnsEmailModule(crawl: CrawlResult): Promise<RawFinding[
         `Updated record: ${dmarc.replace('p=none', 'p=quarantine')}`,
       ],
       fixAiPrompt: `My DMARC record uses p=none. Upgrade it to p=quarantine to actively protect against phishing emails spoofing my domain.`,
+    });
+  }
+
+  // DKIM — best-effort probe across 9 common selectors.
+  // We use Promise.allSettled so a DNS error on one selector does not abort
+  // the others. getTxtRecords already catches errors internally (returns []),
+  // but allSettled makes the intent explicit and future-proof if the helper
+  // is ever changed to throw.
+  const DKIM_SELECTORS = [
+    'google',
+    'mail',
+    'selector1',
+    'selector2',
+    'default',
+    'mandrill',
+    'sendgrid',
+    'smtp',
+    'dkim',
+  ];
+
+  const dkimResults = await Promise.allSettled(
+    DKIM_SELECTORS.map((selector) => getTxtRecords(`${selector}._domainkey.${apex}`)),
+  );
+
+  // A selector is "found" only when it resolves successfully AND returns at
+  // least one non-empty string. Errors and empty arrays are both inconclusive.
+  const dkimFound = dkimResults.some(
+    (result) =>
+      result.status === 'fulfilled' &&
+      result.value.length > 0 &&
+      result.value.some((record) => record.length > 0),
+  );
+
+  if (!dkimFound) {
+    // All selectors returned empty or errored — emit an inconclusive INFO finding.
+    // We deliberately avoid language like "DKIM is missing" because custom or
+    // provider-specific selectors (Amazon SES, Postmark, etc.) may be in use.
+    findings.push({
+      moduleId: 'P1-10',
+      severity: 'INFO',
+      category: 'DNS & Email Security',
+      title: 'DKIM presence could not be confirmed via common selectors',
+      location: `DNS TXT @ *._domainkey.${apex}`,
+      evidence: `Checked selectors: ${DKIM_SELECTORS.join(', ')}. None returned a DKIM TXT record.`,
+      explanation:
+        'We checked 9 common DKIM selector names and found no DKIM record. This is inconclusive — custom or provider-specific selectors (e.g., Amazon SES, Postmark, Mailchimp) may be in use. This does not confirm DKIM is absent.',
+      impact:
+        'If DKIM is truly absent, email authentication is incomplete. Combined with DMARC p=none this means no enforcement.',
+      fixManual: [
+        'Check your email provider documentation for your DKIM selector name.',
+        'Verify DKIM is configured in your DNS: <your-selector>._domainkey.<domain> TXT "v=DKIM1; k=rsa; p=..."',
+      ],
+      fixAiPrompt: `My domain ${apex} may be missing DKIM. Help me check if DKIM is configured with my email provider and show me the DNS TXT record I need to add.`,
     });
   }
 

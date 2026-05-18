@@ -17,6 +17,7 @@ import { runCacheModule } from './modules/p1-15-cache';
 import { runClientDepsModule } from './modules/p1-16-client-deps';
 import { runServiceWorkerModule } from './modules/p1-17-service-worker';
 import { runWebManifestModule } from './modules/p1-18-web-manifest';
+import { runDomXssModule } from './modules/p1-19-dom-xss';
 import { runPerformanceModules, type PerformanceResult } from './modules/performance';
 import { runAccessibilityModules, type AccessibilityResult } from './modules/accessibility';
 import { runSEOModules, type SEOResult } from './modules/seo';
@@ -148,6 +149,8 @@ export async function runScanner(targetUrl: string): Promise<ScannerResult> {
   // `features.pwaSurfaceChecks` is on, so they're no-ops in flag-off scans.
   const serviceWorkerFindings = runServiceWorkerModule(crawlResult);
   const webManifestFindings = runWebManifestModule(crawlResult);
+  // P1-19: DOM-based XSS. No-op on static-fetch fallback scans (loadedChunkContents absent).
+  const domXssFindings = runDomXssModule(crawlResult);
 
   const allFindings: Array<{ id: string; findings: RawFinding[] }> = [
     { id: 'P1-01', findings: secretsFindings },
@@ -168,6 +171,7 @@ export async function runScanner(targetUrl: string): Promise<ScannerResult> {
     { id: 'P1-16', findings: clientDepsFindings },
     { id: 'P1-17', findings: serviceWorkerFindings },
     { id: 'P1-18', findings: webManifestFindings },
+    { id: 'P1-19', findings: domXssFindings },
   ];
 
   const findings = allFindings.flatMap((m) => m.findings);

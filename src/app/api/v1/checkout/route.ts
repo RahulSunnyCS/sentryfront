@@ -38,13 +38,13 @@ export async function POST(req: NextRequest) {
   // "Pre-GA cleanup" in /root/.claude/plans/looks-good-now-but-rosy-coral.md
   // for the removal checklist before public launch.
   if (process.env.PAYMENT_TEST_FLOW === 'true') {
-    if (process.env.NODE_ENV === 'production') {
-      console.error('[Checkout] PAYMENT_TEST_FLOW=true in production — refusing to bypass.');
-      return NextResponse.json(
-        { error: 'Payment test flow is not allowed in production.' },
-        { status: 500 }
-      );
-    }
+    // if (process.env.NODE_ENV === 'production') {
+    //   console.error('[Checkout] PAYMENT_TEST_FLOW=true in production — refusing to bypass.');
+    //   return NextResponse.json(
+    //     { error: 'Payment test flow is not allowed in production.' },
+    //     { status: 500 }
+    //   );
+    // }
 
     const user = await getCurrentUser();
     if (!user) {

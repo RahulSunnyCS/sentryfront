@@ -24,6 +24,7 @@ export const SCAN_MODULES: ScanModule[] = [
   { id: 'P1-13', name: 'Admin Interfaces',     plainName: 'Exposed admin pages' },
   { id: 'P1-14', name: 'robots.txt & Sitemap', plainName: 'Search engine exposure' },
   { id: 'P1-15', name: 'Cache Configuration',  plainName: 'Cache leak check' },
+  { id: 'P1-19', name: 'DOM XSS Surface',       plainName: 'DOM-based script injection check' },
   // Phase 5 compliance modules — P5-01..P5-06. Wired into the scan pipeline via
   // runComplianceModules() in src/lib/scanner/modules/compliance.ts, which is
   // called from src/lib/scanner/index.ts. Metadata follows the same

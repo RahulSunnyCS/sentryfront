@@ -1,3 +1,9 @@
 {
-  "findings": []
+  "findings": [
+    {
+      "moduleId": "P1-03",
+      "severity": "INFO",
+      "titleIncludes": "includeSubDomains"
+    }
+  ]
 }
