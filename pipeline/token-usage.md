@@ -20,3 +20,6 @@
 | Phase 5 | Integration test writer | test-writer | sonnet | medium | ~10k |
 | Phase 5 | Docs writer | docs-writer | haiku | low | ~5k |
 | Phase 5 | E2E test writer | e2e-test-writer | sonnet | medium | ~10k |
+| Phase 6 | Blast-radius + Automation Gate | orchestrator | haiku | low | ~4k |
+| Phase 7 | Epic Doc Writer | epic-doc-writer | sonnet | medium | ~87k |
+| Phase 7 | Final Review + Gate 3 | orchestrator | opus | high | ~20k |
