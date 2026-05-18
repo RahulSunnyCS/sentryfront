@@ -157,7 +157,7 @@ the OAuth popup routes, and static files.
 
 ### Feature flags (`src/lib/features.ts`)
 
-`features` is a frozen object of 15 booleans (all default `true`), overridable
+`features` is a frozen object of booleans (all default `true`), overridable
 via the `FEATURES` env var (JSON, e.g.
 `FEATURES='{"stripe":false,"llmEnrichment":false}'`). Companion config objects:
 `llmConfig` (Anthropic), `pdfConfig` (Cloudflare R2), `stripeConfig`,
@@ -184,9 +184,12 @@ PostgreSQL/`DATABASE_URL`) — do not hand-edit the provider line.
   (`modules/accessibility.ts`).
 - SEO **P4** (`p4-01`…`p4-06`) wrapped by `runSEOModules` (`modules/seo.ts`),
   plus `seo-corroborate.ts`.
+- Compliance **P5**: `p5-01`…`p5-06` (6 modules, signal-detection only — not
+  legal attestation) — wrapped by `runComplianceModules` (`modules/compliance.ts`),
+  feature flag `complianceScanning` (default on).
 
 Note: the README/older docs say "15 security modules" — that is **stale**; the
-current count is 18.
+current count is 18 P1 modules. P5 (compliance) is new as of this run.
 
 ## Key Patterns & Conventions
 

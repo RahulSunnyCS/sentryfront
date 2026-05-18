@@ -87,3 +87,65 @@ export interface SwRegistrationRecord {
   url: string;     // absolute SW script URL
   scope: string;   // declared registration scope (resolved against finalUrl)
 }
+
+// ── Compliance types (Phase 5) ───────────────────────────────────────────────
+
+/**
+ * ComplianceContext carries inputs that compliance modules need which are not
+ * already present on CrawlResult. accessibilityScore is forwarded from the
+ * Lighthouse/P3 pass so P5-04 (WCAG Attestation) can inspect it without
+ * re-running Lighthouse.
+ */
+export interface ComplianceContext {
+  accessibilityScore?: number;
+  accessibilityScoreSource?: 'lab' | 'unavailable';
+  renderMode?: 'headless' | 'fetch-only';
+  /**
+   * Pre-parsed cheerio DOM supplied by the compliance orchestrator. When
+   * present, individual P5 modules MUST use this instance instead of calling
+   * cheerio.load() themselves, so the six modules share a single parse pass
+   * over the page HTML rather than each re-parsing the same document.
+   * Modules fall back to cheerio.load(<their html source>) when this is absent,
+   * preserving identical behaviour for callers that do not supply a shared DOM.
+   */
+  dom?: import('cheerio').CheerioAPI;
+}
+
+/**
+ * A single compliance signal. status is deliberately a string union — no
+ * numeric score or fraction is structurally possible. This is intentional:
+ * compliance findings are observations, not pass-rates or percentages, because
+ * this is a claim-sensitive surface (regulatory compliance cannot be quantified
+ * by a passive scan).
+ */
+export interface ComplianceSignal {
+  label: string;
+  status: 'observed' | 'not-observed' | 'not-evaluated';
+}
+
+/**
+ * Per-framework summary. A flat array of signals — no score, no count, no
+ * fraction. Consuming UI renders the signals directly; aggregation is the
+ * caller's responsibility and must not be done here.
+ */
+export interface ComplianceFrameworkEntry {
+  framework: string;
+  signals: ComplianceSignal[];
+}
+
+/**
+ * The full compliance framework summary: an array of per-framework entries.
+ * Typed as a plain array (not an object with numeric keys) so TypeScript
+ * structurally prevents adding a numeric score property.
+ */
+export type ComplianceFrameworkSummary = ComplianceFrameworkEntry[];
+
+/**
+ * Return value from the compliance module orchestrator (compliance.ts, Phase 5).
+ * findings feeds the shared RawFinding pipeline; frameworkSummary is stored on
+ * ScannerResult and surfaced in the report UI separately from finding severity.
+ */
+export interface ComplianceResult {
+  findings: RawFinding[];
+  frameworkSummary: ComplianceFrameworkSummary;
+}

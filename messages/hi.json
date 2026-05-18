@@ -531,6 +531,17 @@
       "desktopSubordinateNote": "सूचनात्मक — मुख्य ग्रेड मोबाइल पर आधारित है (Google का डिफ़ॉल्ट)",
       "cacheStalenessNote": "परिणाम लगभग 5 मिनट तक कैश हो सकते हैं",
       "realUsersSlowBanner": "लैब सिमुलेशन स्वीकार्य दिखने के बावजूद वास्तविक उपयोगकर्ता धीमा अनुभव कर रहे हैं"
+    },
+    "compliance": {
+      "sectionTitle": "अनुपालन संकेत",
+      "emptyTitle": "अनुपालन जाँच — अभी तक मूल्यांकन नहीं हुआ",
+      "emptyBody": "अनुपालन संकेत पहचान (GDPR, CCPA, WCAG) यहाँ तब दिखेगी जब स्कैन Phase 5 मॉड्यूल चला लेगा। इस स्कैन के लिए कोई अनुपालन दावा नहीं किया गया है।",
+      "signalObserved": "देखा गया",
+      "signalNotObserved": "नहीं देखा गया",
+      "signalNotEvaluated": "मूल्यांकन नहीं हुआ",
+      "disclaimer": "Not legal advice. Not a compliance attestation. Signal detection only.",
+      "findingsTitle": "अनुपालन निष्कर्ष",
+      "categoryLabel": "संकेत"
     }
   },
   "scan": {

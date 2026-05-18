@@ -531,6 +531,17 @@
       "desktopSubordinateNote": "Informativ — die Hauptnote basiert auf Mobilgeräten (Googles Standard)",
       "cacheStalenessNote": "Ergebnisse können bis zu ~5 Minuten zwischengespeichert sein",
       "realUsersSlowBanner": "Echte Nutzer erleben eine langsame Performance, obwohl die Lab-Simulation akzeptabel erscheint"
+    },
+    "compliance": {
+      "sectionTitle": "Compliance-Signale",
+      "emptyTitle": "Compliance-Prüfungen — noch nicht bewertet",
+      "emptyBody": "Compliance-Signalerkennungen (GDPR, CCPA, WCAG) erscheinen hier, sobald der Scan die Phase-5-Module ausgeführt hat. Für diesen Scan wird kein Compliance-Anspruch erhoben.",
+      "signalObserved": "Beobachtet",
+      "signalNotObserved": "Nicht beobachtet",
+      "signalNotEvaluated": "Nicht bewertet",
+      "disclaimer": "Not legal advice. Not a compliance attestation. Signal detection only.",
+      "findingsTitle": "Compliance-Befunde",
+      "categoryLabel": "Signale"
     }
   },
   "scan": {

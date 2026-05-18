@@ -20,7 +20,8 @@ import { runWebManifestModule } from './modules/p1-18-web-manifest';
 import { runPerformanceModules, type PerformanceResult } from './modules/performance';
 import { runAccessibilityModules, type AccessibilityResult } from './modules/accessibility';
 import { runSEOModules, type SEOResult } from './modules/seo';
-import type { RawFinding } from './types';
+import { runComplianceModules } from './modules/compliance';
+import type { RawFinding, ComplianceFrameworkSummary } from './types';
 import type { ParsedAudit } from './audit-parser';
 import type { CrUXFieldData } from './lighthouse';
 import { features } from '@/lib/features';
@@ -100,6 +101,11 @@ export interface ScannerResult {
   seoMetrics?: {
     issues: ParsedAudit[];
   };
+  // Compliance scanning results (Phase 5 — P5 group)
+  // Optional so flag-off scans (features.complianceScanning === false) produce
+  // a ScannerResult that is byte-identical to pre-Phase-5 output. The key is
+  // absent entirely (not null) because the return uses a conditional spread.
+  complianceFrameworkSummary?: ComplianceFrameworkSummary;
 }
 
 export async function runScanner(targetUrl: string): Promise<ScannerResult> {
@@ -247,6 +253,41 @@ export async function runScanner(targetUrl: string): Promise<ScannerResult> {
     }
   }
 
+  // Phase 5 (P5 group): Compliance scanning — appended strictly LAST so that
+  // findings/moduleFindingCounts ordering is unchanged vs pre-Phase-5 when
+  // this flag is off. Null when disabled; the conditional spread in the return
+  // ensures the key is entirely absent on the result (byte-identical flag-off).
+  let complianceResult: Awaited<ReturnType<typeof runComplianceModules>> | null = null;
+
+  if (features.complianceScanning) {
+    try {
+      // Build ComplianceContext from whatever data is available at this point.
+      // accessibilityScore comes from the P3 pass (may be undefined if it
+      // did not run or failed). AccessibilityResult has no accessibilityScoreSource
+      // field, so we intentionally omit accessibilityScoreSource from the context
+      // rather than inventing a value — the type allows it to be absent.
+      const complianceCtx = {
+        accessibilityScore: accessibilityResult?.accessibilityScore,
+        // accessibilityScoreSource is intentionally omitted: AccessibilityResult
+        // does not expose a scoreSource, so we cannot populate it without
+        // guessing. ComplianceContext accepts it as optional — leave it absent.
+        renderMode: crawlResult.renderMode,
+      };
+
+      complianceResult = await runComplianceModules(crawlResult, complianceCtx);
+
+      // Push P5 findings into the shared findings array.
+      findings.push(...complianceResult.findings);
+
+      // Record the per-group finding count under a stable P5 key.
+      moduleFindingCounts['P5-Compliance'] = complianceResult.findings.length;
+    } catch (error) {
+      logger.error('Compliance scan failed, continuing with remaining scan', { error, url: targetUrl });
+      // A compliance failure must never fail the entire scan — same pattern as
+      // the sibling performance / accessibility / SEO blocks above.
+    }
+  }
+
   return {
     findings,
     stack: crawlResult.stack,
@@ -308,6 +349,12 @@ export async function runScanner(targetUrl: string): Promise<ScannerResult> {
       seoMetrics: {
         issues: seoResult.metrics.seoIssues,
       },
+    }),
+    // Compliance results (only if feature is enabled and scan succeeded).
+    // The key is absent entirely (not null) when complianceResult is null,
+    // so flag-off output is byte-identical to pre-Phase-5 ScannerResult shapes.
+    ...(complianceResult && {
+      complianceFrameworkSummary: complianceResult.frameworkSummary,
     }),
   };
 }

@@ -14,6 +14,11 @@ Scan any website for security vulnerabilities, performance bottlenecks, accessib
 - 🔍 **18 Security Modules** - Client secrets, XSS, CSP, CORS, and more
 - 🤖 **AI-Powered Enrichment** - Claude explains findings in plain English
 
+### **Compliance Signal Detection** ✅
+- ⚖️ **Passive GDPR, CCPA, WCAG Signals** - Cookie consent, privacy policy, data protection headers, accessibility
+- 🔍 **6 Compliance Detection Modules** - No legal attestation — honest signal detection only
+- 📋 **No Architecture Changes** - Feature flag `complianceScanning` (default on)
+
 ### **Performance Scanning** ✅
 - ⚡ **Core Web Vitals** - LCP, FCP, CLS, TBT analysis via Lighthouse
 - 📊 **Lighthouse-Accurate Score** - Matches Google PageSpeed Insights exactly (the old double-penalty on LCP/CLS has been removed so your VibeSafe score equals what you see on PageSpeed)
@@ -121,7 +126,7 @@ Visit: **http://localhost:3000**
 
 ## 🎯 What's Included
 
-### **Security Modules:**
+### **Security Modules (18):**
 1. Client-Side Secret Exposure (API keys, tokens)
 2. Missing Security Headers (CSP, HSTS, X-Frame-Options)
 3. CORS Misconfiguration
@@ -136,7 +141,20 @@ Visit: **http://localhost:3000**
 12. Technology Fingerprinting
 13. WAF Detection
 14. CDN Detection
-15. Performance & Best Practices
+15. DNSSEC Configuration
+16. DNS Pinning
+17. Cookie Flags Validation
+18. Clickjacking Protections
+
+### **Compliance Signal Detection Modules (6):**
+1. GDPR/CCPA Cookie Consent Detection
+2. Privacy Policy Detection
+3. Data Protection Headers
+4. WCAG 2.2 Signal Detection
+5. Third-Party Data Sharing Analysis
+6. User Rights Implementation Check
+
+> **Note:** Compliance modules detect signals, not attest compliance. See [Compliance Modules Documentation](docs/modules/COMPLIANCE_MODULES.md) for details.
 
 ### **Tech Stack:**
 - **Framework:** Next.js 14 (App Router)

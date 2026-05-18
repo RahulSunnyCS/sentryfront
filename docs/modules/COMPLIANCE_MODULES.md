@@ -1,15 +1,21 @@
 # Compliance Modules Documentation
 
-**VibeSafe Compliance Scanner - GDPR, WCAG, Privacy & Regulatory Compliance**  
-**Last Updated:** 2026-05-13  
-**Status:** Phase 5 (Planned)  
+**VibeSafe Compliance Signal Detection - GDPR, WCAG, Privacy & Regulatory Signals**  
+**Last Updated:** 2026-05-17  
+**Status:** P5-01–P5-06 Shipping (signal-detection only); P5-07–P5-08 Future  
 **Total Modules:** 8
+
+> **Important:** These modules detect *signals* of common compliance issues on
+> the client-visible surface of a website. They do **not** certify, attest, or
+> guarantee legal compliance with any regulation. Treat findings as actionable
+> indicators, not as a compliance audit. Always consult qualified legal counsel
+> for regulatory compliance advice.
 
 ---
 
 ## Overview
 
-Compliance modules help ensure websites meet legal and regulatory requirements across privacy laws (GDPR, CCPA), accessibility standards (WCAG 2.2), and industry-specific regulations (PCI-DSS, HIPAA).
+Compliance signal-detection modules scan the client-visible surface of websites for common indicators associated with privacy laws (GDPR, CCPA), accessibility standards (WCAG 2.2), and industry-specific regulations (PCI-DSS, HIPAA). Findings are signals to investigate, not determinations of legal compliance.
 
 **Why Compliance Matters:**
 - ⚖️ **Legal Protection** - Avoid lawsuits and regulatory fines
@@ -23,12 +29,12 @@ Compliance modules help ensure websites meet legal and regulatory requirements a
 
 | ID | Module Name | Regulation | Severity | Status |
 |----|-------------|------------|----------|--------|
-| P5-01 | GDPR/CCPA Cookie Consent | GDPR Art. 7, CCPA | HIGH | Planned |
-| P5-02 | Privacy Policy Detection | GDPR, CCPA, CalOPPA | MEDIUM | Planned |
-| P5-03 | Data Protection Headers | GDPR Art. 32 | MEDIUM | Planned |
-| P5-04 | WCAG 2.2 Attestation | ADA, Section 508 | HIGH | Planned |
-| P5-05 | Third-Party Data Sharing | GDPR Art. 44, CCPA | MEDIUM | Planned |
-| P5-06 | User Rights Implementation | GDPR Art. 15-22 | LOW | Planned |
+| P5-01 | GDPR/CCPA Cookie Consent | GDPR Art. 7, CCPA | HIGH | Shipping |
+| P5-02 | Privacy Policy Detection | GDPR, CCPA, CalOPPA | MEDIUM | Shipping |
+| P5-03 | Data Protection Headers | GDPR Art. 32 | MEDIUM | Shipping |
+| P5-04 | WCAG 2.2 Signal Detection | ADA, Section 508 | HIGH | Shipping |
+| P5-05 | Third-Party Data Sharing | GDPR Art. 44, CCPA | MEDIUM | Shipping |
+| P5-06 | User Rights Implementation | GDPR Art. 15-22 | LOW | Shipping |
 | P5-07 | PCI-DSS Payment Security | PCI-DSS v4.0 | CRITICAL | Future |
 | P5-08 | HIPAA PHI Protection | HIPAA | CRITICAL | Future |
 
@@ -231,15 +237,15 @@ This sends only origin (domain) to third parties, not full URLs.
 
 ---
 
-## P5-04: WCAG 2.2 Attestation
+## P5-04: WCAG 2.2 Signal Detection
 
 ### What We Check
 
-**Accessibility Compliance Status:**
-- ✅ WCAG 2.2 Level AA compliance score (from P3-XX modules)
-- ✅ Critical violations count
+**Accessibility Signal Indicators:**
+- ✅ WCAG 2.2 Level AA signal score (from P3-XX modules)
+- ✅ Critical violation count
 - ✅ Accessibility statement present
-- ✅ Compliance level declaration (A, AA, AAA)
+- ✅ Conformance level declaration (A, AA, AAA)
 - ✅ Contact for accessibility feedback
 
 **Regulations:**
@@ -259,7 +265,7 @@ This sends only origin (domain) to third parties, not full URLs.
    - Check footer links for "Accessibility"
    - Scan for WCAG conformance claims
 
-3. **Generate Compliance Report**:
+3. **Generate Signal Report**:
    - Pass: <5 violations, accessibility statement present
    - Partial: 5-20 violations, statement may be missing
    - Fail: >20 violations, no statement
@@ -555,19 +561,19 @@ Fix:
 
 ## Implementation Roadmap
 
-### Phase 1: Privacy Compliance (Q2 2026)
-- ✅ P5-01: Cookie Consent Detection
-- ✅ P5-02: Privacy Policy Detection
-- ✅ P5-03: Data Protection Headers
+### Phase 1: Privacy Signal Detection (Q2 2026)
+- ✅ P5-01: Cookie Consent Detection — Shipping
+- ✅ P5-02: Privacy Policy Detection — Shipping
+- ✅ P5-03: Data Protection Headers — Shipping
 
-### Phase 2: Accessibility & Transparency (Q3 2026)
-- ✅ P5-04: WCAG 2.2 Attestation
-- ✅ P5-05: Third-Party Data Sharing
-- ✅ P5-06: User Rights Implementation
+### Phase 2: Accessibility & Transparency Signal Detection (Q3 2026)
+- ✅ P5-04: WCAG 2.2 Signal Detection — Shipping
+- ✅ P5-05: Third-Party Data Sharing — Shipping
+- ✅ P5-06: User Rights Implementation — Shipping
 
 ### Phase 3: Industry-Specific (Q4 2026 - 2027)
-- ✅ P5-07: PCI-DSS Payment Security
-- ✅ P5-08: HIPAA PHI Protection
+- 🔜 P5-07: PCI-DSS Payment Security — Future
+- 🔜 P5-08: HIPAA PHI Protection — Future
 
 ---
 
@@ -594,11 +600,10 @@ CCPA Compliance: FAIL (2/6 checks passed)
 └─ Missing: Do Not Sell link, user rights, cookie controls
 ```
 
-**PDF Export for Audits:**
-- Compliance summary with pass/fail status
+**PDF Export:**
+- Signal-detection summary with pass/fail indicators
 - Detailed findings with regulation references
-- Remediation steps for each violation
-- Suitable for investor due diligence, customer audits
+- Remediation steps for each signal detected
 
 ---
 
@@ -621,7 +626,7 @@ CCPA Compliance: FAIL (2/6 checks passed)
 - ❌ **Internal Security Controls** - Cannot scan internal systems
 - ❌ **Employee Training** - GDPR requires staff training (not automated)
 
-**Recommendation:** Use VibeSafe for automated checks, but consult legal counsel for full compliance certification.
+**Recommendation:** Use VibeSafe for automated signal detection, but consult qualified legal counsel for regulatory compliance advice.
 
 ---
 
@@ -672,4 +677,4 @@ CCPA Compliance: FAIL (2/6 checks passed)
 
 ---
 
-**Note:** VibeSafe compliance modules provide automated detection of common compliance issues. For legal compliance certification, consult qualified legal counsel.
+**Note:** VibeSafe compliance modules detect signals of common compliance issues on the client-visible surface of a website. They do not certify, attest, or guarantee legal compliance with any regulation. For legal compliance advice, consult qualified legal counsel.
