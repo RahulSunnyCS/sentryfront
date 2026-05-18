@@ -117,7 +117,7 @@ Create the file pipeline/risk_manifest.json with this structure:
 {
   "risk_level": "HIGH or MEDIUM or LOW",
   "triggers": ["list of what triggered the risk level"],
-  "mandatory_agents": ["security-auditor", "performance-reviewer", "architecture-reviewer"],
+  "mandatory_agents": ["senior-software-engineer"],
   "tags": ["zero or more of: pricing, frontend, backend, infra, product"],
   "lane": "express | bugfix-known | bugfix-unknown | feature-fast | feature-full",
   "lane_rationale": "one sentence — why this lane and not a heavier one",
@@ -348,6 +348,7 @@ Then run the QA Planner agent (.claude/agents/qa-planner.md) to produce pipeline
 - Escalate to Opus at high effort when risk_flags include auth or PII; otherwise Sonnet at medium effort.
 - The checklist classifies every test scenario into three tiers: 🔴 Critical (blocks Gate 2 if failing at the Automation Gate), 🟡 Functional (CONDITIONAL PASS condition at Gate 2), 🟢 Non-blocker (informational only).
 - **Lane-scaled breadth:** for feature-fast lane or MEDIUM risk_level with no risk_flags, emit **Critical + Functional tiers only** — skip exhaustive Non-blocker enumeration. Full three-tier output only for feature-full or HIGH risk.
+- **State×Display Matrix (frontend tag only):** when risk_manifest.tags include `frontend`, the checklist MUST include, for every changed interactive view/component, a matrix over the states {loading, error, empty, partial, success}. Each state maps to ≥1 test case classified into a tier; a view whose state handling has no test is at minimum 🟡 Functional. This is consumed unchanged by the E2E Test Writer (Phase 5) — no new agent.
 - The Translator agent does NOT translate the checklist — it is a machine-readable artifact consumed by the E2E Test Writer (Phase 5) and the Automation Gate (Phase 6).
 - Append the QA checklist tier summary to the Plan Report before presenting at Gate 1 (see Output Format: Plan Report below).
 
@@ -359,10 +360,32 @@ HUMAN GATE 1: Stop completely. Present the translated Plan Report. Do not procee
 
 Only runs after Human Gate 1 approval.
 
+**Decomposition model scaling:** run this phase at Opus/high for
+feature-full (and the very-hard/epic split). For feature-fast and
+bugfix-known — where decomposition is 1–3 simple tasks — run it at
+**Sonnet/high**. The lane fail-safe still governs: HIGH risk / any risk_flag
+keeps Opus regardless.
+
 Break the plan into atomic task contracts. Each task must be:
 - Independent (no shared file writes with other parallel tasks)
 - Completable by a single agent
 - Bounded with a clear start, finish, and acceptance criteria
+
+**Shared-module identification (do this first, before cutting tasks):** ask
+"will ≥2 tasks need the same logic / type / helper?" If yes, make that shared
+piece its **own Wave-1 task** that the dependent tasks declare as a
+`dependency` — never let two parallel tasks each re-implement it. This
+prevents the post-hoc shared-component regression class that otherwise only
+surfaces at Phase-6 blast-radius.
+
+**Mechanical-file batching:** cluster several same-pattern,
+low-individual-complexity files (e.g. i18n catalogs, display-metadata
+entries, near-identical boilerplate modules) into ONE implementor contract
+instead of one task per file — they share a template, so one agent doing all
+of them avoids N cold starts. **Never** batch logic-bearing, API-contract, or
+security-critical files: those stay as separate contracts even if they share a
+pattern. Batching must still respect the independence rule (no shared file
+writes with another parallel task).
 
 Save each task as pipeline/tasks/T-XX.json:
 {
@@ -398,9 +421,38 @@ The Phase-3 implementor receives these hints as its model/effort instruction.
 The lane fail-safe still applies: HIGH risk / any risk_flag → minimum sonnet/high
 regardless of the per-task hint.
 
+**Cross-artifact consistency check (very-hard / epic split only — no new agent):**
+when the epic trigger fired (risk_level HIGH **and** ≥3 tags — the same
+trigger as the Bounded Phase-1 Constraint Round), the orchestrator, in this
+same Opus decomposition pass, verifies that every T-XX acceptance criterion
+traces to an approved Plan Report item and does not contradict any tagged
+specialist's Phase-1 constraint memo (and, where parallel tasks share a
+front-end ↔ back-end contract, that the contract is described identically in
+both task contracts). Any contradiction is surfaced to the user **before
+Phase 3** — never silently reconciled. Skipped for every other lane (the
+single-source task contracts make it redundant there).
+
 Regenerate the root TODO.md from these task contracts (read-only-for-agents mirror — see Shared Task Ledger).
 
 Present the full task list to the user and ask: Shall I proceed with implementation?
+
+---
+
+## Shared Context Pack (built once after Gate 1, consumed by every downstream agent)
+
+After Gate 1 approval the orchestrator builds ONE context-pack artifact at
+`pipeline/context-pack.md` and passes it (by reference) into every Phase 3/4/
+5/6 agent delegation, so agents stop re-discovering the repository from cold:
+
+- changed-file list + unified diff against the base branch (as it grows),
+- the task-map (which T-XX owns which files),
+- an "already-implemented manifest" — what prior tasks/runs have already
+  landed, so a later agent does not re-explore or re-implement it,
+- the relevant `.claude/project/` facts for this task's surface.
+
+The orchestrator refreshes it at each phase boundary (it is working state,
+deleted with `pipeline/` at Gate-3 cleanup). Agents read it; they never write
+it (single-writer rule, same as TODO.md).
 
 ---
 
@@ -417,27 +469,44 @@ Rules:
 
 ---
 
-## Phase 4 — Parallel Specialist Review
+## Phase 4 — Consolidated Specialist Review
+
+**Primary reviewer: the senior-software-engineer agent**
+(.claude/agents/senior-software-engineer.md) covers **security + performance +
+architecture in one Opus pass** for every lane up to and including
+feature-full. It applies the frontend/backend/infra lens for whichever of
+those risk_manifest.tags are set, and saves one combined report to
+pipeline/reviews/.
 
 **Reviewer set is gated by lane × risk_level** (the Phase-0 lane fail-safe
 still governs):
-- feature-full OR risk_level HIGH → all three (security + performance +
-  architecture); security-auditor mandatory at Opus/max.
-- MEDIUM (bugfix-known / bugfix-unknown / feature-fast at MEDIUM) → security +
-  architecture (performance only if the change is performance-relevant).
-- LOW → architecture only.
+- up to feature-full → the senior-software-engineer agent (one pass).
+- LOW → senior-software-engineer agent, architecture lens emphasised.
 - express → no Phase 4 (no code-logic surface).
-security-auditor is **never** gated out when risk_level is HIGH or any
-auth / pii / payment / public-facing-API risk_flag is set — no lane can
-downgrade this. bugfix-unknown always runs the full set (side-effect risk).
+- **very-hard / epic split** (risk_level HIGH **and** ≥3 tags — the same
+  trigger as the Bounded Phase-1 Constraint Round) → do NOT use the
+  consolidated agent; run the dedicated specialists in parallel instead:
+  security-auditor (Opus/max), performance-reviewer, architecture-reviewer.
+- bugfix-unknown always runs the dedicated specialist set (side-effect risk).
 
-Run the selected reviewers simultaneously:
-1. Security Auditor → .claude/agents/security-auditor.md
-2. Performance Reviewer → .claude/agents/performance-reviewer.md
-3. Architecture Reviewer → .claude/agents/architecture-reviewer.md (apply the frontend/backend/infra lens for whichever of those risk_manifest.tags are set)
+**Escalation protocol (the security fail-safe — non-negotiable):**
+After its pass the senior-software-engineer agent emits an explicit verdict:
+`OPUS DEEP-DIVE: REQUIRED | NOT REQUIRED` with a one-paragraph rationale.
+- **Discretionary** when no risk_flag is set and risk_level < HIGH: the agent
+  may request the deep-dive if its own findings warrant it.
+- **Forced but scoped** when ANY risk_flag (auth / pii / payment /
+  public-facing-API / admin / file-upload / user-generated-content) is set OR
+  risk_level is HIGH: a standalone security-auditor (.claude/agents/
+  security-auditor.md) Opus/max deep-dive **always runs**, but **scoped to the
+  senior agent's findings** (a focused brief, not a cold full audit). No lane,
+  and no senior-agent verdict, can downgrade this. "Never use a fast model for
+  security reasoning" still binds — the senior agent is Opus.
+
+When a deep-dive runs, it is a second report in pipeline/reviews/, synthesised
+alongside the consolidated report below.
 
 Also run, only when the matching tag is set (see Conditional Specialists):
-4. Pricing Reviewer → .claude/agents/pricing-reviewer.md — only if tags include pricing
+- Pricing Reviewer → .claude/agents/pricing-reviewer.md — only if tags include pricing
 
 Each saves a report to pipeline/reviews/
 
@@ -554,6 +623,42 @@ Model: Haiku at low effort — this step classifies command output, not reasonin
 
 ---
 
+## Phase 7.4 — Pipeline Retrospective (feature-full and above only)
+
+A meta-review of **this pipeline run itself** — not the code. It improves the
+pipeline over time. Lane-gated to keep it from undermining the efficiency it
+exists to find:
+
+- **Runs** for tasks **above medium**: feature-full, and the very-hard/epic
+  split (HIGH **and** ≥3 tags). bugfix-unknown runs it only if it escalated to
+  Opus diagnosis.
+- **Skipped** for express, bugfix-known, feature-fast, and any MEDIUM/LOW run.
+- **Executed during the Gate-3 [1] APPROVE sequence**, after the PR is created
+  and **before** `pipeline/` is deleted (it must read pipeline artifacts).
+
+Mechanism — three parallel instances of the retrospective-reviewer agent
+(.claude/agents/retrospective-reviewer.md), each spawned with a distinct
+`bias`:
+1. `bias=conservative` — change only what is clearly wasteful; default to keep.
+2. `bias=medium` — balanced cost/quality tradeoff.
+3. `bias=aggressive` — willing to add/remove agents, re-tier models, restructure
+   phases for large gains.
+
+Each reads pipeline/token-usage.md, progress.md, the gate history, and the
+regression/blast-radius records, then proposes flow-change recommendations
+(add/remove an agent, up/downgrade orchestrator or step model/effort, merge or
+split a phase) with quality / time / token impact and per-complexity-tier
+effect. "No change needed" is a valid output.
+
+The orchestrator (Opus) synthesises the three biased reports into ONE
+recommendation set (or "no change"). Output is **advisory only — it never
+auto-edits CLAUDE.md or any agent file**; a human approves any pipeline change
+separately. The synthesis is persisted to
+`docs/pipeline-retros/<date>-<slug>.md` (outside `pipeline/`, so it survives
+the Gate-3 cleanup) and summarised in the PR Delivery Summary.
+
+---
+
 ## Phase 7 — Final Review and Submit
 
 Check:
@@ -576,7 +681,8 @@ GATE 3 — ACTION REQUIRED
 Choose one option:
 
   [1] APPROVE
-      Generates the PR, cleans up pipeline/, done.
+      Generates the PR, runs the retrospective (feature-full+),
+      cleans up pipeline/, done.
 
   [2] REQUEST CHANGES
       You will be asked for the reason. Pipeline continues.
@@ -592,14 +698,16 @@ Reply with 1, 2, or 3.
 
 Step 1 — Generate the PR description from pipeline files (see Output Format: PR Description below). This is the only time the pipeline files are read for this purpose.
 
-Step 2 — Clean up all pipeline working state:
+Step 2 — Create the PR via the GitHub MCP tool (mcp__github__create_pull_request) using the generated PR description. Base branch: main (or the project's default branch).
+
+Step 3 — Run Phase 7.4 Pipeline Retrospective (only if the lane qualifies — feature-full and above; otherwise skip this step). The 3-bias team + Opus synthesis runs here, while `pipeline/` still exists. Persist the synthesis to `docs/pipeline-retros/<date>-<slug>.md` and commit it.
+
+Step 4 — Clean up all pipeline working state (only after the retrospective has read and persisted what it needs):
   a. Delete the entire `pipeline/` directory (risk_manifest.json, progress.md, token-usage.md, qa-checklist.md, tasks/, reviews/, diagnosis.md — everything).
   b. Delete `TODO.md` from the repository root.
   c. Commit with message: `chore: clean up pipeline working state after Gate 3`.
 
-Step 3 — Create the PR via the GitHub MCP tool (mcp__github__create_pull_request) using the generated PR description. Base branch: main (or the project's default branch).
-
-Step 4 — Display the PR Delivery Summary in the Claude UI (see Output Format: PR Delivery Summary below). This is what the user sees after approval — the same information that is in the PR description, shown in the session.
+Step 5 — Display the PR Delivery Summary in the Claude UI (see Output Format: PR Delivery Summary below), including the retrospective outcome when it ran. This is what the user sees after approval — the same information that is in the PR description, shown in the session.
 
 **On [2] REQUEST CHANGES:**
 Ask: "What needs to change before this is ready?" Wait for the answer. Address the specific feedback, then re-run the affected phases and return to Gate 3.
@@ -643,7 +751,8 @@ Planning, Decomposition, Synthesis Review, Final Review → Use deepest reasonin
 Triage → Haiku at low effort (short rule-based risk classification + lane selection against a fixed rubric; "default to HIGH when uncertain" and "pick the heavier lane when uncertain" make any misclassification fail-safe, so a fast model is correct here)
 Diagnosis (Phase 0.7, bugfix-unknown) → Sonnet; escalate to Opus if the root cause stays elusive (root-causing is reasoning, not boilerplate)
 Implementation, Fix cycles → Use fast capable model
-Specialist Reviews → Use fast capable model, EXCEPT the security-auditor, which uses deepest reasoning (Opus): security review is security reasoning
+Specialist Review (Phase 4) → the consolidated senior-software-engineer agent uses deepest reasoning (Opus): it carries the security lens, and security review is security reasoning. Its forced-or-discretionary Opus deep-dive (security-auditor) is also Opus/max. The dedicated specialists only run at the very-hard/epic split: security-auditor Opus/max, performance/architecture fast capable model
+Retrospective (Phase 7.4, feature-full+) → 3× retrospective-reviewer agents fast capable model (Sonnet); Opus synthesis (it weighs cross-bias pipeline-design tradeoffs — reasoning, not boilerplate)
 Documentation, Translation to plain English → Use fastest model
 Test writing → Sonnet at medium effort by default; escalate to Opus at high effort when the task's risk_flags include auth or PII (security tests need the strongest reasoning)
 Regression analysis (regression-analyst, Phase 6 COLLATERAL path) → Opus at high effort: evaluating a shared-component change and the architecture that let it cascade is regression reasoning, same principle as the security-auditor — never a fast model. The DIRECT-failure fix path stays on the fast model (Implementor).
@@ -685,11 +794,12 @@ Recommended default effort per step (model column = current assignment):
 | Phase 0.7 Diagnosis (bugfix-unknown) | Sonnet (Opus if elusive) | medium (high if escalated) |
 | Phase 1 Planning + Red Team (+ optional recommendations) | Opus / red-team Opus | **high** (feature-fast / MEDIUM) · **max** (feature-full / HIGH or any risk_flag) |
 | Gate Translator (Gates 1/2/3)    | Haiku                | medium |
-| Phase 2 Decomposition            | Opus                 | high   |
+| Phase 2 Decomposition            | Opus (Sonnet for feature-fast / bugfix-known) | high   |
 | Phase 3 Implementation           | per task_contract model_hint (haiku→sonnet→opus) | per task_contract effort_hint (medium→high) |
 | Phase 3+4.5 Agent output verification | Haiku          | low    |
-| Phase 4 Security Auditor         | Opus                 | max    |
-| Phase 4 Performance/Architecture | Sonnet               | high   |
+| Phase 4 Senior SW Engineer (sec+perf+arch) | Opus       | high (max if any risk_flag) |
+| Phase 4 Opus deep-dive (security-auditor; forced if risk_flag/HIGH, else discretionary) | Opus | max |
+| Phase 4 Dedicated specialists (very-hard/epic split only) | Opus security-auditor/max · Sonnet perf+arch | max / high |
 | Phase 4 Synthesis                | Opus                 | high   |
 | Phase 1/4 Pricing Reviewer       | Sonnet (tag-gated)   | low    |
 | Phase 5 Test Writer              | Sonnet (Opus if auth/PII) | medium (high if auth/PII) |
@@ -704,6 +814,8 @@ Recommended default effort per step (model column = current assignment):
 | Phase 6 Regression Triage        | Haiku                | low    |
 | Phase 6 Regression Analyst       | Opus (regression-analyst) | high |
 | Phase 6 Automation Gate          | Haiku                | low    |
+| Phase 7.4 Retrospective (feature-full+; 3 instances) | Sonnet | medium |
+| Phase 7.4 Retrospective Synthesis | Opus                | high   |
 
 How to instruct effort:
 - Global: "set effort to high" — becomes the default for every step.
@@ -1018,9 +1130,14 @@ Est. cost: ~$[N]  (see /cost for exact billing)
 KNOWN LIMITATIONS
 [One bullet per accepted risk — or "None"]
 
+PIPELINE RETROSPECTIVE (feature-full+ only — omit this block if it did not run)
+[One-line synthesis outcome: "No change needed" OR N recommendation(s)]
+Full record: docs/pipeline-retros/<date>-<slug>.md
+
 Pipeline working state has been deleted. The permanent record is:
-  docs/epics/<slug>.md  (epic delivery doc)
-  PR #[N]               (code + description)
+  docs/epics/<slug>.md             (epic delivery doc)
+  docs/pipeline-retros/<slug>.md   (pipeline retrospective, if it ran)
+  PR #[N]                          (code + description)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
