@@ -96,3 +96,27 @@ fail-safe.
 - Unchanged: `security-auditor.md`, `performance-reviewer.md`,
   `architecture-reviewer.md` (kept for the epic split), the Red Team loop,
   the Translator, the three Human Gates.
+
+## Appendix: external-workflow comparison (shinpr/dev-workflows-fullstack)
+
+Evaluated their fullstack workflow against ours. Ours is stronger on security
+gating (forced non-downgradable Opus security pass, red-team plan attack),
+human-in-the-loop + plain-English translation, token-cost governance, and
+regression/blast-radius classification. Theirs is stronger on frontend
+state-fidelity and cross-document consistency. Four candidate adaptations were
+assessed on a strict "add only if it genuinely helps, no duplication, no
+efficiency regression" bar:
+
+| Candidate | Verdict | Rationale |
+|---|---|---|
+| UI State×Display Matrix | **ADD** | Real gap; QA Planner never forced per-view loading/error/empty/partial/success enumeration. Cheap, `frontend`-tag gated, flows into existing E2E Test Writer. |
+| design-sync agent | **ADD (minimal, no agent)** | Full agent redundant under our single-source task contracts; only real drift surface is the very-hard/epic split. Folded into the existing Opus decomposition pass as a bounded consistency check. |
+| Living design doc | **SKIP** | `docs/epics/<slug>.md` + task contracts already are the durable design/delivery record; a second doc duplicates facts and violates the one-fact-one-file rule. |
+| Reverse-engineer recipe | **SKIP** | Sizable new skill, scope creep for this pipeline; `/setup-project` + `/start` already cover onboarding. |
+| Phase-scoped knowledge injection | **SKIP** | Already achieved by the Shared Context Pack ("relevant `.claude/project/` facts for this task's surface"). |
+
+Adopted: the two ADD items, implemented in CLAUDE.md Phase 1 (QA Planner) +
+`.claude/agents/qa-planner.md`, and CLAUDE.md Phase 2 (epic-tier consistency
+check). Their autonomous quality-fixer loop was explicitly **not** adopted — it
+conflicts with our human-gate and "never silently retry / surface immediately"
+rules.

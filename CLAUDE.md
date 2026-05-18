@@ -348,6 +348,7 @@ Then run the QA Planner agent (.claude/agents/qa-planner.md) to produce pipeline
 - Escalate to Opus at high effort when risk_flags include auth or PII; otherwise Sonnet at medium effort.
 - The checklist classifies every test scenario into three tiers: 🔴 Critical (blocks Gate 2 if failing at the Automation Gate), 🟡 Functional (CONDITIONAL PASS condition at Gate 2), 🟢 Non-blocker (informational only).
 - **Lane-scaled breadth:** for feature-fast lane or MEDIUM risk_level with no risk_flags, emit **Critical + Functional tiers only** — skip exhaustive Non-blocker enumeration. Full three-tier output only for feature-full or HIGH risk.
+- **State×Display Matrix (frontend tag only):** when risk_manifest.tags include `frontend`, the checklist MUST include, for every changed interactive view/component, a matrix over the states {loading, error, empty, partial, success}. Each state maps to ≥1 test case classified into a tier; a view whose state handling has no test is at minimum 🟡 Functional. This is consumed unchanged by the E2E Test Writer (Phase 5) — no new agent.
 - The Translator agent does NOT translate the checklist — it is a machine-readable artifact consumed by the E2E Test Writer (Phase 5) and the Automation Gate (Phase 6).
 - Append the QA checklist tier summary to the Plan Report before presenting at Gate 1 (see Output Format: Plan Report below).
 
@@ -419,6 +420,17 @@ Save each task as pipeline/tasks/T-XX.json:
 The Phase-3 implementor receives these hints as its model/effort instruction.
 The lane fail-safe still applies: HIGH risk / any risk_flag → minimum sonnet/high
 regardless of the per-task hint.
+
+**Cross-artifact consistency check (very-hard / epic split only — no new agent):**
+when the epic trigger fired (risk_level HIGH **and** ≥3 tags — the same
+trigger as the Bounded Phase-1 Constraint Round), the orchestrator, in this
+same Opus decomposition pass, verifies that every T-XX acceptance criterion
+traces to an approved Plan Report item and does not contradict any tagged
+specialist's Phase-1 constraint memo (and, where parallel tasks share a
+front-end ↔ back-end contract, that the contract is described identically in
+both task contracts). Any contradiction is surfaced to the user **before
+Phase 3** — never silently reconciled. Skipped for every other lane (the
+single-source task contracts make it redundant there).
 
 Regenerate the root TODO.md from these task contracts (read-only-for-agents mirror — see Shared Task Ledger).
 

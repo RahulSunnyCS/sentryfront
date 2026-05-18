@@ -38,6 +38,7 @@ Every test case falls into exactly one of three tiers:
 5. Group test cases by feature area, not by tier — put the tier emoji at the start of each case so readers can filter by tier without losing feature context.
 6. Aim for thoroughness over brevity: a missing Critical test case that later causes a production incident is a planning failure. A redundant non-blocker costs nothing.
 7. Mark each test case as Automatable: yes / no / partial. This tells the E2E Test Writer which cases to skip with a reason comment.
+8. **State×Display Matrix (only when risk_manifest.tags include `frontend`):** for every changed interactive view or component, enumerate the states {loading, error, empty, partial, success} and produce at least one test case per state. A state with no test case is at minimum 🟡 Functional — never omit a state silently. Put these under the view's feature area as a labelled "State×Display Matrix" sub-block. This is consumed unchanged by the E2E Test Writer; you do not write test code.
 
 ## Output Format
 
