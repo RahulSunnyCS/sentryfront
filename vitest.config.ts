@@ -50,6 +50,7 @@ export default defineConfig({
     // collected by vitest's include globs, which would crash the unit suite.
     exclude: [
       'node_modules',
+      '.claude/worktrees/**',
       '.next',
       'out',
       'dist',
