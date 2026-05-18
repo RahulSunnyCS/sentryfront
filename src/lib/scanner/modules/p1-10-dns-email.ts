@@ -1,4 +1,5 @@
 import { promises as dns } from 'dns';
+import { parse as parseTld } from 'tldts';
 import type { CrawlResult, RawFinding } from '../types';
 
 async function getTxtRecords(name: string): Promise<string[]> {
@@ -21,9 +22,11 @@ function parseDMARC(records: string[]): string | null {
 export async function runDnsEmailModule(crawl: CrawlResult): Promise<RawFinding[]> {
   const findings: RawFinding[] = [];
   const hostname = new URL(crawl.finalUrl).hostname;
-  // Use apex domain for email records
+  // Use PSL-aware registrable domain (handles .co.uk, .com.au, .gov.uk etc.).
+  // Falls back to naive slice(-2) for unrecognised TLDs or IP addresses.
+  const { domain: registrable } = parseTld(hostname);
   const parts = hostname.split('.');
-  const apex = parts.length > 2 ? parts.slice(-2).join('.') : hostname;
+  const apex = registrable ?? (parts.length > 2 ? parts.slice(-2).join('.') : hostname);
 
   const [apexTxt, dmarcTxt] = await Promise.all([
     getTxtRecords(apex),
