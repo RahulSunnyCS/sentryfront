@@ -94,6 +94,10 @@ const XSS_PATTERNS: Array<{
 ];
 
 // Shared finding fields common to all P1-19 detections.
+// Note: we do NOT use `as const` on the whole object because `RawFinding.fixManual`
+// expects a mutable string[] — `as const` would infer a readonly tuple that is
+// structurally incompatible with the string[] type. Individual literal fields
+// that feed a union type (severity, confidence) use inline `as const` casts instead.
 const SHARED_FINDING = {
   moduleId: 'P1-19',
   severity: 'HIGH' as const,
@@ -105,10 +109,10 @@ const SHARED_FINDING = {
   fixManual: [
     'Never pass location.hash, location.search, or location.href directly to document.write(), innerHTML, or eval().',
     'Sanitise URL parameters before inserting into the DOM. Use textContent instead of innerHTML for user-controlled data.',
-  ],
+  ] as string[],
   fixAiPrompt:
     'My JavaScript uses location in a dangerous sink (e.g., document.write(location.hash)). Show me how to safely read URL parameters without XSS risk.',
-} as const;
+};
 
 /**
  * Scan each loaded JS chunk for confirmed source+sink DOM XSS patterns.

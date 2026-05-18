@@ -290,3 +290,100 @@ describe('runDnsEmailModule — multi-segment TXT records', () => {
     expect(findings.find((f) => f.title.includes('SPF'))).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// DKIM best-effort probe
+// ---------------------------------------------------------------------------
+describe('runDnsEmailModule — DKIM', () => {
+  it('emits no DKIM finding when at least one selector resolves to a non-empty TXT record', async () => {
+    // One selector ('google') returns a DKIM record → DKIM confirmed → no finding.
+    setupDkimFound([['v=spf1 -all']], [['v=DMARC1; p=reject']]);
+    const findings = await runDnsEmailModule(makeCrawl('https://example.com'));
+    const dkimFinding = findings.find((f) =>
+      f.title.includes('DKIM presence could not be confirmed'),
+    );
+    expect(dkimFinding).toBeUndefined();
+  });
+
+  it('emits an INFO finding when all selectors return empty TXT records', async () => {
+    // setupDns returns [] for all _domainkey lookups → inconclusive → INFO finding.
+    setupDns([['v=spf1 -all']], [['v=DMARC1; p=reject']]);
+    const findings = await runDnsEmailModule(makeCrawl('https://example.com'));
+    const dkimFinding = findings.find((f) =>
+      f.title === 'DKIM presence could not be confirmed via common selectors',
+    );
+    expect(dkimFinding).toBeDefined();
+    expect(dkimFinding!.severity).toBe('INFO');
+    expect(dkimFinding!.moduleId).toBe('P1-10');
+    expect(dkimFinding!.category).toBe('DNS & Email Security');
+  });
+
+  it('INFO finding explanation contains the word "inconclusive"', async () => {
+    setupDns([['v=spf1 -all']], [['v=DMARC1; p=reject']]);
+    const findings = await runDnsEmailModule(makeCrawl('https://example.com'));
+    const dkimFinding = findings.find((f) =>
+      f.title === 'DKIM presence could not be confirmed via common selectors',
+    );
+    expect(dkimFinding!.explanation).toContain('inconclusive');
+  });
+
+  it('emits an INFO finding when all selectors throw a DNS error (inconclusive, not an error)', async () => {
+    // DNS errors on selector lookups → getTxtRecords returns [] → all inconclusive → INFO.
+    // Use a targeted mock: SPF and DMARC resolve fine, DKIM selectors all throw.
+    mockResolveTxt.mockImplementation((name: string) => {
+      if (name.startsWith('_dmarc.')) return Promise.resolve([['v=DMARC1; p=reject']]);
+      if (name.includes('._domainkey.')) return Promise.reject(new Error('SERVFAIL'));
+      return Promise.resolve([['v=spf1 -all']]);
+    });
+    const findings = await runDnsEmailModule(makeCrawl('https://example.com'));
+    const dkimFinding = findings.find((f) =>
+      f.title === 'DKIM presence could not be confirmed via common selectors',
+    );
+    // DNS errors are treated as inconclusive — still emits INFO, never throws.
+    expect(dkimFinding).toBeDefined();
+    expect(dkimFinding!.severity).toBe('INFO');
+  });
+
+  it('emits an INFO finding when some selectors error and the rest return empty (mixed)', async () => {
+    // Odd-indexed selectors throw, even-indexed return empty — still inconclusive.
+    let callCount = 0;
+    mockResolveTxt.mockImplementation((name: string) => {
+      if (name.startsWith('_dmarc.')) return Promise.resolve([['v=DMARC1; p=reject']]);
+      if (name.includes('._domainkey.')) {
+        callCount++;
+        return callCount % 2 === 0
+          ? Promise.reject(new Error('ENOTFOUND'))
+          : Promise.resolve([]);
+      }
+      return Promise.resolve([['v=spf1 -all']]);
+    });
+    const findings = await runDnsEmailModule(makeCrawl('https://example.com'));
+    const dkimFinding = findings.find((f) =>
+      f.title === 'DKIM presence could not be confirmed via common selectors',
+    );
+    expect(dkimFinding).toBeDefined();
+    expect(dkimFinding!.severity).toBe('INFO');
+  });
+
+  it('probes the apex domain (not subdomain) for DKIM selectors', async () => {
+    setupDkimFound([['v=spf1 -all']], [['v=DMARC1; p=reject']]);
+    await runDnsEmailModule(makeCrawl('https://app.sub.example.com/'));
+    // All DKIM selector lookups should use the apex domain 'example.com'
+    const dkimCalls = mockResolveTxt.mock.calls
+      .map((c: [string]) => c[0])
+      .filter((name: string) => name.includes('._domainkey.'));
+    expect(dkimCalls.length).toBeGreaterThan(0);
+    dkimCalls.forEach((name: string) => {
+      expect(name).toContain('._domainkey.example.com');
+    });
+  });
+
+  it('queries exactly 9 DKIM selectors in parallel', async () => {
+    setupDkimFound([['v=spf1 -all']], [['v=DMARC1; p=reject']]);
+    await runDnsEmailModule(makeCrawl('https://example.com'));
+    const dkimCalls = mockResolveTxt.mock.calls
+      .map((c: [string]) => c[0])
+      .filter((name: string) => name.includes('._domainkey.'));
+    expect(dkimCalls).toHaveLength(9);
+  });
+});
