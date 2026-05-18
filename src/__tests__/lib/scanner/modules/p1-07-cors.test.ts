@@ -67,15 +67,22 @@ describe('P1-07: CORS Configuration Module', () => {
     });
 
     it('should flag origin reflection without credentials as HIGH', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        headers: {
-          get: (name: string) => {
-            if (name === 'access-control-allow-origin') return 'https://evil.attacker.example';
-            if (name === 'access-control-allow-credentials') return 'false';
-            return null;
+      // Use mockImplementation so the OPTIONS probe returns no CORS headers,
+      // isolating this test to the GET probe behaviour only.
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((_url, init) => {
+        if ((init as RequestInit)?.method === 'OPTIONS') {
+          return Promise.resolve({ headers: { get: () => null } } as Response);
+        }
+        return Promise.resolve({
+          headers: {
+            get: (name: string) => {
+              if (name === 'access-control-allow-origin') return 'https://evil.attacker.example';
+              if (name === 'access-control-allow-credentials') return 'false';
+              return null;
+            },
           },
-        },
-      } as Response);
+        } as Response);
+      });
 
       const crawlResult = createCrawlResult('https://example.com');
       const findings = await runCorsModule(crawlResult);

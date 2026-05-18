@@ -155,6 +155,7 @@ export async function runDnsEmailModule(crawl: CrawlResult): Promise<RawFinding[
         'Check your email provider documentation for your DKIM selector name.',
         'Verify DKIM is configured in your DNS: <your-selector>._domainkey.<domain> TXT "v=DKIM1; k=rsa; p=..."',
       ],
+      fixAiPrompt: `My domain ${apex} may be missing DKIM. Help me check if DKIM is configured with my email provider and show me the DNS TXT record I need to add.`,
     });
   }
 
