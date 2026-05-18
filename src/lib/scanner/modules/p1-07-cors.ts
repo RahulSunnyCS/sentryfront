@@ -56,7 +56,7 @@ export async function runCorsModule(crawl: CrawlResult): Promise<RawFinding[]> {
       });
       // Record CRITICAL and stop checking remaining URLs in the GET pass.
       // The wildcard finding already covers the full site; probing more URLs
-      // would only add duplicate noise.
+      // would only add duplicate noise. Break, not continue, to skip remaining URLs entirely.
       getCriticalUrls.add(probeUrl);
       break;
     }

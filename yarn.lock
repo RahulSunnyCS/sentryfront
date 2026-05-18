@@ -7363,7 +7363,7 @@ tldts-icann@^7.0.12:
   dependencies:
     tldts-core "^7.0.30"
 
-tldts@^7.0.5:
+tldts@^7.0.30, tldts@^7.0.5:
   version "7.0.30"
   resolved "https://registry.npmjs.org/tldts/-/tldts-7.0.30.tgz"
   integrity sha512-ELrFxuqsDdHUwoh0XxDbxuLD3Wnz49Z57IFvTtvWy1hJdcMZjXLIuonjilCiWHlT2GbE4Wlv1wKVTzDFnXH1aw==

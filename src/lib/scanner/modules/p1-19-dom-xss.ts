@@ -14,8 +14,8 @@ import type { CrawlResult, RawFinding } from '../types';
 // static-fetch fallback scans are byte-identical to having no module at all
 // (same pattern as P1-17 / P1-18).
 
-const MAX_FINDINGS = 10;
-const EVIDENCE_MAX = 150;
+const MAX_FINDINGS = 10; // Cap total findings to avoid overwhelming reports on heavily bundled apps
+const EVIDENCE_MAX = 150; // Code snippet limit: enough to show context without ballooning evidence blobs
 
 /** Trim evidence snippet to a reasonable display length. */
 function clip(s: string, n = EVIDENCE_MAX): string {

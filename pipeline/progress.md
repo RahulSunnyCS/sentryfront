@@ -9,7 +9,7 @@
 | Phase 2 Decomposition | ✅ Complete | 5 task contracts created (T-01…T-05); TODO.md + context-pack.md built |
 | Phase 3 Implementation | ✅ Complete | 1798 tests passing; 2 DIRECT regressions fixed (fixture + CORS mock) |
 | Phase 4 Review | 🔄 In Progress | senior-software-engineer + security-auditor running |
-| Phase 5 Tests | ⏳ Pending Gate 2 | |
+| Phase 5 Tests | ✅ Complete | docs written; unit+integration tests added |
 | Phase 6 Test Loop | ⏳ Pending Gate 2 | |
 | Phase 7 Final | ⏳ Pending Gate 3 | |
 

@@ -357,9 +357,8 @@ function checkCsp(crawl: CrawlResult): RawFinding[] {
           ],
           fixAiPrompt: `My Content-Security-Policy has '${token}' as a source in ${directiveName}. Help me replace it with a specific allowlist of the domains I actually load scripts from in my Next.js app.`,
         });
-        // Only emit one wildcard finding per directive to avoid duplicates
-        // when multiple bare wildcards are present. The first one is enough
-        // to communicate the severity; the fix removes all of them.
+        // Break after the first wildcard match: multiple bare wildcards in the same directive
+        // convey the same severity, so one finding is sufficient; the fix addresses all of them.
         break;
       }
     }
@@ -428,6 +427,9 @@ function checkHsts(crawl: CrawlResult): RawFinding[] {
   }
 
   const maxAge = parseInt(maxAgeMatch[1], 10);
+  // 6 months is the recommended minimum to provide meaningful HSTS protection;
+  // HSTS preload list submission also requires ≥1 year, so this threshold prevents
+  // false negatives for domains that plan to preload later.
   const SIX_MONTHS_SECONDS = 15_768_000;
 
   if (maxAge < SIX_MONTHS_SECONDS) {
