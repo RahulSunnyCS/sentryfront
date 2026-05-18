@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { GRADE_CONFIG, SCAN_MODULES, SEVERITY_RANK } from '@/lib/data';
 import type { ScanData, Finding } from '@/types';
+import { mergeAndCalibrateFindings, compressInfoBandFindings, buildSummaryFromFindings } from '@/lib/report-utils';
 import {
   deriveComplianceStatus,
   MODULE_FRAMEWORKS,
@@ -47,10 +48,19 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
     return () => { cancelled = true; };
   }, [scanData.id]);
 
+  const processedFindings = useMemo(
+    () => compressInfoBandFindings(mergeAndCalibrateFindings(findings)).findings,
+    [findings],
+  );
+  const processedSummary = useMemo(
+    () => buildSummaryFromFindings(processedFindings),
+    [processedFindings],
+  );
+
   const gradeConfig = GRADE_CONFIG[scanData.grade];
-  const criticalCount = scanData.summary.CRITICAL ?? 0;
-  const highCount = scanData.summary.HIGH ?? 0;
-  const totalFindings = findings.length;
+  const criticalCount = processedSummary.CRITICAL;
+  const highCount = processedSummary.HIGH;
+  const totalFindings = processedFindings.length;
   const isAlarmingGrade = scanData.grade === 'D' || scanData.grade === 'F' || criticalCount > 0;
 
   const passedModules = useMemo(
@@ -62,20 +72,20 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
   );
 
   const securityFindings = useMemo(
-    () => findings.filter((f) => f.module.startsWith('P1-')),
-    [findings],
+    () => processedFindings.filter((f) => f.module.startsWith('P1-')),
+    [processedFindings],
   );
   const performanceFindings = useMemo(
-    () => findings.filter((f) => f.module.startsWith('P2-')),
-    [findings],
+    () => processedFindings.filter((f) => f.module.startsWith('P2-')),
+    [processedFindings],
   );
   const accessibilityFindings = useMemo(
-    () => findings.filter((f) => f.module.startsWith('P3-')),
-    [findings],
+    () => processedFindings.filter((f) => f.module.startsWith('P3-')),
+    [processedFindings],
   );
   const seoFindings = useMemo(
-    () => findings.filter((f) => f.module.startsWith('P4-')),
-    [findings],
+    () => processedFindings.filter((f) => f.module.startsWith('P4-')),
+    [processedFindings],
   );
 
   const [activeTab, setActiveTab] = useState<Tab>('security');
@@ -174,7 +184,7 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
                   <span aria-hidden="true">🔓</span> Unauthenticated scope
                 </span>
               </div>
-              <SeveritySummary summary={scanData.summary} />
+              <SeveritySummary summary={processedSummary} />
             </div>
           </div>
 
@@ -359,7 +369,7 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
                 />
               </>
             )}
-            {activeTab === 'compliance' && <ComplianceSection findings={findings} />}
+            {activeTab === 'compliance' && <ComplianceSection findings={processedFindings} />}
           </div>
         </div>
 

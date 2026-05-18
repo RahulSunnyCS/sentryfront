@@ -107,4 +107,36 @@ describe('P1-13 dev interfaces', () => {
     const findings = await runDevInterfacesModule(baseCrawl());
     expect(findings.some((f) => f.title.includes('PHPInfo'))).toBe(true);
   });
+
+  it('does not flag /.well-known/security.txt returning HTTP 200 (ALLOWED_PATHS allowlist)', async () => {
+    // security.txt returning 200 is correct behaviour per RFC 9116 — it is a
+    // recommended security disclosure practice, NOT a development interface leak.
+    // The ALLOWED_PATHS set must prevent any finding from being emitted for this path.
+    stubProbes((url) => ({
+      status: url.includes('/.well-known/security.txt') ? 200 : 404,
+      body: url.includes('/.well-known/security.txt')
+        ? 'Contact: mailto:security@example.com\nExpires: 2027-01-01T00:00:00.000Z'
+        : 'not found',
+    }));
+    const findings = await runDevInterfacesModule(baseCrawl());
+    const securityTxtFindings = findings.filter(
+      (f) => f.location === '/.well-known/security.txt',
+    );
+    expect(securityTxtFindings).toHaveLength(0);
+  });
+
+  it('does not produce any finding for security.txt even when detect() would fire', async () => {
+    // Verify the ALLOWED_PATHS guard runs AFTER detect() — the probe's detect
+    // function triggers on status 200, so without the guard a finding would be
+    // emitted. The guard must suppress it regardless.
+    stubProbes(() => ({
+      status: 200,
+      body: 'Contact: mailto:security@example.com',
+    }));
+    const findings = await runDevInterfacesModule(baseCrawl());
+    const securityTxtFindings = findings.filter(
+      (f) => f.location === '/.well-known/security.txt',
+    );
+    expect(securityTxtFindings).toHaveLength(0);
+  });
 });

@@ -72,6 +72,10 @@ const PATTERNS: SecretPattern[] = [
   // AI-built sites — they are NOT credentials and do NOT grant account access.
   // Severity is intentionally LOW / INFO; the finding copy below is overridden
   // so the report doesn't push users to "rotate immediately".
+  // Named-credential patterns (e.g. Stripe secret key) still fire CRITICAL
+  // regardless of host because the secret format itself proves authenticity —
+  // a matched key is always a credential, whereas hostname patterns can be
+  // legitimate references (e.g. an intentional link to a builder's docs).
   {
     name: 'Lovable preview URL',
     category: 'AI-Builder Artifact Exposure',
@@ -146,6 +150,31 @@ const PATTERNS: SecretPattern[] = [
       'My production site references a v0.dev share URL. Decide whether the link is intentional; if not, remove it from the production build.',
   },
 ];
+
+// Google-owned CDN/analytics domains: high-entropy strings in resources loaded
+// from these hosts are Google-internal tokens/IDs, not secrets belonging to the
+// scanned site. Downgrade to LOW so users aren't alarmed by GA internals.
+const GOOGLE_OWNED_DOMAINS_SECRETS = [
+  'googletagmanager.com',
+  'googleapis.com',
+  'google-analytics.com',
+  'doubleclick.net',
+  'googlesyndication.com',
+];
+
+function isGoogleOwnedDomainLabel(label: string): boolean {
+  // The label for bundle sources is either a full URL or a path relative to
+  // the scanned origin. Only full URLs (with a recognisable hostname) can be
+  // matched against the Google-owned domain list.
+  try {
+    const { hostname } = new URL(label);
+    return GOOGLE_OWNED_DOMAINS_SECRETS.some(
+      (d) => hostname === d || hostname.endsWith('.' + d),
+    );
+  } catch {
+    return false;
+  }
+}
 
 function shannonEntropy(str: string): number {
   const freq: Record<string, number> = {};
@@ -257,21 +286,37 @@ export async function runSecretsModule(crawl: CrawlResult): Promise<RawFinding[]
     if (findings.filter((f) => f.location === label).length === 0) {
       const highEntropy = findHighEntropyStrings(content);
       if (highEntropy.length > 0) {
+        // Resources loaded from Google-owned analytics/CDN domains contain
+        // Google-internal tokens and measurement IDs that look like secrets but
+        // belong to Google, not the scanned site. Downgrade to LOW so the user
+        // is informed without a misleading MEDIUM alert.
+        const fromGoogleDomain = isGoogleOwnedDomainLabel(label);
         findings.push({
           moduleId: 'P1-01',
-          severity: 'MEDIUM',
+          severity: fromGoogleDomain ? 'LOW' : 'MEDIUM',
           category: 'Client-Side Secret Exposure',
           title: 'High-entropy string detected — possible secret',
           location: label,
           evidence: `"${highEntropy[0].match.slice(0, 8)}****${highEntropy[0].match.slice(-4)}"`,
-          explanation: 'A string with unusually high randomness (Shannon entropy > 4.5 bits/char) was found in client-side code. This pattern is common in API keys, tokens, and credentials.',
-          impact: 'If this is a secret or credential, it is exposed to any visitor.',
-          fixManual: [
-            'Review the flagged string and identify what it is.',
-            'If it is a secret or API key, move it to a server-side environment variable.',
-            'If it is expected (e.g., a product ID, nonce), you can safely ignore this finding.',
-          ],
-          fixAiPrompt: 'A high-entropy string was detected in my JavaScript bundle that may be a secret. Review my code for hardcoded credentials and move any secrets to server-side environment variables.',
+          explanation: fromGoogleDomain
+            ? 'A high-entropy string was found in a Google-hosted analytics file. This is likely a Google internal token or measurement ID, not a site secret. Found in Google-hosted analytics file — likely a Google internal token, not a site secret.'
+            : 'A string with unusually high randomness (Shannon entropy > 4.5 bits/char) was found in client-side code. This pattern is common in API keys, tokens, and credentials.',
+          impact: fromGoogleDomain
+            ? 'Low risk — this value originates from Google, not your codebase, and does not grant access to your systems.'
+            : 'If this is a secret or credential, it is exposed to any visitor.',
+          fixManual: fromGoogleDomain
+            ? [
+                'No action required — this string originates from a Google-hosted analytics script, not your code.',
+                'If you want to eliminate all such findings, review your analytics setup and confirm no site secrets are passed to Google scripts.',
+              ]
+            : [
+                'Review the flagged string and identify what it is.',
+                'If it is a secret or API key, move it to a server-side environment variable.',
+                'If it is expected (e.g., a product ID, nonce), you can safely ignore this finding.',
+              ],
+          fixAiPrompt: fromGoogleDomain
+            ? 'A high-entropy string was detected in a Google-hosted analytics file. This is likely a Google internal token. Review your analytics integration to confirm no site secrets are passed to third-party scripts.'
+            : 'A high-entropy string was detected in my JavaScript bundle that may be a secret. Review my code for hardcoded credentials and move any secrets to server-side environment variables.',
         });
       }
     }
