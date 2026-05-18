@@ -116,6 +116,14 @@ function parseBandSummaryItem(finding: Finding): BandSummaryItem | null {
  *  - P1-09 first-party or well-known domains: MEDIUM → LOW
  *  - P4-06 /llms.txt: LOW → INFO
  *  - P5-04 Lighthouse a11y tier: LOW → INFO
+ *
+ * Architecture note — render-time calibration vs. DB truth:
+ *  This function is the single calibration authority for all display consumers
+ *  (PDF renderer, interactive report UI). The raw findings in the DB and the
+ *  /api/v1/scans/:id/findings API endpoint remain uncalibrated — any new
+ *  consumer of that API must call mergeAndCalibrateFindings before display.
+ *  A future migration to push calibration to the API serialization layer
+ *  (or persist corrected severities) would remove this divergence.
  */
 export function mergeAndCalibrateFindings(findings: Finding[]): Finding[] {
   const result: Finding[] = [];
@@ -133,19 +141,31 @@ export function mergeAndCalibrateFindings(findings: Finding[]): Finding[] {
   const otherP106 = p106.filter((f) => !legacyCriticalBlocked.includes(f));
 
   // Group legacy CRITICAL blocked findings by path family.
-  // Each finding's location field is its path (single-path format for the old data).
-  const familyGroups = new Map<string, Finding[]>();
+  // Each path within a finding's location is classified individually so that a
+  // finding whose location is already a comma-joined string (edge case: partially
+  // pre-grouped legacy data) is correctly split across families rather than
+  // bucketed entirely under whichever family matches the first substring.
+  const familyPathMap = new Map<string, string[]>();
+  const familyRepMap = new Map<string, Finding>();
   for (const f of legacyCriticalBlocked) {
-    const family = getPathFamily(f.location || f.title);
-    const group = familyGroups.get(family) ?? [];
-    group.push(f);
-    familyGroups.set(family, group);
+    const rawPaths = (f.location || '')
+      .split(/,\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const paths = rawPaths.length > 0 ? rawPaths : [f.title];
+    for (const path of paths) {
+      const family = getPathFamily(path);
+      if (!familyPathMap.has(family)) {
+        familyPathMap.set(family, []);
+        familyRepMap.set(family, f); // first finding for this family = representative
+      }
+      familyPathMap.get(family)!.push(path);
+    }
   }
 
-  for (const [family, group] of familyGroups) {
-    const paths = group.map((f) => f.location).filter(Boolean);
+  for (const [family, paths] of familyPathMap) {
     const count = paths.length;
-    const representative = group[0]; // for id + module fields
+    const representative = familyRepMap.get(family)!; // for id + module fields
     result.push({
       ...representative,
       id: `${representative.id}-grouped`, // stable synthetic id for React keys
