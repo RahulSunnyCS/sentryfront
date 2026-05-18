@@ -456,6 +456,44 @@ describe('P1-03: Security Headers Module', () => {
       expect(cspFinding).toBeDefined();
       expect(cspFinding?.severity).toBe('HIGH');
     });
+
+    it("CSP with hash source only (no unsafe-inline) → no finding from checkCsp", async () => {
+      // 'sha256-abc123' without unsafe-inline should NOT trigger a finding
+      const crawlResult = createCrawlResult({
+        'content-security-policy': "script-src 'self' 'sha256-abc123='",
+      });
+      const findings = await runHeadersModule(crawlResult);
+      // The only CSP-related finding should be at most the "missing CSP" one from the table,
+      // but since CSP IS present, there should be no strictness finding from checkCsp.
+      const strictnessFindings = findings.filter(f =>
+        f.moduleId === 'P1-03' && !f.title.includes('Missing')
+      );
+      expect(strictnessFindings).toHaveLength(0);
+    });
+
+    it("report-only CSP with bare wildcard '*' → INFO (not HIGH)", async () => {
+      const crawlResult = createCrawlResult({
+        'content-security-policy-report-only': "default-src *",
+      });
+      const findings = await runHeadersModule(crawlResult);
+      const cspFinding = findings.find(f => f.title.includes('wildcard'));
+      expect(cspFinding).toBeDefined();
+      // Report-only wildcards get downgraded to INFO because the policy is not enforced
+      expect(cspFinding?.severity).toBe('INFO');
+    });
+
+    it("CSP with both 'unsafe-inline' and 'unsafe-eval' → two separate HIGH findings", async () => {
+      const crawlResult = createCrawlResult({
+        'content-security-policy': "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      });
+      const findings = await runHeadersModule(crawlResult);
+      const inlineFinding = findings.find(f => f.title.includes('unsafe-inline'));
+      const evalFinding = findings.find(f => f.title.includes('unsafe-eval'));
+      expect(inlineFinding).toBeDefined();
+      expect(evalFinding).toBeDefined();
+      expect(inlineFinding?.severity).toBe('HIGH');
+      expect(evalFinding?.severity).toBe('HIGH');
+    });
   });
 
   // ── HSTS parameter checks (T-02) ─────────────────────────────────────────
@@ -515,6 +553,25 @@ describe('P1-03: Security Headers Module', () => {
 
       const hstsFinding = findings.find(f => f.title.includes('includeSubDomains'));
       expect(hstsFinding).toBeUndefined();
+    });
+
+    it("HSTS present but no max-age directive → LOW (malformed header)", async () => {
+      const crawlResult = createCrawlResult({
+        'strict-transport-security': 'includeSubDomains',
+      });
+      const findings = await runHeadersModule(crawlResult);
+      // malformed HSTS without max-age should emit a LOW finding
+      const hstsFinding = findings.find(f => f.moduleId === 'P1-03' && f.severity === 'LOW' && f.title.includes('Strict-Transport-Security'));
+      expect(hstsFinding).toBeDefined();
+    });
+
+    it("HSTS max-age exactly at 6 months threshold (15768000) + includeSubDomains → no finding", async () => {
+      const crawlResult = createCrawlResult({
+        'strict-transport-security': 'max-age=15768000; includeSubDomains',
+      });
+      const findings = await runHeadersModule(crawlResult);
+      const hstsFindings = findings.filter(f => f.title.includes('Strict-Transport-Security') || f.title.includes('max-age'));
+      expect(hstsFindings).toHaveLength(0);
     });
   });
 
