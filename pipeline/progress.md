@@ -9,8 +9,8 @@
 | Phase 2 Decomposition | ✅ Complete | 5 task contracts created (T-01…T-05); TODO.md + context-pack.md built |
 | Phase 3 Implementation | ✅ Complete | 1798 tests passing; 2 DIRECT regressions fixed (fixture + CORS mock) |
 | Phase 4 Review | ✅ Complete | CONDITIONAL PASS; M4 fixed in Phase 4.5; Gate 2 approved |
-| Phase 5 Tests | 🔄 In Progress | Unit+integration+docs complete (1833 passing); E2E agent running |
-| Phase 6 Test Loop | ⏳ Pending Phase 5 | |
+| Phase 5 Tests | ✅ Complete | 1833 passing; unit+integration+docs+E2E (26 tests: 18 @critical, 6 @functional) |
+| Phase 6 Test Loop | ✅ Complete | Blast-radius: 0 unlinked, 2 shared-ripple (additive); Automation Gate CI-ONLY (env) |
 | Phase 7 Final | ⏳ Pending Gate 3 | |
 
 ## Gate History
