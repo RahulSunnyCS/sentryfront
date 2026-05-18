@@ -5,13 +5,14 @@ const EVIL_ORIGIN = 'https://evil.attacker.example';
 export async function runCorsModule(crawl: CrawlResult): Promise<RawFinding[]> {
   const findings: RawFinding[] = [];
 
-  // Probe the main URL and common API paths
+  // Probe the main URL and up to 3 common API paths found in the HTML.
   const urlsToProbe = [crawl.finalUrl];
-  // If there are API-looking paths in the HTML, try a few
   const apiPathRe = /["'](\/api\/[^"'\s?#]{1,60})["']/g;
   let m: RegExpExecArray | null;
-  const apiPaths: string[] = [];
-  while ((m = apiPathRe.exec(crawl.html)) !== null && apiPaths.length < 3) {
+  // Cap at 4 total (1 main + 3 API): check urlsToProbe.length, not a separate
+  // counter — the original apiPaths array never received pushes so the cap
+  // was always 0 (never engaged). This is the corrected guard.
+  while ((m = apiPathRe.exec(crawl.html)) !== null && urlsToProbe.length < 4) {
     try { urlsToProbe.push(new URL(m[1], crawl.finalUrl).href); } catch { /* skip */ }
   }
 
