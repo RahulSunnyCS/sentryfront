@@ -1,6 +1,6 @@
 # Pipeline Progress
 
-## Current Phase: Phase 1 — Planning
+## Current Phase: Phase 5 — Test Generation
 
 | Phase | Status | Notes |
 |---|---|---|
@@ -8,13 +8,14 @@
 | Phase 1 Planning | ✅ Complete | Red Team Sprint 1 accepted 12 criticisms; converged at Sprint 2 (score 9/10); QA checklist written |
 | Phase 2 Decomposition | ✅ Complete | 5 task contracts created (T-01…T-05); TODO.md + context-pack.md built |
 | Phase 3 Implementation | ✅ Complete | 1798 tests passing; 2 DIRECT regressions fixed (fixture + CORS mock) |
-| Phase 4 Review | 🔄 In Progress | senior-software-engineer + security-auditor running |
-| Phase 5 Tests | ✅ Complete | docs written; unit+integration tests added |
-| Phase 6 Test Loop | ⏳ Pending Gate 2 | |
+| Phase 4 Review | ✅ Complete | CONDITIONAL PASS; M4 fixed in Phase 4.5; Gate 2 approved |
+| Phase 5 Tests | 🔄 In Progress | Unit+docs complete (1803 passing); integration+E2E agents running |
+| Phase 6 Test Loop | ⏳ Pending Phase 5 | |
 | Phase 7 Final | ⏳ Pending Gate 3 | |
 
 ## Gate History
-- Gate 1: PENDING
+- Gate 1: APPROVED
+- Gate 2: APPROVED (CONDITIONAL PASS → M4 fixed in Phase 4.5)
 
 ## Effort Settings
 - Global: high (security platform, security reasoning)
