@@ -6,15 +6,16 @@ export type CardStyle = 'elevated' | 'bordered' | 'flat';
 export type ScanStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'TIMEOUT';
 
 // Single canonical definition lives in lighthouse.ts (the producer).
-// We re-export from here so that UI consumers import from '@/types' as before,
+// Import locally so the names are usable in this module (e.g. PerformanceData
+// below), and re-export so UI consumers can keep importing from '@/types'
 // without a direct dependency on the scanner internals.
-// Also imported locally so the name is in scope for the PerformanceData interface below.
-import type { CrUXFieldData } from '@/lib/scanner/lighthouse';
-export type {
+import type {
   CrUXDistribution,
   CrUXMetric,
   CrUXFieldData,
 } from '@/lib/scanner/lighthouse';
+
+export type { CrUXDistribution, CrUXMetric, CrUXFieldData };
 
 /**
  * Desktop performance sub-object.

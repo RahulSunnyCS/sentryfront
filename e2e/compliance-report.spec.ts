@@ -69,7 +69,7 @@ async function openComplianceTab(page: import('@playwright/test').Page, url: str
  * Used for broad string-match assertions without coupling to exact DOM shape.
  */
 async function tabPanelText(page: import('@playwright/test').Page): Promise<string> {
-  return page.getByRole('tabpanel').textContent() ?? '';
+  return (await page.getByRole('tabpanel').textContent()) ?? '';
 }
 
 // ── ATTESTATION-LANGUAGE GUARD (critical) ────────────────────────────────────

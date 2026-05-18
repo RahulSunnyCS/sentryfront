@@ -51,20 +51,32 @@ Single test: `npx vitest run path/to/file.test.ts` or filter by name with
 
 ### CI script gotcha (important)
 
-`.github/workflows/test.yml` (push/PR to `main`/`develop`, Node 18) runs
+`.github/workflows/test.yml` (push/PR to `main`/`develop`, **Node 20.19**) runs
 `npm run test`, then `npm run test:corpus`, then `npm run test:coverage`, plus a
-build job (`npm run build`). `.github/workflows/compliance.yml` (PR/push `main`,
-Node 20) runs `npm run compliance:check-licenses`, `npm run compliance:sbom`,
+build job (`npm run build`) and an E2E job (`npm run test:e2e`).
+`.github/workflows/compliance.yml` (PR/push `main`, Node 20) runs
+`npm run compliance:check-licenses`, `npm run compliance:sbom`,
 `npm run typecheck`, `npm run lint`.
 
-**`test:corpus`, `test:coverage`, `compliance:check-licenses`,
-`compliance:sbom`, and `typecheck` are NOT defined in `package.json`** — those
-CI steps currently fail with "Missing script". Only `test`, `build`, and `lint`
-are wired up. Underlying helpers exist as `scripts/corpus.js` and
-`scripts/check-licenses.js` but are not exposed as npm scripts, and there is no
-`tsc --noEmit` typecheck script at all. Locally, rely on `npm run test`,
-`npm run lint`, and `npm run build`. If asked to "make CI pass", wiring these
-missing scripts into `package.json` is likely the root fix.
+**All CI scripts ARE now defined in `package.json`** (`test:corpus` →
+`node scripts/corpus.js replay`, `test:coverage` → `vitest run --coverage`,
+`typecheck` → `tsc --noEmit`, `compliance:check-licenses` →
+`node scripts/check-licenses.js`, `compliance:sbom` → `npm sbom`). The earlier
+"Missing script" gotcha is **resolved** — the remaining CI concern is that the
+scripts must *pass*, not that they are absent:
+
+- `npm run typecheck` (`tsc --noEmit`) is a **full project type-check the other
+  local gates do not perform**: `npm run test` (vitest) is transpile-only and
+  `npm run lint` (next lint) is not a project typecheck. **Always run
+  `npm run typecheck` before considering a change done** — type errors slip past
+  test+lint otherwise (this exact gap shipped a `CrUXFieldData` error to `main`).
+- `npm run build` (`next build`) also type-checks, so a tsc error fails Build
+  Check too.
+- `npm run test:coverage` enforces the **80% threshold** from
+  `vitest.config.ts`; branch coverage currently sits just under (~79–80%) due to
+  pre-existing under-tested non-feature modules — surfaced, tracked separately.
+Locally, rely on `npm run typecheck`, `npm run test`, `npm run lint`, and
+`npm run build`.
 
 ## Repository Structure
 
@@ -262,7 +274,8 @@ Full reference: `.env.example`. Highlights:
 - Admin routes return 404 (not 403) to non-admins.
 - `npm run db:push` and `npm run start` apply the **production** DB config —
   don't run them expecting to touch the dev SQLite database.
-- Several CI scripts are missing from `package.json` (see "CI script gotcha").
+- CI scripts are all wired now; the gate that slips past local `test`+`lint` is
+  `npm run typecheck` — run it before "done" (see "CI script gotcha").
 - Two lockfiles exist — npm is authoritative; ignore/never use `yarn.lock`.
 
 ## References
