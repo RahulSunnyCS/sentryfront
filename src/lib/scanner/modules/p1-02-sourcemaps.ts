@@ -2,7 +2,9 @@ import type { CrawlResult, RawFinding } from '../types';
 
 // Google-owned CDN/analytics domains: sourcemap probes against these URLs
 // return responses from Google's servers, not the scanned site — skip them
-// to avoid false positives (e.g. gtag.js?id=UA-XXXX → .map returns 200).
+// to avoid false positives. When gtag.js (or similar Google script) is loaded from
+// googletagmanager.com, a probe for gtag.js.map receives a 200 from Google's CDN,
+// not from the target site, so we cannot conclude the site exposes its own sourcemaps.
 const GOOGLE_OWNED_DOMAINS = [
   'googletagmanager.com',
   'googleapis.com',

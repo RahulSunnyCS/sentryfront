@@ -72,6 +72,10 @@ const PATTERNS: SecretPattern[] = [
   // AI-built sites — they are NOT credentials and do NOT grant account access.
   // Severity is intentionally LOW / INFO; the finding copy below is overridden
   // so the report doesn't push users to "rotate immediately".
+  // Named-credential patterns (e.g. Stripe secret key) still fire CRITICAL
+  // regardless of host because the secret format itself proves authenticity —
+  // a matched key is always a credential, whereas hostname patterns can be
+  // legitimate references (e.g. an intentional link to a builder's docs).
   {
     name: 'Lovable preview URL',
     category: 'AI-Builder Artifact Exposure',

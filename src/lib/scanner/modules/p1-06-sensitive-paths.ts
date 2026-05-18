@@ -222,6 +222,10 @@ export async function runSensitivePathsModule(crawl: CrawlResult): Promise<RawFi
   // HTTP 200 on a CRITICAL_PATH means the file is truly served — keep CRITICAL per-path.
   // HTTP 403/401/redirects/500 mean the path is confirmed but access is blocked —
   // downgrade to HIGH and group by path family to avoid report flooding.
+  // Grouping by family (not per-path) for blocked paths reduces noise (e.g. three
+  // .env variants at different endpoints become one HIGH "3 environment config paths"
+  // finding) while per-path findings for exposed files (200 status) provide
+  // granular remediation guidance for each leaked file.
   const criticalExposed = critical.filter((h) => h.status === 200);
   const criticalBlocked = critical.filter((h) => h.status !== 200);
 
@@ -274,6 +278,10 @@ export async function runSensitivePathsModule(crawl: CrawlResult): Promise<RawFi
   for (const { family, status, paths } of blockedGroups.values()) {
     const count = paths.length;
     const pathList = paths.join(', ');
+    // HTTP 403/401 on CRITICAL_PATHS is HIGH (not MEDIUM) because the path's
+    // existence is confirmed; 403 indicates the server recognizes the path but
+    // denies access. This is reconnaissance value to an attacker even without
+    // data exposure. Contrast with 404 (unknown path) where no finding fires.
     findings.push({
       moduleId: 'P1-06',
       severity: 'HIGH',

@@ -98,7 +98,8 @@ const PROBES: EndpointProbe[] = [
 // Paths that are intentionally public and must never generate a finding.
 // /.well-known/security.txt returning HTTP 200 is correct behaviour per RFC 9116
 // (the standard for publishing a security disclosure policy). Flagging it as an
-// "exposed development interface" is a false positive.
+// "exposed development interface" is a false positive — it is a recommended
+// security practice, not a development leak.
 const ALLOWED_PATHS = new Set(['/.well-known/security.txt']);
 
 export async function runDevInterfacesModule(crawl: CrawlResult): Promise<RawFinding[]> {

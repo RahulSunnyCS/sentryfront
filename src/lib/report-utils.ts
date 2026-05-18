@@ -35,6 +35,9 @@ function extractStatusCodes(evidence: string): number[] {
 /**
  * Returns true when the evidence string contains exclusively 403 or 401 status codes.
  * Used to identify old-format P1-06 CRITICAL findings that should be HIGH.
+ *
+ * Returns false if no HTTP status codes are found (codes.length === 0) as a
+ * fail-safe: a finding with no parseable evidence should not be silently downgraded.
  */
 function allStatusesAreBlocked(evidence: string): boolean {
   const codes = extractStatusCodes(evidence);
@@ -145,6 +148,10 @@ export function mergeAndCalibrateFindings(findings: Finding[]): Finding[] {
   // finding whose location is already a comma-joined string (edge case: partially
   // pre-grouped legacy data) is correctly split across families rather than
   // bucketed entirely under whichever family matches the first substring.
+  // We use two separate maps (familyPathMap + familyRepMap) instead of a single
+  // Map<family, { paths, representative }> to avoid comparing Finding objects for
+  // deduplication — path strings are the source of truth, and any Finding from
+  // the group can represent the metadata (id, module) for the combined finding.
   const familyPathMap = new Map<string, string[]>();
   const familyRepMap = new Map<string, Finding>();
   for (const f of legacyCriticalBlocked) {
@@ -256,6 +263,10 @@ export function mergeAndCalibrateFindings(findings: Finding[]): Finding[] {
 
     if (p103.length > 0 && p503.length > 0) {
       // Determine which module's findings have the higher severity.
+      // Match on substring (header) rather than structured field comparison because
+      // P1-03 uses exact header names ("Content-Security-Policy") while P5-03
+      // may use abbreviations ("CSP") or vice versa. Substring match is robust to
+      // wording variations without false negatives.
       const maxP103 = Math.min(...p103.map((f) => SEVERITY_RANK[f.severity])); // min rank = highest sev
       const maxP503 = Math.min(...p503.map((f) => SEVERITY_RANK[f.severity]));
 
