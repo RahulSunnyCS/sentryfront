@@ -36,9 +36,26 @@ function makeCrawl(url: string): CrawlResult {
 }
 
 // Helper: set up resolveTxt to return given apex TXT records and DMARC records.
+// DKIM selector lookups (containing '._domainkey.') always return [] by default
+// so they trigger the INFO finding; use setupDkimFound() to override this.
 function setupDns(apexTxt: string[][], dmarcTxt: string[][]) {
   mockResolveTxt.mockImplementation((name: string) => {
     if (name.startsWith('_dmarc.')) return Promise.resolve(dmarcTxt);
+    // DKIM selector lookups: return empty to simulate no DKIM found
+    if (name.includes('._domainkey.')) return Promise.resolve([]);
+    return Promise.resolve(apexTxt);
+  });
+}
+
+// Helper: make one DKIM selector return a valid record (simulates DKIM found).
+function setupDkimFound(apexTxt: string[][], dmarcTxt: string[][]) {
+  mockResolveTxt.mockImplementation((name: string) => {
+    if (name.startsWith('_dmarc.')) return Promise.resolve(dmarcTxt);
+    // Return a DKIM record for the first selector queried
+    if (name.startsWith('google._domainkey.')) {
+      return Promise.resolve([['v=DKIM1; k=rsa; p=MIGf...']]);
+    }
+    if (name.includes('._domainkey.')) return Promise.resolve([]);
     return Promise.resolve(apexTxt);
   });
 }
@@ -180,8 +197,9 @@ describe('runDnsEmailModule — DMARC', () => {
 // Combined scenarios
 // ---------------------------------------------------------------------------
 describe('runDnsEmailModule — combined SPF + DMARC', () => {
-  it('returns no findings when both SPF (-all) and DMARC (p=reject) are present', async () => {
-    setupDns(
+  it('returns no findings when both SPF (-all) and DMARC (p=reject) are present and DKIM confirmed', async () => {
+    // Use setupDkimFound so DKIM is confirmed → no DKIM INFO finding emitted.
+    setupDkimFound(
       [['v=spf1 include:_spf.google.com -all']],
       [['v=DMARC1; p=reject; rua=mailto:dmarc@example.com']],
     );
@@ -189,34 +207,44 @@ describe('runDnsEmailModule — combined SPF + DMARC', () => {
     expect(findings).toHaveLength(0);
   });
 
-  it('returns both SPF and DMARC findings when both are missing', async () => {
+  it('returns SPF, DMARC, and DKIM findings when all three are missing', async () => {
+    // setupDns returns [] for DKIM selectors → DKIM INFO finding emitted
     setupDns([], []);
     const findings = await runDnsEmailModule(makeCrawl('https://example.com'));
     const titles = findings.map((f) => f.title);
     expect(titles).toContain('No SPF record found');
     expect(titles).toContain('No DMARC record found');
-    expect(findings).toHaveLength(2);
+    expect(titles).toContain('DKIM presence could not be confirmed via common selectors');
+    expect(findings).toHaveLength(3);
   });
 
-  it('returns both LOW findings when SPF uses ~all and DMARC uses p=none', async () => {
+  it('returns both LOW findings (SPF ~all, DMARC p=none) plus DKIM INFO when no DKIM found', async () => {
     setupDns([['v=spf1 ~all']], [['v=DMARC1; p=none']]);
     const findings = await runDnsEmailModule(makeCrawl('https://example.com'));
-    expect(findings).toHaveLength(2);
-    expect(findings.every((f) => f.severity === 'LOW')).toBe(true);
+    // 2 LOW findings + 1 INFO finding
+    expect(findings).toHaveLength(3);
+    const nonDkim = findings.filter(
+      (f) => f.title !== 'DKIM presence could not be confirmed via common selectors',
+    );
+    expect(nonDkim.every((f) => f.severity === 'LOW')).toBe(true);
   });
 
-  it('returns only a DMARC finding when SPF is good but DMARC is missing', async () => {
+  it('returns DMARC finding and DKIM INFO when SPF is good but DMARC and DKIM missing', async () => {
     setupDns([['v=spf1 -all']], []);
     const findings = await runDnsEmailModule(makeCrawl('https://example.com'));
-    expect(findings).toHaveLength(1);
-    expect(findings[0].title).toBe('No DMARC record found');
+    const titles = findings.map((f) => f.title);
+    expect(titles).toContain('No DMARC record found');
+    expect(titles).toContain('DKIM presence could not be confirmed via common selectors');
+    expect(findings).toHaveLength(2);
   });
 
-  it('returns only an SPF finding when DMARC is good but SPF is missing', async () => {
+  it('returns SPF finding and DKIM INFO when DMARC is good but SPF and DKIM missing', async () => {
     setupDns([], [['v=DMARC1; p=reject']]);
     const findings = await runDnsEmailModule(makeCrawl('https://example.com'));
-    expect(findings).toHaveLength(1);
-    expect(findings[0].title).toBe('No SPF record found');
+    const titles = findings.map((f) => f.title);
+    expect(titles).toContain('No SPF record found');
+    expect(titles).toContain('DKIM presence could not be confirmed via common selectors');
+    expect(findings).toHaveLength(2);
   });
 });
 
@@ -233,14 +261,19 @@ describe('runDnsEmailModule — DNS resolution errors', () => {
     expect(titles).toContain('No DMARC record found');
   });
 
-  it('treats a partial DNS error (apex ok, DMARC fails) as no DMARC', async () => {
+  it('treats a partial DNS error (apex ok, DMARC fails) as no DMARC; DKIM selectors empty → INFO', async () => {
+    // apex TXT (SPF) resolves fine; DMARC and DKIM selectors fail/empty
     mockResolveTxt.mockImplementation((name: string) => {
       if (name.startsWith('_dmarc.')) return Promise.reject(new Error('NXDOMAIN'));
+      // DKIM selector lookups return empty (no DKIM found)
+      if (name.includes('._domainkey.')) return Promise.resolve([]);
       return Promise.resolve([['v=spf1 -all']]);
     });
     const findings = await runDnsEmailModule(makeCrawl('https://example.com'));
-    expect(findings).toHaveLength(1);
-    expect(findings[0].title).toBe('No DMARC record found');
+    const titles = findings.map((f) => f.title);
+    expect(titles).toContain('No DMARC record found');
+    expect(titles).toContain('DKIM presence could not be confirmed via common selectors');
+    expect(findings).toHaveLength(2);
   });
 });
 

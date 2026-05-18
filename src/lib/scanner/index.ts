@@ -17,6 +17,7 @@ import { runCacheModule } from './modules/p1-15-cache';
 import { runClientDepsModule } from './modules/p1-16-client-deps';
 import { runServiceWorkerModule } from './modules/p1-17-service-worker';
 import { runWebManifestModule } from './modules/p1-18-web-manifest';
+import { runDomXssModule } from './modules/p1-19-dom-xss';
 import { runPerformanceModules, type PerformanceResult } from './modules/performance';
 import { runAccessibilityModules, type AccessibilityResult } from './modules/accessibility';
 import { runSEOModules, type SEOResult } from './modules/seo';

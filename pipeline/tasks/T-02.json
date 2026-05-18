@@ -1,0 +1,48 @@
+{
+  "task_id": "T-02",
+  "title": "P1-03: CSP strictness parser + HSTS parameter validation",
+  "assigned_to": "implementor",
+  "risk_flags": ["xss-defense", "transport-security"],
+  "model_hint": "opus",
+  "effort_hint": "high",
+  "scope": {
+    "files_to_modify": [
+      "src/lib/scanner/modules/p1-03-headers.ts",
+      "src/__tests__/lib/scanner/modules/p1-03-headers.test.ts"
+    ],
+    "files_to_create": [],
+    "files_forbidden": [
+      "src/lib/scanner/index.ts",
+      "src/lib/data.ts",
+      "src/lib/scanner/modules/p1-05-cookies.ts",
+      "src/lib/scanner/modules/p1-07-cors.ts",
+      "src/lib/scanner/modules/p1-10-dns-email.ts"
+    ]
+  },
+  "acceptance_criteria": [
+    "--- CSP STRICTNESS (new bespoke function, NOT a table entry) ---",
+    "Add a checkCsp(crawl: CrawlResult): RawFinding[] function modelled on the existing checkSri() pattern — it constructs its own findings, does NOT extend the HEADER_CHECKS table.",
+    "Parse the 'content-security-policy' header value from crawl.headers (keys are lower-cased). If absent, return [] (the existing HEADER_CHECKS entry already emits the MEDIUM absent-CSP finding; do not double-emit).",
+    "Parse 'content-security-policy-report-only' separately from the same crawl.headers map. A weak report-only CSP emits severity=INFO (not HIGH), with title noting it is report-only and not enforced.",
+    "Determine the effective script policy: prefer the 'script-src' directive; fall back to 'default-src' if 'script-src' is absent.",
+    "Flag as HIGH (title: 'Weak Content-Security-Policy: unsafe-inline allowed') when 'unsafe-inline' appears as a standalone keyword in the effective directive, UNLESS a nonce ('nonce-...') or hash ('sha256-...', 'sha384-...', 'sha512-...') is also present in the same directive — in CSP2+ these neutralise unsafe-inline.",
+    "Flag as HIGH (title: 'Weak Content-Security-Policy: unsafe-eval allowed') when 'unsafe-eval' appears as a standalone keyword in the effective directive.",
+    "Flag as HIGH (title: 'Overly permissive Content-Security-Policy: wildcard source') when a bare * or bare http: or bare https: appears as a source expression in the effective directive. Do NOT flag scoped wildcards like *.googleapis.com.",
+    "Do NOT flag any directive as weak when 'strict-dynamic' is also present — strict-dynamic neutralises host-source allowlists and unsafe-inline in CSP3, making the policy effectively nonce/hash-only.",
+    "Call checkCsp() from runHeadersModule() and push its results into the findings array (same call site as checkSri()).",
+    "--- HSTS VALIDATION (new bespoke function) ---",
+    "Add a checkHsts(crawl: CrawlResult): RawFinding[] function.",
+    "If the 'strict-transport-security' header is absent, return [] (the existing HEADER_CHECKS entry already emits MEDIUM; do not double-emit).",
+    "Extract max-age using a regex. If max-age < 15_768_000 (≈6 months), emit severity=LOW, title='Strict-Transport-Security max-age is too short', evidence shows the actual value.",
+    "If max-age is present and >= 15_768_000 but the directive does NOT include 'includesubdomains' (case-insensitive), emit severity=INFO, title='Strict-Transport-Security missing includeSubDomains'.",
+    "If HSTS is well-formed (max-age >= 15_768_000, includeSubDomains present), emit nothing.",
+    "Call checkHsts() from runHeadersModule() and push its results.",
+    "--- SEVERITY RECALIBRATION ---",
+    "No severity recalibrations in this task (X-Frame-Options stays LOW, SRI stays LOW — per Gate 1 decision).",
+    "--- TESTS ---",
+    "Add tests for: unsafe-inline (HIGH), unsafe-eval (HIGH), bare wildcard (HIGH), nonce+unsafe-inline (no finding), hash+unsafe-inline (no finding), strict-dynamic+unsafe-inline (no finding), scoped wildcard (no finding), report-only weak CSP (INFO), absent CSP (no new finding from checkCsp), HSTS short max-age (LOW), HSTS good max-age missing includeSubDomains (INFO), HSTS fully correct (no finding).",
+    "All existing P1-03 tests still pass."
+  ],
+  "dependencies": [],
+  "output_format": "code plus plain English explanation of every non-obvious decision"
+}

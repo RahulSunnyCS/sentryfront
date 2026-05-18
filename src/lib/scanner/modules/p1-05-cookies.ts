@@ -42,6 +42,38 @@ export function runCookiesModule(crawl: CrawlResult): RawFinding[] {
     });
   }
 
+  // HttpOnly flag check — mirrors the Secure-flag check above.
+  // Severity HIGH: without HttpOnly, JavaScript running in the page
+  // (including injected XSS payloads) can read the session cookie value.
+  //
+  // Known limitation: NextAuth's __Secure-/__Host- prefixed cookies are not
+  // matched by looksLikeSessionCookie() because the prefix pattern is not
+  // covered by SESSION_COOKIE_PATTERNS. This is a pre-existing blind spot in
+  // the heuristic; tools/cookies.ts must NOT be modified in this task.
+  const nonHttpOnlySessionCookies = cookies.filter(
+    (c) => looksLikeSessionCookie(c) && !c.httpOnly,
+  );
+
+  if (nonHttpOnlySessionCookies.length > 0) {
+    const names = nonHttpOnlySessionCookies.map((c) => c.name).join(', ');
+    findings.push({
+      moduleId: 'P1-05',
+      severity: 'HIGH',
+      category: 'Cookie & Storage Hygiene',
+      title: `Session cookie${nonHttpOnlySessionCookies.length > 1 ? 's' : ''} missing HttpOnly flag`,
+      location: `Set-Cookie: ${names}`,
+      evidence: nonHttpOnlySessionCookies.map((c) => `${c.name}=...; (no HttpOnly)`).join('\n'),
+      explanation: "The HttpOnly flag prevents JavaScript from reading cookie values via document.cookie. Without it, a Cross-Site Scripting (XSS) vulnerability anywhere on the page would allow an attacker to steal session tokens directly.",
+      impact: 'An XSS payload can exfiltrate session cookies in plaintext, enabling full account takeover without any server-side interaction.',
+      fixManual: [
+        'Add the HttpOnly attribute to all authentication cookies.',
+        'In Next.js, set cookies with { httpOnly: true } in your API routes.',
+        'Also add Secure and SameSite attributes as defence-in-depth.',
+      ],
+      fixAiPrompt: `My session cookies (${names}) are missing the HttpOnly flag. Update my Next.js API routes to set all auth cookies with { httpOnly: true, secure: true, sameSite: 'lax' }.`,
+    });
+  }
+
   const noSameSiteSessionCookies = cookies.filter(
     (c) => looksLikeSessionCookie(c) && !c.sameSite,
   );

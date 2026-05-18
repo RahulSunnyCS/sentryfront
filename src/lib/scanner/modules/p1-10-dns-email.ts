@@ -106,5 +106,57 @@ export async function runDnsEmailModule(crawl: CrawlResult): Promise<RawFinding[
     });
   }
 
+  // DKIM — best-effort probe across 9 common selectors.
+  // We use Promise.allSettled so a DNS error on one selector does not abort
+  // the others. getTxtRecords already catches errors internally (returns []),
+  // but allSettled makes the intent explicit and future-proof if the helper
+  // is ever changed to throw.
+  const DKIM_SELECTORS = [
+    'google',
+    'mail',
+    'selector1',
+    'selector2',
+    'default',
+    'mandrill',
+    'sendgrid',
+    'smtp',
+    'dkim',
+  ];
+
+  const dkimResults = await Promise.allSettled(
+    DKIM_SELECTORS.map((selector) => getTxtRecords(`${selector}._domainkey.${apex}`)),
+  );
+
+  // A selector is "found" only when it resolves successfully AND returns at
+  // least one non-empty string. Errors and empty arrays are both inconclusive.
+  const dkimFound = dkimResults.some(
+    (result) =>
+      result.status === 'fulfilled' &&
+      result.value.length > 0 &&
+      result.value.some((record) => record.length > 0),
+  );
+
+  if (!dkimFound) {
+    // All selectors returned empty or errored — emit an inconclusive INFO finding.
+    // We deliberately avoid language like "DKIM is missing" because custom or
+    // provider-specific selectors (Amazon SES, Postmark, etc.) may be in use.
+    findings.push({
+      moduleId: 'P1-10',
+      severity: 'INFO',
+      category: 'DNS & Email Security',
+      title: 'DKIM presence could not be confirmed via common selectors',
+      location: `DNS TXT @ *._domainkey.${apex}`,
+      evidence: `Checked selectors: ${DKIM_SELECTORS.join(', ')}. None returned a DKIM TXT record.`,
+      explanation:
+        'We checked 9 common DKIM selector names and found no DKIM record. This is inconclusive — custom or provider-specific selectors (e.g., Amazon SES, Postmark, Mailchimp) may be in use. This does not confirm DKIM is absent.',
+      impact:
+        'If DKIM is truly absent, email authentication is incomplete. Combined with DMARC p=none this means no enforcement.',
+      fixManual: [
+        'Check your email provider documentation for your DKIM selector name.',
+        'Verify DKIM is configured in your DNS: <your-selector>._domainkey.<domain> TXT "v=DKIM1; k=rsa; p=..."',
+      ],
+    });
+  }
+
   return findings;
 }
