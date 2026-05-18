@@ -501,7 +501,7 @@
   border: 1px solid var(--pdoc-border);
   border-radius: var(--pdoc-radius);
   padding: 5mm 6mm;
-  margin-bottom: 4mm;
+  margin-bottom: 3mm;
   break-inside: avoid;
   page-break-inside: avoid;
   background: var(--pdoc-bg);
@@ -580,6 +580,33 @@
   white-space: pre-wrap;
   word-break: break-word;
   margin-top: 2mm;
+}
+
+[data-print-doc] .finding-ref {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  padding: 2.5mm 4mm;
+  margin-bottom: 3mm;
+  border-left: 3px solid var(--pdoc-border-strong);
+  background: var(--pdoc-surface);
+  font-size: 10pt;
+  border-radius: 0 var(--pdoc-radius) var(--pdoc-radius) 0;
+  break-inside: avoid;
+}
+[data-print-doc] .finding-ref .finding-ref-title {
+  flex: 1;
+  font-weight: 600;
+  color: var(--pdoc-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-print-doc] .finding-ref .finding-ref-pointer {
+  font-size: 9pt;
+  color: var(--pdoc-accent-strong);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 [data-print-doc] .category-label {

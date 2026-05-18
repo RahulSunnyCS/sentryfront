@@ -219,12 +219,19 @@ export async function runSensitivePathsModule(crawl: CrawlResult): Promise<RawFi
       !MEDIUM_PATHS.includes(h.path),
   );
 
-  for (const hit of critical) {
+  // HTTP 200 on a CRITICAL_PATH means the file is truly served — keep CRITICAL per-path.
+  // HTTP 403/401/redirects/500 mean the path is confirmed but access is blocked —
+  // downgrade to HIGH and group by path family to avoid report flooding.
+  const criticalExposed = critical.filter((h) => h.status === 200);
+  const criticalBlocked = critical.filter((h) => h.status !== 200);
+
+  for (const hit of criticalExposed) {
     findings.push({
       moduleId: 'P1-06',
       severity: 'CRITICAL',
       category: 'Sensitive Path Exposure',
-      title: `Sensitive file publicly accessible: ${hit.path}`,
+      // "exposed" is more precise than "publicly accessible" (removed the misleading phrase)
+      title: `Sensitive file exposed: ${hit.path}`,
       location: hit.path,
       evidence: `GET ${hit.path} → HTTP ${hit.status}`,
       explanation: `The file ${hit.path} is publicly accessible. This type of file commonly contains secrets, credentials, or database contents that should never be exposed.`,
@@ -236,6 +243,54 @@ export async function runSensitivePathsModule(crawl: CrawlResult): Promise<RawFi
         'Verify the fix: the path should return 404, not 403.',
       ],
       fixAiPrompt: `The file ${hit.path} is publicly accessible on my site. Configure my hosting to return 404 for this path and audit for any secrets that may have been exposed.`,
+    });
+  }
+
+  // Categorises a path into a human-readable family name for grouped findings.
+  // Used to collapse multiple blocked/redirected hits from the same category
+  // (e.g. three .env variants) into a single HIGH finding instead of three.
+  function getPathFamily(path: string): string {
+    if (path.includes('.env')) return 'Environment config';
+    if (path.includes('.git/')) return 'Git repository';
+    if (path.includes('.svn/') || path.includes('.hg/') || path.includes('/CVS/')) return 'Version control';
+    if (/\.(bak|old|swp)$/.test(path)) return 'Backup file';
+    return 'Sensitive file';
+  }
+
+  // Group blocked/redirected/error CRITICAL hits by (family, status) so each
+  // unique family+status combination produces one HIGH finding.
+  // We key on family+status so that 403s and 500s on the same family don't merge
+  // (the explanation text references the specific status code).
+  const blockedGroups = new Map<string, { family: string; status: number; paths: string[] }>();
+  for (const hit of criticalBlocked) {
+    const family = getPathFamily(hit.path);
+    const key = `${family}::${hit.status}`;
+    if (!blockedGroups.has(key)) {
+      blockedGroups.set(key, { family, status: hit.status, paths: [] });
+    }
+    blockedGroups.get(key)!.paths.push(hit.path);
+  }
+
+  for (const { family, status, paths } of blockedGroups.values()) {
+    const count = paths.length;
+    const pathList = paths.join(', ');
+    findings.push({
+      moduleId: 'P1-06',
+      severity: 'HIGH',
+      category: 'Sensitive Path Exposure',
+      title: `${count} ${family} path${count > 1 ? 's' : ''} confirmed (server returns ${status} — use 404 instead)`,
+      location: pathList,
+      // One evidence line per path for easy log-level verification
+      evidence: paths.map((p) => `GET ${p} → HTTP ${status}`).join('\n'),
+      explanation: `These paths exist on the server but access is currently blocked (HTTP ${status}). The file contents are not readable. However, returning ${status} instead of 404 confirms these paths exist, which is useful reconnaissance for an attacker. Return 404 for all of these paths.`,
+      impact: 'Path existence confirmed — an attacker knows exactly which sensitive files to target if the server\'s access control changes or is misconfigured.',
+      fixManual: [
+        `Return 404 (not ${status}) for these paths: ${pathList}`,
+        'Configure your hosting platform to deny-list these paths with 404',
+        'For Vercel: add to vercel.json headers or use middleware to return 404',
+        `After fixing, verify with: curl -I ${crawl.finalUrl}${paths[0]} (should return 404)`,
+      ],
+      fixAiPrompt: `Block these sensitive paths on my site and return 404 instead of ${status}: ${pathList}. Show me how to configure this for Vercel / nginx / Next.js middleware.`,
     });
   }
 

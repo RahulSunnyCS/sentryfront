@@ -1,5 +1,11 @@
 import { GRADE_CONFIG, SCAN_MODULES, SEVERITY_RANK } from '@/lib/data';
 import type { Finding, Grade, ScanData } from '@/types';
+import {
+  mergeAndCalibrateFindings,
+  compressInfoBandFindings,
+  buildSummaryFromFindings,
+  type BandSummaryItem,
+} from '@/lib/report-utils';
 import { AutoPrint } from './auto-print';
 import {
   deriveComplianceStatus,
@@ -226,6 +232,46 @@ function FindingCardPrint({ finding, idx }: { finding: Finding; idx?: number }) 
   );
 }
 
+function FindingBackRef({ finding, idx }: { finding: Finding; idx: number }) {
+  const sev = finding.severity.toLowerCase();
+  return (
+    <div className="finding-ref">
+      <span className={`severity-chip ${sev}`}>{finding.severity}</span>
+      <span className="finding-ref-title">{finding.title}</span>
+      <span className="finding-ref-pointer">→ Priority findings #{idx}</span>
+      <span className="finding-id">{finding.module}</span>
+    </div>
+  );
+}
+
+function BandSummaryCallout({ items }: { items: BandSummaryItem[] }) {
+  return (
+    <div className="callout" style={{ marginTop: '4mm', padding: '4mm 5mm' }}>
+      <strong style={{ display: 'block', marginBottom: '2mm' }}>Core Web Vitals — band summary</strong>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9.5pt' }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid var(--pdoc-border)' }}>
+            <th style={{ textAlign: 'left', padding: '1mm 2mm 1mm 0', fontWeight: 700, color: 'var(--pdoc-text-3)' }}>Metric</th>
+            <th style={{ textAlign: 'right', padding: '1mm 0', fontWeight: 700, color: 'var(--pdoc-text-3)' }}>Value</th>
+            <th style={{ textAlign: 'right', padding: '1mm 0', fontWeight: 700, color: 'var(--pdoc-text-3)' }}>Band</th>
+            <th style={{ textAlign: 'right', padding: '1mm 0', fontWeight: 700, color: 'var(--pdoc-text-3)' }}>Threshold</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.metric}>
+              <td style={{ padding: '1.5mm 2mm 1.5mm 0', fontWeight: 600 }}>{item.metric}</td>
+              <td style={{ textAlign: 'right', fontFamily: 'var(--pdoc-mono)', padding: '1.5mm 0' }}>{item.value}</td>
+              <td style={{ textAlign: 'right', padding: '1.5mm 0' }}>{item.band}</td>
+              <td style={{ textAlign: 'right', color: 'var(--pdoc-text-3)', padding: '1.5mm 0' }}>{item.threshold}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function PrintReport(props: Props) {
   const {
     scanData,
@@ -243,14 +289,19 @@ export function PrintReport(props: Props) {
   const dateLabel = scanData.date;
   const filename = `vibesafe-${host}-${new Date(issuedAtIso).toISOString().slice(0, 10)}.pdf`;
 
-  const findings = [...scanData.findings].sort((a, b) => {
+  const clampedScore = Math.min(100, scanData.score);
+  const { findings: calibratedFindings, bandSummary } = compressInfoBandFindings(
+    mergeAndCalibrateFindings(scanData.findings),
+  );
+
+  const findings = [...calibratedFindings].sort((a, b) => {
     const r = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
     if (r !== 0) return r;
     return a.category.localeCompare(b.category);
   });
 
   const totalFindings = findings.length;
-  const summary = scanData.summary;
+  const summary = buildSummaryFromFindings(findings);
   const passedCount = Math.max(0, SCAN_MODULES.length - new Set(findings.map((f) => f.module)).size);
 
   const findingsByCategory = (() => {
@@ -265,6 +316,8 @@ export function PrintReport(props: Props) {
   const priorityFindings = findings
     .filter((f) => f.severity === 'CRITICAL' || f.severity === 'HIGH')
     .slice(0, 5);
+
+  const priorityIds = new Set(priorityFindings.map((f) => f.id));
 
   const passedModules = SCAN_MODULES.filter(
     (m) => !findings.some((f) => f.module === m.id),
@@ -346,7 +399,7 @@ export function PrintReport(props: Props) {
                 Unauthenticated scope · public surface · 1 origin
               </div>
             </div>
-            <GradeRing grade={scanData.grade} score={scanData.score} />
+            <GradeRing grade={scanData.grade} score={clampedScore} />
           </div>
 
           <div className="cover-meta-grid">
@@ -449,7 +502,7 @@ export function PrintReport(props: Props) {
           <p className="lede">
             {host} earned an overall grade of{' '}
             <strong>
-              {scanData.grade} ({scanData.score}/100)
+              {scanData.grade} ({clampedScore}/100)
             </strong>
             . {summary.CRITICAL > 0
               ? `${summary.CRITICAL} critical ${summary.CRITICAL === 1 ? 'issue needs' : 'issues need'} immediate attention. `
@@ -460,7 +513,7 @@ export function PrintReport(props: Props) {
           </p>
 
           <div className="exec-grid">
-            <GradeRing grade={scanData.grade} score={scanData.score} />
+            <GradeRing grade={scanData.grade} score={clampedScore} />
             <div className="verdict">
               <h3>{verdict.headline}</h3>
               <p>
@@ -500,7 +553,20 @@ export function PrintReport(props: Props) {
             </div>
           </div>
 
-          <h3 className="subhead">Score by category</h3>
+          {bandSummary !== null && <BandSummaryCallout items={bandSummary} />}
+
+          {findings.some((f) => f.module === 'P1-06') && (
+            <div
+              className="callout"
+              style={{ marginTop: '4mm', borderLeft: '3px solid #EA580C', background: '#FFF7ED', borderColor: 'rgba(234,88,12,0.35)' }}
+            >
+              <strong>How to read path-probing findings.</strong>{' '}
+              HTTP 200 = file contents were served (CRITICAL — direct data exposure).{' '}
+              HTTP 403 = server blocked access but confirmed the path exists (HIGH — return 404 instead for better obscurity).
+            </div>
+          )}
+
+          <h3 className="subhead" style={{ marginTop: '5mm' }}>Score by category</h3>
           <div className="category-bars">
             <ScoreBar label="🛡️ Security" score={scanData.score} />
             {performanceScore !== null && <ScoreBar label="⚡ Performance" score={performanceScore} />}
@@ -637,9 +703,13 @@ export function PrintReport(props: Props) {
                 <div className="category-label">
                   {category} · {list.length} {list.length === 1 ? 'issue' : 'issues'}
                 </div>
-                {list.map((f) => (
-                  <FindingCardPrint key={f.id} finding={f} />
-                ))}
+                {list.map((f) => {
+                  const priorityIdx = priorityFindings.findIndex((p) => p.id === f.id);
+                  if (priorityIdx !== -1) {
+                    return <FindingBackRef key={f.id} finding={f} idx={priorityIdx + 1} />;
+                  }
+                  return <FindingCardPrint key={f.id} finding={f} />;
+                })}
               </div>
             ))}
           </div>

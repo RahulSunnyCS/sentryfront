@@ -1,5 +1,25 @@
 import type { CrawlResult, RawFinding } from '../types';
 
+// Google-owned CDN/analytics domains: sourcemap probes against these URLs
+// return responses from Google's servers, not the scanned site — skip them
+// to avoid false positives (e.g. gtag.js?id=UA-XXXX → .map returns 200).
+const GOOGLE_OWNED_DOMAINS = [
+  'googletagmanager.com',
+  'googleapis.com',
+  'google-analytics.com',
+  'doubleclick.net',
+  'googlesyndication.com',
+];
+
+function isGoogleOwnedDomain(urlStr: string): boolean {
+  try {
+    const { hostname } = new URL(urlStr);
+    return GOOGLE_OWNED_DOMAINS.some((d) => hostname === d || hostname.endsWith('.' + d));
+  } catch {
+    return false;
+  }
+}
+
 async function mapFileAccessible(url: string): Promise<boolean> {
   try {
     const res = await fetch(`${url}.map`, {
@@ -22,6 +42,10 @@ export async function runSourcemapsModule(crawl: CrawlResult): Promise<RawFindin
 
   for (const { url, accessible } of results) {
     if (accessible) {
+      // Skip Google-owned CDN/analytics URLs: a .map probe to googletagmanager.com
+      // (e.g. from gtag.js) gets a 200 from Google's servers, not from the site
+      // being scanned — these are not production sourcemaps of the target.
+      if (isGoogleOwnedDomain(url)) continue;
       const path = url.replace(/^https?:\/\/[^/]+/, '');
       exposed.push(`${path}.map`);
     }

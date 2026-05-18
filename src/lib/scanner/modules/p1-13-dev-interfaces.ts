@@ -95,6 +95,12 @@ const PROBES: EndpointProbe[] = [
   },
 ];
 
+// Paths that are intentionally public and must never generate a finding.
+// /.well-known/security.txt returning HTTP 200 is correct behaviour per RFC 9116
+// (the standard for publishing a security disclosure policy). Flagging it as an
+// "exposed development interface" is a false positive.
+const ALLOWED_PATHS = new Set(['/.well-known/security.txt']);
+
 export async function runDevInterfacesModule(crawl: CrawlResult): Promise<RawFinding[]> {
   const findings: RawFinding[] = [];
   const base = new URL(crawl.finalUrl).origin;
@@ -146,6 +152,9 @@ export async function runDevInterfacesModule(crawl: CrawlResult): Promise<RawFin
     const { probe, status } = result;
     if (seen.has(probe.path + probe.name)) continue;
     seen.add(probe.path + probe.name);
+
+    // Skip paths that are intentionally public (e.g. security.txt per RFC 9116).
+    if (ALLOWED_PATHS.has(probe.path)) continue;
 
     // Skip generic graphql finding if introspection finding also fires
     if (probe.path === '/graphql' && probe.name === 'GraphQL endpoint' && introspectionEnabled) continue;
