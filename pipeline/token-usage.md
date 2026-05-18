@@ -12,3 +12,4 @@
 | Phase 1 | Red Team Sprint 4 (tri-stance) | red-team | opus | max | ~58k |
 | Phase 1 | Red Team Sprint 5 (convergence) | red-team | opus | max | ~55k |
 | Phase 1 | QA Planner | qa-planner | opus | high | ~25k |
+| Phase 1 | Translator (Plan Report) | translator | haiku | medium | ~12k |
