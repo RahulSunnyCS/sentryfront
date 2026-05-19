@@ -41,7 +41,7 @@
 
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { seedAuthUser, uniqueEmail, type SeededAuth } from './support/auth-seed';
+import { seedAuthUser, uniqueEmail, authStorageState, type SeededAuth } from './support/auth-seed';
 import {
   LOGIN_FORM,
   LOGIN_SUBMIT,
@@ -165,27 +165,15 @@ test.describe('verify page a11y', () => {
     browser,
     baseURL,
   }) => {
-    // Build the authenticated context HERE with the real seeded token — a
-    // file-level test.use({ storageState }) is evaluated at collection time,
-    // before beforeAll, so the token is not yet known there (same rationale
-    // as probe.spec.ts).
+    // Build the authenticated context HERE with authStorageState() — the
+    // single-home cookie constructor from auth-seed.ts. A file-level
+    // test.use({ storageState }) is evaluated at collection time, before
+    // beforeAll, so the token is not yet known there (same rationale as
+    // probe.spec.ts). browser.newContext() accepts the StorageState return
+    // value directly, so no inline cookie literal is needed.
     const context = await browser.newContext({
       baseURL: baseURL ?? 'http://localhost:3000',
-      storageState: {
-        cookies: [
-          {
-            name: 'next-auth.session-token',
-            value: seeded.sessionToken,
-            domain: 'localhost',
-            path: '/',
-            expires: Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000),
-            httpOnly: true,
-            secure: false,
-            sameSite: 'Lax',
-          },
-        ],
-        origins: [],
-      },
+      storageState: authStorageState(seeded.sessionToken),
     });
     const page = await context.newPage();
     try {

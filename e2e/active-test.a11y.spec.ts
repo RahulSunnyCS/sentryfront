@@ -50,8 +50,8 @@ import AxeBuilder from '@axe-core/playwright';
 import {
   seedAuthUser,
   uniqueEmail,
+  authStorageState,
   type SeededAuth,
-  type StorageState,
 } from './support/auth-seed';
 import { ACTIVE_TEST_DOMAIN_INPUT, byTestId } from './support/selectors';
 
@@ -126,25 +126,6 @@ async function expectNoWcagViolations(page: Page, label: string): Promise<void> 
   ).toHaveLength(0);
 }
 
-/** storageState cookie for a seeded DB session (see auth-seed.ts contract). */
-function sessionStorageState(sessionToken: string): StorageState {
-  return {
-    cookies: [
-      {
-        name: 'next-auth.session-token',
-        value: sessionToken,
-        domain: 'localhost',
-        path: '/',
-        expires: Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000),
-        httpOnly: true,
-        secure: false,
-        sameSite: 'Lax',
-      },
-    ],
-    origins: [],
-  };
-}
-
 // ── State 1: BELOW-TIER (free) — the upgrade-prompt stable view ─────────────
 test.describe('active-test a11y — free (upgrade-prompt) state', () => {
   let seeded: SeededAuth;
@@ -161,12 +142,15 @@ test.describe('active-test a11y — free (upgrade-prompt) state', () => {
     browser,
     baseURL,
   }) => {
-    // Build the authenticated context HERE — a file-level test.use() is
-    // evaluated at collection time, before beforeAll, so the seeded token is
-    // not yet known there (same rationale as auth.a11y.spec.ts).
+    // Build the authenticated context HERE with authStorageState() — the
+    // single-home cookie constructor from auth-seed.ts. A file-level
+    // test.use({ storageState }) is evaluated at collection time, before
+    // beforeAll, so the seeded token is not yet known there. Calling
+    // authStorageState() at runtime (inside the test body) is the correct
+    // pattern; browser.newContext() accepts its StorageState return directly.
     const context = await browser.newContext({
       baseURL: baseURL ?? 'http://localhost:3000',
-      storageState: sessionStorageState(seeded.sessionToken),
+      storageState: authStorageState(seeded.sessionToken),
     });
     const page = await context.newPage();
     try {
@@ -208,7 +192,7 @@ test.describe('active-test a11y — entitled (DAST wizard) state', () => {
   }) => {
     const context = await browser.newContext({
       baseURL: baseURL ?? 'http://localhost:3000',
-      storageState: sessionStorageState(seeded.sessionToken),
+      storageState: authStorageState(seeded.sessionToken),
     });
     const page = await context.newPage();
     try {

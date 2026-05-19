@@ -9,7 +9,9 @@ Task: Comprehensive E2E integration test coverage for every page and component.
 | Human Gate 1 | APPROVED | Recommended decisions locked; R3 accepted; bounded re-plan done. |
 | Phase 2 — Decomposition | DONE | 17 task contracts, 3 waves. Cross-artifact check PASS. |
 | Phase 3 — Implementation | DONE | T-01..T-20 (20 tasks; +T-18 lint, +T-19 active-test tier-gate fix, +T-20 mount real comps — all user-approved). 251 E2E tests/25 files; typecheck/lint/test(1840)/build all GREEN. E2E execution = CI-only (no in-sandbox browsers, as planned). |
-| Phase 4 — Specialist Review | IN PROGRESS | Epic split (HIGH + 5 tags): dedicated security-auditor (Opus/max) + performance + architecture + pricing reviewers in parallel. |
+| Phase 4 — Specialist Review | DONE | Epic split: security PASS, perf PASS, arch/pricing CONDITIONAL PASS. 0 Critical/High. Gate 2 APPROVED. |
+| Phase 4.5 — Bounded Fix Cycle | DONE | C1/C2/C3 fixed in parallel (FIX-A/B/C). Suite re-verified green. Synthesis → effective PASS. |
+| Phase 5 — Test Generation | IN PROGRESS | Unit/integration/docs/E2E parallel. |
 
 Effort: Phase 1 = max (feature-full + HIGH + risk_flags). Other phases per CLAUDE.md table.
 

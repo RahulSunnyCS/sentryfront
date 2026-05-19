@@ -1,6 +1,24 @@
 # Phase 4 Synthesis Review
 
-Verdict: **CONDITIONAL PASS**
+Verdict: **CONDITIONAL PASS** → **PASS** (Phase 4.5 fix cycle complete)
+
+## Phase 4.5 resolution (all 3 conditions remediated, suite re-verified)
+- C1 ✅ FIX-A: `@functional payment-modal upsell` smoke added to checkout.spec.ts
+  (deterministic mocked-402 → PaymentRequiredError → openModal; asserts plan
+  NAMES not prices + dollar negative-guard); coverage-matrix payment-modal
+  entry now honestly DIRECT with traceable note.
+- C2 ✅ FIX-A + FIX-B: all 4 specs (checkout, active-test, active-test.a11y,
+  auth.a11y) now route through the exported `authStorageState()`; the 2 local
+  byte-identical `sessionStorageState` copies deleted.
+- C3 ✅ FIX-C: active-test/page.tsx metadata + openGraph de-priced
+  ("$5,000"/"$3.48" → "a costly manual penetration test"); no `$` remains, no
+  i18n change (Next.js metadata, not next-intl).
+Re-verify: typecheck clean · vitest 1840 pass · lint no new errors · build ✓ ·
+252 E2E tests / 25 files (+1 = new payment-modal smoke). Scope-check: only
+declared files changed. All conditions closed → effective PASS for Phase 5.
+
+---
+
 
 | Reviewer | Verdict | C | H | M | L |
 |---|---|---|---|---|---|

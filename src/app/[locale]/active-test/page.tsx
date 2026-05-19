@@ -9,12 +9,12 @@ import { ActiveTestFlow } from './active-test-flow';
 export const metadata: Metadata = {
   title: 'Active security testing — DAST scan',
   description:
-    'Run real attack probes against your verified domain — SQL injection, XSS, API fuzzing, auth bypass. Get CONFIRMED exploitable findings, not guesses. 3 credits, ~8 minutes, replaces a $5,000 manual pentest.',
+    'Run real attack probes against your verified domain — SQL injection, XSS, API fuzzing, auth bypass. Get CONFIRMED exploitable findings, not guesses. 3 credits, ~8 minutes, replaces a costly manual penetration test.',
   alternates: { canonical: '/active-test' },
   openGraph: {
     title: 'Active security testing — DAST scan',
     description:
-      'Real attack probes, rate-limited, opt-in, with confirmed proof. Replaces a $5,000 pentest for ~$3.48.',
+      'Real attack probes, rate-limited, opt-in, with confirmed proof. Replaces a costly manual penetration test.',
     url: '/active-test',
     type: 'website',
   },

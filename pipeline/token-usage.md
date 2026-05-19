@@ -42,3 +42,6 @@
 | Phase 4 | Synthesis | orchestrator | opus | high | ~12k |
 | Phase 4 | Translator (Synthesis) | translator | haiku | medium | ~10k |
 | Phase 4.5 | FIX-A: payment-modal smoke + cookie dedup | implementor | sonnet | high | ~22k |
+| Phase 4.5 | FIX-B: cookie dedup 3 specs | implementor | sonnet | high | ~20k |
+| Phase 4.5 | FIX-C: de-price active-test metadata | implementor | sonnet | high | ~12k |
+| Phase 4.5 | Scope-check + re-verify | orchestrator | haiku | low | ~3k |

@@ -70,8 +70,8 @@ import { test, expect, type Browser } from '@playwright/test';
 import {
   seedAuthUser,
   uniqueEmail,
+  authStorageState,
   type SeededAuth,
-  type StorageState,
 } from './support/auth-seed';
 import { seedDomainVerification, type SeededEntity } from './support/db-seed';
 import { ACTIVE_TEST_DOMAIN_INPUT, ACTIVE_TEST_STEP1_CONTINUE, byTestId } from './support/selectors';
@@ -111,36 +111,16 @@ const TEST_DOMAIN = 'dast-e2e-example.com';
 // we want to reach (and assert on) the tier / verification 403 gates.
 const SUPPORTED_TEST = 'sqli';
 
-/**
- * Build the Playwright storageState cookie for a seeded DB session. Inlined
- * (rather than using authStorageState() from support) because the seeded token
- * is only known at runtime inside beforeAll — a file-level test.use() is
- * evaluated at collection time, before beforeAll runs, so the token is not yet
- * available there. Same rationale as checkout.spec.ts / auth.a11y.spec.ts.
- */
-function sessionStorageState(sessionToken: string): StorageState {
-  return {
-    cookies: [
-      {
-        name: 'next-auth.session-token',
-        value: sessionToken,
-        domain: 'localhost',
-        path: '/',
-        expires: Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000),
-        httpOnly: true,
-        secure: false,
-        sameSite: 'Lax',
-      },
-    ],
-    origins: [],
-  };
-}
-
 /** Open an authenticated page+context for `seeded`; caller closes the context. */
 async function authedPage(browser: Browser, baseURL: string | undefined, seeded: SeededAuth) {
+  // authStorageState() is the single-home cookie constructor from auth-seed.ts.
+  // We call it here at runtime (inside authedPage, invoked from the test body)
+  // rather than at file-level test.use() — the seeded token is only available
+  // after beforeAll, not at collection time. browser.newContext() accepts the
+  // StorageState return value directly.
   const context = await browser.newContext({
     baseURL: baseURL ?? 'http://localhost:3000',
-    storageState: sessionStorageState(seeded.sessionToken),
+    storageState: authStorageState(seeded.sessionToken),
   });
   const page = await context.newPage();
   return { context, page };
