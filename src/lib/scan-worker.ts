@@ -25,6 +25,19 @@ import {
 // Scan timeout: hard kill at 120 seconds
 const SCAN_TIMEOUT_MS = Number(process.env.SCAN_TIMEOUT_MS ?? 120000); // 120s default
 
+// Per-process active scan counter. Incremented immediately before each
+// Promise.race and decremented in the matching finally block, so it
+// accurately reflects how many scans are in-flight on THIS Node process.
+// NOTE: this is per-instance only — it does NOT aggregate across multiple
+// container replicas or worker processes. For a cluster-wide total you would
+// need a shared store (e.g. Redis INCR/DECR keyed by instance).
+let activeScanCount = 0;
+
+/** Returns the number of scans currently in-flight on this Node process. */
+export function getActiveScanCount(): number {
+  return activeScanCount;
+}
+
 const ALL_MODULES = [
   'P1-01', 'P1-02', 'P1-03', 'P1-04', 'P1-05',
   'P1-06', 'P1-07', 'P1-08', 'P1-09', 'P1-10',
@@ -112,10 +125,12 @@ async function runScanWithTimeout(scanId: string): Promise<void> {
       // from when the span actually begins, not before.
       const startTime = Date.now();
 
+      // Increment before the race so the counter reflects this scan as
+      // in-flight from the moment work begins. The finally block is the
+      // ONLY decrement path — it runs on success, timeout rejection, and
+      // any other thrown error, so the counter cannot leak.
+      activeScanCount++;
       try {
-        // Promise.race is the core unit of work. T-03 will add a try/finally
-        // around this call for the activeScanCount counter — this structure
-        // (startTime + try/catch below) is compatible with that future addition.
         await Promise.race([
           runScanInternal(scanId),
           timeoutPromise,
@@ -143,6 +158,10 @@ async function runScanWithTimeout(scanId: string): Promise<void> {
         }
 
         throw err;
+      } finally {
+        // Decrement unconditionally — runs after the success path, after the
+        // catch's rethrow, and after any other exit. Single decrement per scan.
+        activeScanCount--;
       }
     },
   );

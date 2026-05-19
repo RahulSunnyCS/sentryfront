@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { features } from '@/lib/features';
+import { getActiveScanCount } from '@/lib/scan-worker';
 
 export async function GET() {
   let dbStatus = 'ok';
@@ -44,6 +45,13 @@ export async function GET() {
       ...(dbError && { error: dbError }),
     },
     queue: process.env.REDIS_URL ? 'redis' : 'in-process',
+
+    // Per-instance scan counter — informational only; does not affect health
+    // status. Reports how many scans are in-flight on THIS process at the
+    // moment the request is handled. Cluster-wide totals require Redis.
+    metrics: {
+      active_scans_this_instance: getActiveScanCount(),
+    },
 
     // Environment check
     env: {
