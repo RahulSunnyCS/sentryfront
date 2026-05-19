@@ -1,0 +1,27 @@
+{
+  "task_id": "T-20",
+  "title": "Wave-0.6: mount LocaleSwitcher + ThemeToggle in the user menu (next to Sign out)",
+  "assigned_to": "implementor",
+  "risk_flags": ["auth"],
+  "model_hint": "opus",
+  "effort_hint": "high",
+  "wave": 0,
+  "scope": {
+    "files_to_create": [],
+    "files_to_modify": [
+      "src/components/auth-button.tsx",
+      "messages/en.json (+ hi/ml/es/de) ONLY if a new label string is required"
+    ],
+    "files_forbidden": ["e2e/**", "playwright.config.ts", "pipeline/**", "src/components/locale-switcher.tsx", "src/components/theme-toggle.tsx", "src/components/nav.tsx", "any other src file", "*.test.*"]
+  },
+  "acceptance_criteria": [
+    "Mount <LocaleSwitcher /> and <ThemeToggle /> inside the authenticated user dropdown menu in src/components/auth-button.tsx — the same open menu panel that contains the Sign out item (around the signOut() / t('signOut') control, ~line 241-244). They render as menu rows/section near Sign out, only when the menu is open and the user is signed in.",
+    "Import the existing components as-is; do NOT modify locale-switcher.tsx or theme-toggle.tsx (they already carry their data-testid anchors from T-06). Do NOT change their internal behaviour.",
+    "Preserve all existing AuthButton behaviour: sign-in state, the dropdown open/close, Sign out, and the unauthenticated branch are unchanged. The two controls are additive.",
+    "Keyboard/focus + click-outside behaviour of the menu still works with the added rows; the added controls are reachable and operable within the open menu.",
+    "If a section label/heading string is added, add it to ALL catalogs messages/{en,hi,ml,es,de}.json per the i18n convention; otherwise no catalog change.",
+    "npm run typecheck, npm run lint, npm run test, npm run build all pass (full project stays green). git diff limited to auth-button.tsx (+ message catalogs only if a string was added)."
+  ],
+  "dependencies": [],
+  "output_format": "code plus plain English: exactly where in the menu the two controls were mounted, confirmation Sign out / sign-in / open-close behaviour is unchanged, and the 4 verification results"
+}
