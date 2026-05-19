@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth/helpers';
 import { getStripe, STRIPE_PRICES, isStripeEnabled } from '@/lib/stripe/client';
+import { logger } from '@/lib/logger';
 
 // Map internal tier id → DAST credits granted on a one-time purchase
 // (Monitor / studio is a subscription, no credit grant here.)
@@ -38,13 +39,26 @@ export async function POST(req: NextRequest) {
   // "Pre-GA cleanup" in /root/.claude/plans/looks-good-now-but-rosy-coral.md
   // for the removal checklist before public launch.
   if (process.env.PAYMENT_TEST_FLOW === 'true') {
-    // if (process.env.NODE_ENV === 'production') {
-    //   console.error('[Checkout] PAYMENT_TEST_FLOW=true in production — refusing to bypass.');
-    //   return NextResponse.json(
-    //     { error: 'Payment test flow is not allowed in production.' },
-    //     { status: 500 }
-    //   );
-    // }
+    // SAFETY GUARD (must be first — runs before any auth lookup or DB write):
+    // PAYMENT_TEST_FLOW grants a paid tier without charging. If it is ever set
+    // in production, refuse to bypass. We return the SAME 404 shape/status as
+    // the "payments not enabled" branch below so an attacker cannot distinguish
+    // "bypass is present but blocked" from "payments are simply off" — the
+    // existence of the bypass is not leaked. 404 (not 500) because a 500 would
+    // signal a server-side misconfiguration worth probing; a generic 404 looks
+    // identical to the ordinary payments-disabled response.
+    if (process.env.NODE_ENV === 'production') {
+      logger.error(
+        'PAYMENT_TEST_FLOW=true detected in production — refusing checkout bypass.',
+      );
+      return NextResponse.json(
+        {
+          error:
+            'Payments are not enabled. Set STRIPE_ENABLED=true and configure Stripe credentials, or set PAYMENT_TEST_FLOW=true in dev.',
+        },
+        { status: 404 }
+      );
+    }
 
     const user = await getCurrentUser();
     if (!user) {
