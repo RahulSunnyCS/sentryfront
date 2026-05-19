@@ -33,3 +33,4 @@
 | Phase 3 | T-19: active-test tier gate | implementor | opus | high | ~42k |
 | Phase 3 | T-09: checkout split (vitest+e2e) | implementor | opus | high | ~52k |
 | Phase 3 | T-10: active-test specs (post-T-19) | implementor | opus | high | ~50k |
+| Phase 3 | T-16: coverage matrix | implementor | sonnet | high | ~60k |
