@@ -27,3 +27,4 @@
 | Phase 3 | T-14: internal admin specs | implementor | opus | high | ~42k |
 | Phase 3 | T-08: auth specs | implementor | opus | high | ~55k |
 | Phase 3 | T-15: static-page smoke | implementor | sonnet | high | ~32k |
+| Phase 3 | T-12: scan lifecycle specs | implementor | sonnet | high | ~38k |
