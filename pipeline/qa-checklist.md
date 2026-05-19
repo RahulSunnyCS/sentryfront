@@ -117,6 +117,13 @@ State×Display Matrix (login view — src/app/[locale]/login/page.tsx + auth-but
   Automatable : yes
   @functional
 
+🟡 The login page has no axe-core WCAG A/AA accessibility violations in its stable state (R3)
+  Scenario    : Seed nothing (login is unauthenticated). Visit /en/login, wait for networkidle and the credential+OAuth form to be visibly rendered (stable asserted state). Run axe-core scoped to the page main region, ruleset WCAG 2.0/2.1 A+AA.
+  Pass if     : axe reports zero violations outside the documented pre-existing color-contrast allow-list (any allow-list entry is logged, never silently disabled).
+  Fail if     : axe finds a WCAG A/AA violation not on the documented allow-list, OR axe is run before the form reaches its stable rendered state.
+  Automatable : yes
+  @functional
+
 🟢 OAuth provider buttons are present (mechanism only, not the external redirect)
   Scenario    : On /en/login, locate the OAuth provider buttons.
   Pass if     : Buttons render and are clickable (bounded — the external IdP redirect is documented partial coverage per R8, not asserted).
@@ -157,6 +164,13 @@ State×Display Matrix (login view — src/app/[locale]/login/page.tsx + auth-but
   Scenario    : Visit /en/verify-email-sent.
   Pass if     : 200, heading present, instructs the user to check their email; verify-email-nudge content present.
   Fail if     : Non-200 or empty page.
+  Automatable : yes
+  @functional
+
+🟡 The signup and verify pages have no axe-core WCAG A/AA violations in their stable state (R3)
+  Scenario    : (a) Visit /en/signup, wait networkidle + form visibly rendered; (b) seed a VerificationToken and visit /en/verify, wait networkidle + the success/verified state rendered. For each, run axe-core scoped to the page main region, ruleset WCAG 2.0/2.1 A+AA, only after the stable asserted state is reached.
+  Pass if     : Both pages report zero axe violations outside the documented pre-existing color-contrast allow-list (allow-list entries logged, never silently disabled).
+  Fail if     : Either page has a WCAG A/AA violation not on the documented allow-list, OR axe runs before the page reaches its stable state.
   Automatable : yes
   @functional
 
@@ -207,6 +221,13 @@ State×Display Matrix (active-test view — src/app/[locale]/active-test/page.ts
   Scenario    : No session. Navigate to /en/active-test.
   Pass if     : Middleware redirects to /en/login?next=... (active-test is a protected segment).
   Fail if     : Page renders for an anonymous visitor.
+  Automatable : yes
+  @functional
+
+🟡 The active-test page has no axe-core WCAG A/AA violations in its stable state (R3)
+  Scenario    : Seed a dedicated unique-email entitled user (own user, cleaned in afterAll), authenticate via auth-seed storageState, visit /en/active-test, wait networkidle + the active-test surface rendered (stable asserted state). Run axe-core scoped to the page main region, ruleset WCAG 2.0/2.1 A+AA.
+  Pass if     : axe reports zero violations outside the documented pre-existing color-contrast allow-list (allow-list entries logged, never silently disabled).
+  Fail if     : A WCAG A/AA violation not on the documented allow-list, OR axe runs before the surface reaches its stable rendered state.
   Automatable : yes
   @functional
 
@@ -281,6 +302,13 @@ State×Display Matrix (checkout flow — checkout API + checkout/success page + 
   Automatable : yes
   @functional
 
+🟡 The checkout/pricing and checkout/success pages have no axe-core WCAG A/AA violations in their stable state (R3)
+  Scenario    : (a) Visit /en/pricing, wait networkidle + all pricing-cards rendered; (b) seed a dedicated unique-email user granted a tier via bypass, authenticate, visit /en/checkout/success, wait networkidle + the confirmation content rendered. For each, run axe-core scoped to the page main region, ruleset WCAG 2.0/2.1 A+AA, only after the stable asserted state. Never hit real Stripe.
+  Pass if     : Both pages report zero axe violations outside the documented pre-existing color-contrast allow-list (allow-list entries logged, never silently disabled).
+  Fail if     : Either page has a WCAG A/AA violation not on the documented allow-list, OR axe runs before the page reaches its stable state.
+  Automatable : yes
+  @functional
+
 🟢 The checkout-button shows a busy state when clicked
   Scenario    : Click a checkout-button on the pricing page (bypass-backed in dev).
   Pass if     : Button reflects a busy/disabled state during the request.
@@ -329,6 +357,13 @@ State×Display Matrix (internal admin views — cron, dispositions, features, fp
   Automatable : yes
   @non-blocker
 
+🟡 The internal admin views have no axe-core WCAG A/AA violations in their stable state (R3)
+  Scenario    : Seed an admin user (email == e2e-admin@vibesafe.test, in webServer.env ADMIN_EMAILS), authenticate via auth-seed storageState. Visit each of the 6 internal routes (cron, dispositions, features, fp-rates, scans/[id] with a seeded scan id, users); for each wait networkidle + the admin view rendered (stable asserted state). Run axe-core scoped to the page main region, ruleset WCAG 2.0/2.1 A+AA.
+  Pass if     : Every internal view reports zero axe violations outside the documented pre-existing color-contrast allow-list (allow-list entries logged, never silently disabled).
+  Fail if     : Any internal view has a WCAG A/AA violation not on the documented allow-list, OR axe runs before a view reaches its stable rendered state.
+  Automatable : yes
+  @functional
+
 🟢 internal/scans/[id] renders for an admin given a seeded scan id
   Scenario    : Admin user visits /internal/scans/<seeded-scan-id>.
   Pass if     : 200, the scan detail admin view renders.
@@ -372,6 +407,13 @@ State×Display Matrix (dashboard — src/app/[locale]/dashboard/page.tsx):
   Automatable : partial
   @functional
 
+🟡 The dashboard has no axe-core WCAG A/AA violations in its stable populated state (R3)
+  Scenario    : Seed a dedicated unique-email user with seeded scans, authenticate via auth-seed storageState, open /en/dashboard, wait networkidle + the scan list rendered (stable asserted state, post-seed). Run axe-core scoped to the page main region, ruleset WCAG 2.0/2.1 A+AA.
+  Pass if     : axe reports zero violations outside the documented pre-existing color-contrast allow-list (allow-list entries logged, never silently disabled).
+  Fail if     : A WCAG A/AA violation not on the documented allow-list, OR axe runs before the list reaches its stable rendered state.
+  Automatable : yes
+  @functional
+
 🟢 The dashboard renders its heading and primary regions cleanly
   Scenario    : Authenticated user with scans opens /en/dashboard.
   Pass if     : 200, heading present, no console error.
@@ -412,6 +454,13 @@ State×Display Matrix (scan/[id] — src/app/[locale]/scan/[id]/page.tsx):
   Scenario    : Visit /en/scan/<non-existent-id>.
   Pass if     : A graceful not-found/error state; no stack trace exposed.
   Fail if     : 500 or unhandled exception.
+  Automatable : yes
+  @functional
+
+🟡 The scan/[id] page has no axe-core WCAG A/AA violations in its stable seeded state (R3)
+  Scenario    : Seed a COMPLETED Scan with Finding rows (terminal, stable — not RUNNING which is a transition state). Visit /en/scan/<id>, wait networkidle + the terminal scan view rendered (stable asserted state). Run axe-core scoped to the page main region, ruleset WCAG 2.0/2.1 A+AA.
+  Pass if     : axe reports zero violations outside the documented pre-existing color-contrast allow-list (allow-list entries logged, never silently disabled).
+  Fail if     : A WCAG A/AA violation not on the documented allow-list, OR axe runs during the RUNNING/polling transition rather than the stable terminal state.
   Automatable : yes
   @functional
 
@@ -491,6 +540,13 @@ State×Display Matrix (report/[id] — src/app/[locale]/report/[id]/page.tsx + s
   Scenario    : Seed a scan whose findings include LLM enrichment. Open the report.
   Pass if     : ai-improvement-suggestions content renders for enriched findings; absent gracefully when not enriched.
   Fail if     : Crash when enrichment is missing.
+  Automatable : yes
+  @functional
+
+🟡 The report page has no axe-core WCAG A/AA violations in its stable full-report state (R3)
+  Scenario    : Seed a COMPLETED scan with Security, Performance, Accessibility, and SEO findings/grades. Visit /en/report/<id>, wait networkidle + all four domain sections rendered (stable asserted state, post-seed). Run axe-core scoped to the page main region, ruleset WCAG 2.0/2.1 A+AA.
+  Pass if     : axe reports zero violations outside the documented pre-existing color-contrast allow-list (allow-list entries logged, never silently disabled).
+  Fail if     : A WCAG A/AA violation not on the documented allow-list, OR axe runs before all sections reach their stable rendered state.
   Automatable : yes
   @functional
 
@@ -623,7 +679,8 @@ State×Display Matrix (report/[id] — src/app/[locale]/report/[id]/page.tsx + s
 ---
 TIER SUMMARY
 🔴 Critical    : 29 — all must pass at Automation Gate for Gate 2 to pass
-🟡 Functional  : 26 — failures → CONDITIONAL PASS at Gate 2
+🟡 Functional  : 34 — failures → CONDITIONAL PASS at Gate 2
 🟢 Non-blocker : 27 — logged only, no gate impact
-Automatable    : 60 yes / 15 partial / 4 no (the 4 "no" are the Wave-0 Vitest prod-guard cases — implement in vitest, not e2e/)
-Total cases    : 82
+Automatable    : 68 yes / 15 partial / 4 no (the 4 "no" are the Wave-0 Vitest prod-guard cases — implement in vitest, not e2e/)
+Total cases    : 90
+R3 axe a11y cases added (this delta refresh): 8 @functional specs covering all 9 🔴 behavioral page areas (login; signup+verify; active-test; checkout pricing+success; internal admin ×6; dashboard; scan/[id]; report) — each runs axe post-stable-state, scoped to page main, WCAG 2.0/2.1 A+AA, with a documented color-contrast allow-list.

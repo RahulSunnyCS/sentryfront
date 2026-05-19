@@ -10,4 +10,7 @@ Task: Comprehensive E2E integration test coverage for every page and component.
 
 Effort: Phase 1 = max (feature-full + HIGH + risk_flags). Other phases per CLAUDE.md table.
 
-recommendation_rounds_used: 0
+recommendation_rounds_used: 1
+Gate-1 decisions LOCKED: D1 hybrid testid, D3 en+locale-smoke, D6 risk-tiered, D7 404. D2/D4/D5 defaults accepted.
+Accepted recommendation: R3 (axe a11y on 🔴 pages, @functional). R1/R2 declined.
+Bounded delta re-plan: R3 folded (single synthesiser pass, test-only delta); QA refresh Critical+Functional only; return to Gate 1.

@@ -105,18 +105,35 @@ CI stall.
   (hi/ml/es/de — rationale: next-intl key presence is unit-testable, E2E only
   needs the switch mechanism); a11y sweep extension.
 
-## Gate-1 decisions
-- D1 selectors: hybrid data-testid (forms/CTAs/dynamic regions/tab panels) +
-  role/text elsewhere.
+## Gate-1 decisions — LOCKED (user approved recommended, 2026-05-19)
+- D1 selectors: **hybrid data-testid** (forms/CTAs/dynamic regions/tab panels)
+  + role/text elsewhere. [LOCKED]
 - D2 "every component" = provable page-driven coverage matrix, NOT 31 mount
-  harnesses (Playwright component testing not viable for Next App Router).
-- D3 locale: assert content on `en`; ONE locale-switch smoke for hi/ml/es/de.
-- D4 auth: DB-session auth-seed + ONE real credentials-login spec.
-- D5 scan: ~1 real /api/v1/scans submission flow + seeded lifecycle states.
-- D6 depth: risk-tiered 🔴/🟡/🟢 (this is HOW "every page+component" is
-  delivered without coverage theater — not a scope cut; user's literal ask is
-  honored, depth is the decision).
-- D7 prod-guard behaviour: production + PAYMENT_TEST_FLOW=true → 404 (recommended).
+  harnesses (Playwright component testing not viable for Next App Router). [default, accepted]
+- D3 locale: **assert content on `en`; ONE locale-switch smoke** for
+  hi/ml/es/de. [LOCKED]
+- D4 auth: DB-session auth-seed + ONE real credentials-login spec. [default, accepted]
+- D5 scan: ~1 real /api/v1/scans submission flow + seeded lifecycle states. [default, accepted]
+- D6 depth: **risk-tiered 🔴/🟡/🟢** (HOW "every page+component" is delivered
+  without coverage theater — not a scope cut). [LOCKED]
+- D7 prod-guard: production + PAYMENT_TEST_FLOW=true → **HTTP 404**. [LOCKED]
+
+## Accepted recommendation (round 1/2): R3 — Dogfood accessibility
+Extend axe-core a11y assertions to all 🔴 behavioral page specs (reusing the
+existing `landing.a11y.spec.ts` pattern). Scoped-delta constraints (single
+synthesiser pass, orchestrator/Opus — delta is test-only, no pricing impact):
+- axe runs only AFTER the page reaches a stable asserted state (post-seed,
+  post-navigation `networkidle`), scoped to the page's main region — never
+  during loading/transition (false positives).
+- A separate a11y spec file per page-area (mirrors landing.a11y split) so
+  functional-flow and a11y tests stay independently taggable/filterable;
+  reuses auth-seed storageState — no new seeding model.
+- axe assertions are tagged **@functional** (NOT @critical): pre-existing
+  product a11y violations must surface as visibility, not a Gate-2 blocker
+  on day one. Ruleset = WCAG 2.0/2.1 A+AA; `color-contrast` allowed-list
+  documented if pre-existing noise is found (logged, not silently disabled).
+- Pure-add: existing specs unaffected; no change to D1/D6 tiers or the
+  coverage matrix. R1/R2 declined by user.
 
 ## Risks (tracked)
 R1 testid product-code churn (bounded, static-literal criterion, security-file
