@@ -33,6 +33,7 @@ export function ResendButton() {
 
   return (
     <button
+      data-testid="resend-verification-button"
       onClick={resend}
       disabled={state === 'sending'}
       style={{

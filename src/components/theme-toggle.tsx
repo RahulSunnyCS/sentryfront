@@ -24,6 +24,7 @@ export function ThemeToggle() {
 
   return (
     <button
+      data-testid="theme-toggle"
       onClick={toggle}
       title="Toggle theme"
       style={{

@@ -38,6 +38,7 @@ export function LocaleSwitcher() {
       <span className="sr-only">{t('label')}</span>
       <select
         value={locale}
+        data-testid="locale-switcher"
         onChange={onChange}
         disabled={isPending}
         aria-label={t('label')}

@@ -36,6 +36,7 @@ export default function CheckoutSuccessPage({ searchParams }: Props) {
           }}
         >
           <article
+            data-testid="checkout-success"
             style={{
               width: '100%',
               maxWidth: 520,

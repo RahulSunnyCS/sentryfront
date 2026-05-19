@@ -87,6 +87,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           return (
             <div
               key={t.id}
+              data-testid="toast"
               role="alert"
               style={{
                 display: 'flex',

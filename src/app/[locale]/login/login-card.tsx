@@ -261,11 +261,12 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
 
-      <form onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <form data-testid="login-form" onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         <div>
           <label htmlFor="email" style={labelCss}>{t('emailLabel')}</label>
           <input
             id="email"
+            data-testid="login-email-input"
             type="email"
             inputMode="email"
             autoComplete="email"
@@ -289,6 +290,7 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
           </div>
           <input
             id="password"
+            data-testid="login-password-input"
             type="password"
             autoComplete="current-password"
             required
@@ -302,13 +304,14 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
         </div>
 
         {error && (
-          <p role="alert" style={{ fontSize: 'var(--fs-sm)', color: '#E11D48' }}>
+          <p data-testid="login-error" role="alert" style={{ fontSize: 'var(--fs-sm)', color: '#E11D48' }}>
             {error}
           </p>
         )}
 
         <button
           type="submit"
+          data-testid="login-submit"
           className="btn-primary"
           disabled={loading !== null}
           style={{ width: '100%', justifyContent: 'center' }}

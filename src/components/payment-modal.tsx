@@ -101,6 +101,7 @@ function PaymentModalUI({ open, onClose }: PaymentModalProps) {
 
   return (
     <div
+      data-testid="payment-modal"
       role="dialog"
       aria-modal="true"
       aria-labelledby="payment-modal-title"

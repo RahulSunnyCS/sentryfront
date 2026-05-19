@@ -394,7 +394,7 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
           gap: 'var(--space-3)',
         }}
       >
-        <button type="button" className="btn-primary" onClick={handleVerify} disabled={verifying}>
+        <button data-testid="verify-submit" type="button" className="btn-primary" onClick={handleVerify} disabled={verifying}>
           {verifying
             ? t('verifying')
             : method === 'dns'
@@ -402,7 +402,7 @@ export function VerifyFlow({ domain, token, alreadyVerified = false }: Props) {
               : t('verifyMetaBtn', { domain })}
         </button>
         {result === 'ok' && (
-          <p role="status" style={{ color: 'var(--success)', fontWeight: 600 }}>
+          <p data-testid="verify-success" role="status" style={{ color: 'var(--success)', fontWeight: 600 }}>
             {t('verifiedOk')}{' '}
             <Link href="/active-test" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>{t('verifiedContinue')}</Link>
           </p>

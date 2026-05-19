@@ -17,3 +17,7 @@
 | Phase 2 | Decomposition + cross-artifact check | orchestrator | opus | high | ~28k |
 | Phase 3 | T-01: prod-guard fix | implementor | opus | high | ~38k |
 | Phase 3 | T-02: recon + boot measurement | implementor | sonnet | high | ~30k |
+| Phase 3 | T-03: globalSetup + config | implementor | sonnet | high | ~33k |
+| Phase 3 | T-04: auth-seed helper | implementor | opus | high | ~34k |
+| Phase 3 | T-05: db-seed helpers | implementor | sonnet | high | ~33k |
+| Phase 3 | T-06: data-testid sweep | implementor | opus | high | ~75k |

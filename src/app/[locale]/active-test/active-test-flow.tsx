@@ -451,6 +451,7 @@ function Step1({
           </label>
           <input
             id="active-test-domain"
+            data-testid="active-test-domain-input"
             type="text"
             inputMode="url"
             autoComplete="off"
@@ -473,7 +474,7 @@ function Step1({
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button" className="btn-primary" onClick={handleNext} disabled={target !== 'web'}>
+        <button data-testid="active-test-step1-continue" type="button" className="btn-primary" onClick={handleNext} disabled={target !== 'web'}>
           Continue
           <IconArrowRight size={16} color="#fff" />
         </button>
@@ -577,7 +578,7 @@ function Step2({
           <Link href={`/verify?domain=${encodeURIComponent(domain)}`} className="btn-secondary">
             Open verify wizard
           </Link>
-          <button type="button" className="btn-primary" onClick={onCheck} disabled={status === 'checking'}>
+          <button data-testid="active-test-check-verification" type="button" className="btn-primary" onClick={onCheck} disabled={status === 'checking'}>
             {status === 'checking' ? 'Checking…' : 'Check verification'}
             <IconArrowRight size={16} color="#fff" />
           </button>
@@ -675,7 +676,7 @@ function Step3({
           <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
             <strong style={{ color: 'var(--text)' }}>{count} test{count === 1 ? '' : 's'}</strong>
           </span>
-          <button type="button" className="btn-primary" onClick={onStart} disabled={count === 0}>
+          <button data-testid="active-test-start" type="button" className="btn-primary" onClick={onStart} disabled={count === 0}>
             Start active test
             <IconArrowRight size={16} color="#fff" />
           </button>
@@ -795,7 +796,7 @@ function Step5({
   const headerLabelColor = findingCount > 0 ? '#DC2626' : 'var(--success)';
 
   return (
-    <section aria-label="Active test results" className="screen-enter" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+    <section data-testid="active-test-results" aria-label="Active test results" className="screen-enter" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <header
         style={{
           background: headerGradient,

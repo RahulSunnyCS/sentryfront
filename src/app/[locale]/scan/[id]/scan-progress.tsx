@@ -387,7 +387,7 @@ function ScanProgressStash(p: ViewProps) {
   const progressPct = Math.round((p.completedModules / p.total) * 100);
 
   return (
-    <div style={{ position: 'relative', minHeight: 'calc(100vh - 56px)', overflow: 'hidden' }}>
+    <div data-testid="scan-progress" style={{ position: 'relative', minHeight: 'calc(100vh - 56px)', overflow: 'hidden' }}>
       <CodeDriftBackground density={16} />
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 880, margin: '0 auto', padding: 'clamp(24px, 5vw, 40px)' }}>
@@ -690,7 +690,7 @@ function ScanProgressHacker(p: ViewProps) {
   const dashOffset = circumference * (1 - p.completedModules / p.total);
 
   return (
-    <div style={{ position: 'relative', minHeight: 'calc(100vh - 56px)', overflow: 'hidden' }}>
+    <div data-testid="scan-progress" style={{ position: 'relative', minHeight: 'calc(100vh - 56px)', overflow: 'hidden' }}>
       <CodeDriftBackground density={18} />
       <div
         style={{
@@ -1192,7 +1192,7 @@ function ScanFailedCard({
   const t = useTranslations('scan.failed');
   if (variant === 'matrix') {
     return (
-      <div role="alert" style={{ marginTop: 10, color: '#f87171', fontFamily: 'var(--mono)' }}>
+      <div data-testid="scan-failed" role="alert" style={{ marginTop: 10, color: '#f87171', fontFamily: 'var(--mono)' }}>
         <div>{t('matrixHeader')}</div>
         <div style={{ opacity: 0.75 }}>{t('matrixBody', { scanId })}</div>
         <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -1232,6 +1232,7 @@ function ScanFailedCard({
   }
   return (
     <div
+      data-testid="scan-failed"
       role="alert"
       style={{
         background: 'rgba(220,38,38,0.08)',
