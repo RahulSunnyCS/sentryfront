@@ -15,11 +15,13 @@ feature-fast | MEDIUM risk | 1 Red Team sprint | 3 Human Gates
   - T-03: COMPLETE (Health endpoint + per-instance metrics)
   - T-04: COMPLETE (Deployment observability runbook + .env.example pointer)
 
-- Phase 4 (Consolidated Review): COMPLETE — CONDITIONAL PASS, 0 Critical/High, 2 Medium (1 resolved: build verified; 1 open: beforeSend URL scrub → Phase 4.5). Deep-dive NOT required.
+- Phase 4 (Consolidated Review): COMPLETE — CONDITIONAL PASS, 0 Critical/High, 2 Medium. Deep-dive NOT required.
+- Phase 4.5 (Bounded Fix): COMPLETE — condition 1 (beforeSend + beforeSendTransaction URL scrub) fixed & committed; condition 2 (build) resolved during review. Both conditions closed.
+- Phase 5/6 (Tests + Automation Gate): IN PROGRESS
 
 ## Gate History
 - Gate 1: APPROVED (with R1+R2 recommendations accepted)
-- Gate 2: NOT REACHED
+- Gate 2: APPROVED (CONDITIONAL PASS — both conditions resolved in Phase 4.5)
 - Gate 3: NOT REACHED
 
 ## Recommendation Rounds Used
