@@ -210,8 +210,24 @@ test(
       // The first page (20 items) should include the most recent ones (page-21
       // down to page-2 in date-desc order; page-1 is the oldest and will appear
       // after "load more"). We assert the most-recent page URL (page-21) is visible.
+      // STRICT-MODE FIX (spec-defect): scan-history.tsx renders BOTH
+      // <ScanTable> (a <table> with `<th scope="row">{url}</th>`) AND
+      // <ScanCardList> (a <ul> with `<strong>{url}</strong>`) into the DOM at
+      // the same time — CSS media queries only *hide* one per breakpoint, so
+      // the URL text exists twice and a bare getByText() is a strict-mode
+      // violation. We scope to the scan-history section's TABLE rowheader (the
+      // same surface the `table tbody tr` row-count assertions below use), so
+      // the locator is unambiguous and still asserts the real "scan is in the
+      // list" intent.
+      const historyRoot = byTestId(page, SCAN_HISTORY);
       await expect(
-        page.getByText('e2e-seed-dashboard.example.com/page-21'),
+        historyRoot.getByRole('rowheader', {
+          name: 'https://e2e-seed-dashboard.example.com/page-21',
+          // exact:true — getByRole `name` is SUBSTRING by default, so a bare
+          // "…/page-1" would also match "…/page-10".."/page-19","/page-21".
+          // Exact match keeps every page-N rowheader locator unambiguous.
+          exact: true,
+        }),
         'The most recent scan seeded for userA should appear on the first page.',
       ).toBeVisible();
 
@@ -436,8 +452,19 @@ test(
       // In date-desc order, page-1 is the oldest and will appear last.
       // seedUserWithScans generates URLs '.../page-1' through '.../page-21'.
       // After load more, the DOM should contain '.../page-1' (the 21st item).
+      // STRICT-MODE FIX (spec-defect, same root cause as Test 1): the URL is
+      // rendered both in <ScanTable> (<th scope="row">) and <ScanCardList>
+      // (<strong>) — scope to the scan-history TABLE rowheader. exact:true is
+      // REQUIRED here: getByRole `name` is substring-matched by default, so a
+      // bare "…/page-1" matched page-1, page-10..page-19 AND page-21 (10
+      // rowheaders → strict-mode violation). Exact match resolves to only the
+      // page-1 row.
+      const historyRoot = byTestId(page, SCAN_HISTORY);
       await expect(
-        page.getByText('e2e-seed-dashboard.example.com/page-1'),
+        historyRoot.getByRole('rowheader', {
+          name: 'https://e2e-seed-dashboard.example.com/page-1',
+          exact: true,
+        }),
         'The oldest scan (page-1) should appear after load more.',
       ).toBeVisible();
 
@@ -493,12 +520,20 @@ test(
       await expect(searchInput).toBeEnabled();
 
       // The grade filter, status filter, and sort selects are present.
-      // There are 3 <select> elements in ScanHistory: grade filter, status filter, sort.
-      const allSelects = page.getByRole('combobox');
-      const selectCount = await allSelects.count();
+      // There are exactly 3 <select> elements in ScanHistory: grade filter,
+      // status filter, sort.
+      //
+      // SCOPE FIX (spec-defect): a bare page-wide page.getByRole('combobox')
+      // now counts 4 because this epic's T-20 mounts a real LocaleSwitcher
+      // (<select>) in the signed-in user menu in the page chrome — that 4th
+      // <select> is NOT a dashboard toolbar control. The correct fix is to
+      // scope the count to the scan-history toolbar region (the product is
+      // right; the page-wide locator was the defect), not to relax the count.
+      const toolbarSelects = byTestId(page, SCAN_HISTORY).getByRole('combobox');
+      const selectCount = await toolbarSelects.count();
       expect(
         selectCount,
-        `Expected 3 filter/sort <select> controls, got ${selectCount}.`,
+        `Expected exactly 3 filter/sort <select> controls inside the scan-history toolbar, got ${selectCount}.`,
       ).toBe(3);
 
       // Type into the search box — triggers the debounced fetchScans.

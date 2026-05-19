@@ -84,6 +84,33 @@ import { SCAN_PROGRESS, SCAN_FAILED } from './support/selectors';
 import { byTestId, HERO_URL_INPUT, HERO_SCAN_SUBMIT } from './support/selectors';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SCAN-PAGE URL CONTRACT (root cause of the previous lifecycle-spec failures)
+// ─────────────────────────────────────────────────────────────────────────────
+// src/app/[locale]/scan/[id]/page.tsx:11 derives the displayed URL as:
+//     const scanUrl = searchParams.url ? decodeURIComponent(searchParams.url)
+//                                       : params.id;
+// The scan page is a Server Component that does NOT read Scan.targetUrl from
+// the DB — it shows the `?url=` query param, falling back to the bare scan id.
+// The real app always navigates to `/scan/<id>?url=<encoded targetUrl>`
+// (src/app/[locale]/landing-hero.tsx:93 and scan-progress.tsx:272). This
+// behaviour predates this branch (last touched in 35a268f, unchanged vs
+// origin/main) — it is NOT a regression.
+//
+// The lifecycle specs previously navigated to `/en/scan/<id>` WITHOUT the
+// `?url=` param, so the page rendered the scan id instead of the seeded host
+// — `text=e2e-seed-lifecycle.example.com` was never present (15 s timeout).
+// Fix (type A): navigate exactly the way the real app does, with the seeded
+// targetUrl in the `?url=` query param (it must equal seedScanLifecycle's
+// `targetUrl` in e2e/support/db-seed.ts).
+const SEEDED_LIFECYCLE_URL = 'https://e2e-seed-lifecycle.example.com';
+const SEEDED_LIFECYCLE_HOST = 'e2e-seed-lifecycle.example.com';
+
+/** Build the scan-page path the real app uses: /en/scan/<id>?url=<encoded>. */
+function scanPath(id: string, url = SEEDED_LIFECYCLE_URL): string {
+  return `/en/scan/${id}?url=${encodeURIComponent(url)}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // RUNNING state
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -126,7 +153,7 @@ test.describe('@critical RUNNING scan shows in-progress UI', () => {
       // Navigate to the scan/[id] page. The page is a Server Component that
       // renders ScanProgress, which immediately polls the events endpoint.
       // networkidle gives the first poll a chance to resolve and update state.
-      await page.goto(`/en/scan/${seededScan.id}`, { waitUntil: 'networkidle' });
+      await page.goto(scanPath(seededScan.id), { waitUntil: 'networkidle' });
 
       // The scan-progress root must be present — both variant A and C render
       // data-testid="scan-progress" on their outer div.
@@ -143,8 +170,11 @@ test.describe('@critical RUNNING scan shows in-progress UI', () => {
       await expect(progressBar).toBeVisible();
 
       // Verify the seeded target URL appears in the scan-progress UI.
-      // Both variant A and C render the scanUrl in a visible element.
-      await expect(page.locator('text=e2e-seed-lifecycle.example.com').first()).toBeVisible();
+      // Both variant A and C render the scanUrl (from the ?url= param) in a
+      // visible element (scan-progress.tsx:410 / :767).
+      await expect(
+        page.locator(`text=${SEEDED_LIFECYCLE_HOST}`).first(),
+      ).toBeVisible();
     } finally {
       await page.close();
     }
@@ -188,7 +218,7 @@ test.describe('@critical TIMEOUT scan shows timeout state with partial findings'
     try {
       // waitUntil: networkidle lets the first poll complete so the TIMEOUT status
       // arrives and the component transitions to scanFailed=true.
-      await page.goto(`/en/scan/${seededScan.id}`, { waitUntil: 'networkidle' });
+      await page.goto(scanPath(seededScan.id), { waitUntil: 'networkidle' });
 
       // The scan-progress root must be present.
       await expect(byTestId(page, SCAN_PROGRESS)).toBeVisible();
@@ -207,8 +237,10 @@ test.describe('@critical TIMEOUT scan shows timeout state with partial findings'
       await expect(page).toHaveURL(new RegExp(`/en/scan/${seededScan.id}`));
 
       // The scan target URL should still appear in the UI
-      // (rendered in the top progress strip above the card).
-      await expect(page.locator('text=e2e-seed-lifecycle.example.com').first()).toBeVisible();
+      // (rendered in the top progress strip above the card; from ?url=).
+      await expect(
+        page.locator(`text=${SEEDED_LIFECYCLE_HOST}`).first(),
+      ).toBeVisible();
     } finally {
       await page.close();
     }

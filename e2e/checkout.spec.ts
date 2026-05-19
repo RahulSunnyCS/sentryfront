@@ -66,13 +66,21 @@ import {
 // one-shot / pro / studio).
 const EXPECTED_PRICING_CARDS = 3;
 
-// A dollar/price regex used ONLY to PROVE we are not surfacing amounts in the
-// asserted region (May-2026 pivot: pricing is in flux, dollar amounts must not
-// be asserted as correct). NOTE: this is a negative guard on the card CTA
-// label, not an assertion that amounts are absent from the whole page (the
-// page still renders $0 placeholders + JSON-LD); we only assert the CTA
-// behaviour, never an amount.
-const DOLLAR_AMOUNT = /\$\s?\d/;
+// A dollar/price regex used ONLY to PROVE we are not surfacing a REAL price in
+// the asserted region (May-2026 pivot: pricing is in flux; a concrete non-zero
+// amount must not be asserted as correct). NOTE: this is a negative guard on
+// the card CTA label, not an assertion that amounts are absent from the whole
+// page (the page still renders $0 placeholders + JSON-LD); we only assert the
+// CTA behaviour, never a real amount.
+//
+// IMPORTANT (spec correctness): a `$0` / `$0.00` CTA ("Buy Verify — $0") is the
+// EXPECTED placeholder while pricing is pivoting — it is precisely NOT a real
+// price, so it must not trip this guard. The original `/\$\s?\d/` matched any
+// digit including the `$0` placeholder, which is a false positive. We narrow it
+// to a real, NON-ZERO amount: a `$` followed by a non-zero whole part (1-9…) or
+// a non-zero fractional cents value. `$0`, `$0.00`, `$ 0` are allowed; `$9`,
+// `$29`, `$15`, `$0.99`, `$1.00` are still caught.
+const DOLLAR_AMOUNT = /\$\s?(?:[1-9]\d*(?:\.\d+)?|0?\.0*[1-9]\d*)/;
 
 // ── 🟡 Pricing page renders all tier cards + CTAs ────────────────────────────
 test('@functional The pricing page renders all tier cards and their checkout CTAs', async ({

@@ -533,12 +533,29 @@ test.describe('Authentication — Verify', () => {
     // The route is GET with a redirect to /dashboard?verified=1 on success.
     await page.goto(`/api/auth/verify-email?token=${VERIFY_TOKEN}`);
 
-    // Followed redirect lands on the dashboard with the verified marker. The
-    // exact destination is asserted loosely (query may carry verified=1).
-    await page.waitForURL(/\/(dashboard|login)/);
-    expect(page.url(), 'Valid token did not redirect to the verified dashboard.').toMatch(
-      /verified=1|\/dashboard/,
-    );
+    // IMPORTANT (spec correctness): email verification only sets
+    // User.emailVerified in the DB — it deliberately does NOT establish a
+    // NextAuth session (no Session row, no session cookie). The verify-email
+    // route therefore redirects to `/dashboard?verified=1`, but `/dashboard`
+    // is a middleware-protected segment, so an anonymous request is correctly
+    // bounced to `/{locale}/login?next=<the verified dashboard url>`. The
+    // earlier assertion assumed verification logs the user in, which is wrong
+    // for this app. We assert the *real* product flow instead: we land on the
+    // login page AND the `next=` param round-trips the verified dashboard URL,
+    // which proves the verify route ran and redirected. The authoritative
+    // proof of verification is the DB state checked below.
+    await page.waitForURL(/\/login\?/);
+    const landed = page.url();
+    expect(
+      landed,
+      'After hitting a valid verify link the request should be bounced to login (no session is created by verification).',
+    ).toContain('/login?');
+    // The `next` param must carry the verified-dashboard destination,
+    // url-encoded (decode to assert intent rather than exact encoding).
+    expect(
+      decodeURIComponent(landed),
+      'The login redirect must preserve the verified dashboard as the post-login destination.',
+    ).toMatch(/dashboard\?verified=1/);
 
     // The authoritative check: User.emailVerified is now set in the DB and the
     // one-time token was consumed (deleted).

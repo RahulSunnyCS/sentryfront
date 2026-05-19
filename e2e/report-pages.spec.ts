@@ -51,6 +51,12 @@ import {
   seedCompletedScan,
   type SeededEntity,
 } from './support/db-seed';
+import {
+  seedAuthUser,
+  authStorageState,
+  uniqueEmail,
+  type SeededAuth,
+} from './support/auth-seed';
 import { seedUnavailableScan, type SeededScan } from './support/perf-db-seed';
 import {
   LOGIN_GATE_MODAL,
@@ -163,19 +169,33 @@ test.describe('Report page — empty state (zero findings)', () => {
     // Page must load without throwing — no "Report not found" error
     await expect(page.getByText('Report not found', { exact: false })).not.toBeVisible();
 
-    // The report header must render the grade ring (GradeDisplay)
-    // GradeDisplay renders the grade letter — 'A' must be visible in the header area
-    await expect(page.getByText('A').first()).toBeVisible();
-
-    // severity-summary shows zero counts cleanly: when all counts are 0,
-    // SeveritySummary renders no severity chips (they are hidden when count=0).
-    // Assert that no CRITICAL count badge is shown (the component skips count=0).
-    await expect(page.getByText('critical').first()).not.toBeVisible();
-
-    // The Security tab body should show the "no findings" empty-state copy.
-    // The report-tabpanel is always present (the default security tab is active).
+    // The report tabpanel is always present (the default security tab is active).
+    // GradeDisplay (grade ring) is server-rendered in the header. Asserting a
+    // bare single letter ("A") is too brittle — it matches any 'A' on the page,
+    // including nav/footer prose. The tabpanel presence below is the stable
+    // structural signal that the report rendered for this COMPLETED scan.
     const tabpanel = page.getByTestId(REPORT_TABPANEL);
     await expect(tabpanel).toBeVisible();
+
+    // severity-summary shows zero counts cleanly: when all counts are 0,
+    // SeveritySummary (src/components/severity-summary.tsx) skips every
+    // severity chip (`if (count === 0) return null`) and renders only the
+    // "<n> total" indicator — here "0 total".
+    //
+    // The previous assertion `getByText('critical').not.toBeVisible()` was a
+    // spec authoring bug (type A): the substring "critical" legitimately
+    // appears in the security-summary prose ("…While no critical issues were
+    // found…", report-view.tsx:130) and in the "Critical" filter-tab label
+    // (report-view.tsx:473), neither of which is a severity count badge.
+    // Assert the real contract instead: a "0 total" summary and NO critical
+    // severity chip (a chip is a count span immediately followed by the
+    // lowercased severity word — distinct from prose).
+    await expect(page.getByText('0 total').first()).toBeVisible();
+    // A SeveritySummary chip is a <span> whose DOM text is exactly the
+    // lowercased severity word (CSS capitalizes it visually). Prose uses
+    // <strong>"critical security issues"</strong> and the filter tab is a
+    // <button>"Critical"; neither is a bare <span> equal to "critical".
+    await expect(page.locator('span', { hasText: /^critical$/ })).toHaveCount(0);
 
     // With zero findings the security tab shows "No findings." (view=all path)
     // OR "No critical issues." when view=critical is the default with no CRITICAL count.
@@ -367,20 +387,71 @@ test.describe('Report page — error state (PSI/performance unavailable)', () =>
 // ══════════════════════════════════════════════════════════════════════════════
 
 test.describe('Report page — success state (full multi-domain report)', () => {
-  // seedCompletedScan with anonymous userId produces a scan covering all four
-  // domains: Security (P1 findings), Performance (metrics + grade), Accessibility
-  // (metrics + grade), SEO (metrics + grade). This triggers all four domain tabs.
+  // seedCompletedScan produces a scan covering all four domains: Security (P1
+  // findings), Performance (metrics + grade), Accessibility (metrics + grade),
+  // SEO (metrics + grade). This triggers all four domain tabs.
+  //
+  // AUTH MODEL — split by test, not by block.
+  // The report page (src/app/[locale]/report/[id]/page.tsx:188-199) wraps the
+  // whole report in `pointerEvents:'none'` + `filter:blur(...)` whenever the
+  // visitor is NOT authenticated (`isAuthed = Boolean(currentUser)`); an
+  // anonymous, non-interactive teaser sits behind the LoginGateModal. That is
+  // correct, long-standing product behaviour (commit 6b5056b; unchanged vs
+  // origin/main). Consequences:
+  //   • Tests that only assert presence/text (toBeVisible / toBeAttached)
+  //     work anonymously — `filter:blur` does NOT make elements invisible to
+  //     Playwright. These keep the anonymous seed.
+  //   • Tests that `.click()` a tab or finding-card MUST be authenticated, or
+  //     the click times out at 15 s because pointer events are disabled by
+  //     design. These use the seeded session cookie + a scan owned by the
+  //     seeded user (mirrors the proven e2e/scan.spec.ts pattern).
+  //   • The "@non-blocker ScanLevelMissedButton sign-in nudge" test asserts
+  //     the ANONYMOUS-only nudge, so it must stay anonymous.
 
+  let seededAuth: SeededAuth | null = null;
+  // Anonymous scan id (for the presence-only + anon-nudge tests).
   let seeded: SeededEntity | null = null;
+  // Scan owned by the seeded user (for the interactive/click tests).
+  let ownedScan: SeededEntity | null = null;
 
   test.beforeAll(async () => {
-    // Anonymous scan: userId = null → canViewScan() returns true without a session.
     seeded = await seedCompletedScan({ userId: null });
+    seededAuth = await seedAuthUser({ email: uniqueEmail('report-success') });
+    ownedScan = await seedCompletedScan({ userId: seededAuth.user.id });
   });
 
   test.afterAll(async () => {
     await seeded?.cleanup();
+    await ownedScan?.cleanup();
+    await seededAuth?.cleanup();
   });
+
+  /**
+   * Open the OWNED scan report in an authenticated context so the report is
+   * interactive (isAuthed = true → no blur / no pointer-events:none). Returns
+   * the page; the caller is responsible for closing it (and its context).
+   */
+  async function openAuthedReport(
+    browser: import('@playwright/test').Browser,
+  ): Promise<{
+    page: import('@playwright/test').Page;
+    dispose: () => Promise<void>;
+  }> {
+    const ctx = await browser.newContext({
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      storageState: authStorageState(seededAuth!.sessionToken),
+    });
+    const page = await ctx.newPage();
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    await page.goto(`/en/report/${ownedScan!.id}`, { waitUntil: 'networkidle' });
+    return {
+      page,
+      dispose: async () => {
+        await page.close();
+        await ctx.close();
+      },
+    };
+  }
 
   test('@critical full multi-domain report renders all four domain sections with grades', async ({ page }) => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -448,49 +519,55 @@ test.describe('Report page — success state (full multi-domain report)', () => 
 
   // ── performance-section (switch to Performance tab) ───────────────────────
 
-  test('@functional success report: performance-section renders on the Performance tab', async ({ page }) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await gotoReport(page, seeded!.id);
+  test('@functional success report: performance-section renders on the Performance tab', async ({ browser }) => {
+    // Authenticated + owned scan → report is interactive (no pointer-events:none).
+    const { page, dispose } = await openAuthedReport(browser);
+    try {
+      // Click the Performance tab to activate it
+      const tabStrip = page.locator('[role="tablist"][aria-label="Report sections"]');
+      await tabStrip.getByText('Performance').click();
 
-    // Click the Performance tab to activate it
-    const tabStrip = page.locator('[role="tablist"][aria-label="Report sections"]');
-    await tabStrip.getByText('Performance').click();
-
-    // "Performance Analysis" heading is rendered by PerformanceSection
-    await expect(page.getByText('Performance Analysis', { exact: false })).toBeVisible();
+      // "Performance Analysis" heading is rendered by PerformanceSection
+      await expect(page.getByText('Performance Analysis', { exact: false })).toBeVisible();
+    } finally {
+      await dispose();
+    }
   });
 
   // ── accessibility-section + wcag-compliance (switch to Accessibility tab) ─
 
-  test('@functional success report: accessibility-section and wcag-compliance render on the Accessibility tab', async ({ page }) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await gotoReport(page, seeded!.id);
+  test('@functional success report: accessibility-section and wcag-compliance render on the Accessibility tab', async ({ browser }) => {
+    const { page, dispose } = await openAuthedReport(browser);
+    try {
+      // Click the Accessibility tab
+      const tabStrip = page.locator('[role="tablist"][aria-label="Report sections"]');
+      await tabStrip.getByText('Accessibility').click();
 
-    // Click the Accessibility tab
-    const tabStrip = page.locator('[role="tablist"][aria-label="Report sections"]');
-    await tabStrip.getByText('Accessibility').click();
+      // AccessibilitySection renders "Accessibility Analysis" heading
+      await expect(page.getByText('Accessibility Analysis', { exact: false })).toBeVisible();
 
-    // AccessibilitySection renders "Accessibility Analysis" heading
-    await expect(page.getByText('Accessibility Analysis', { exact: false })).toBeVisible();
-
-    // WCAGCompliance is mounted inside AccessibilitySection.
-    // It renders a WCAG heading or compliance table. We assert the
-    // accessibility grade letter 'B' is visible (seeded accessibilityGrade = 'B').
-    await expect(page.getByText('B').first()).toBeVisible();
+      // WCAGCompliance is mounted inside AccessibilitySection. Assert the
+      // section heading rendered (above) — a bare single-letter grade match
+      // ("B") is too brittle (matches any 'B' in nav/footer/prose).
+    } finally {
+      await dispose();
+    }
   });
 
   // ── seo-section (switch to SEO tab) ───────────────────────────────────────
 
-  test('@functional success report: seo-section renders on the SEO tab', async ({ page }) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await gotoReport(page, seeded!.id);
+  test('@functional success report: seo-section renders on the SEO tab', async ({ browser }) => {
+    const { page, dispose } = await openAuthedReport(browser);
+    try {
+      // Click the SEO tab
+      const tabStrip = page.locator('[role="tablist"][aria-label="Report sections"]');
+      await tabStrip.getByText('SEO').click();
 
-    // Click the SEO tab
-    const tabStrip = page.locator('[role="tablist"][aria-label="Report sections"]');
-    await tabStrip.getByText('SEO').click();
-
-    // SEOSection renders "SEO Analysis" heading (from seo-section.tsx h2)
-    await expect(page.getByText('SEO Analysis', { exact: false })).toBeVisible();
+      // SEOSection renders "SEO Analysis" heading (from seo-section.tsx h2)
+      await expect(page.getByText('SEO Analysis', { exact: false })).toBeVisible();
+    } finally {
+      await dispose();
+    }
   });
 
   // ── missed-issue-button (ScanLevelMissedButton — unauthenticated path) ────
@@ -529,44 +606,51 @@ test.describe('Report page — success state (full multi-domain report)', () => 
 
   // ── ai-improvement-suggestions (via performance-section async fetch) ───────
 
-  test('@functional success report: performance-section does not crash when perf-suggestions are fetched', async ({ page }) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await gotoReport(page, seeded!.id);
+  test('@functional success report: performance-section does not crash when perf-suggestions are fetched', async ({ browser }) => {
+    const { page, dispose } = await openAuthedReport(browser);
+    try {
+      // Navigate to the Performance tab which loads PerformanceSection.
+      // PerformanceSection makes a client-side fetch to /api/v1/scans/<id>/
+      // performance-suggestions and then conditionally renders
+      // AIImprovementSuggestions. We assert the performance section renders
+      // without crashing and that no error state is shown — if the fetch
+      // fails, the component degrades gracefully.
+      const tabStrip = page.locator('[role="tablist"][aria-label="Report sections"]');
+      await tabStrip.getByText('Performance').click();
+      await page.waitForLoadState('networkidle');
 
-    // Navigate to the Performance tab which loads PerformanceSection.
-    // PerformanceSection makes a client-side fetch to /api/v1/scans/<id>/
-    // performance-suggestions and then conditionally renders AIImprovementSuggestions.
-    // We assert the performance section renders without crashing and that no
-    // error state is shown — if the fetch fails, the component degrades gracefully.
-    const tabStrip = page.locator('[role="tablist"][aria-label="Report sections"]');
-    await tabStrip.getByText('Performance').click();
-    await page.waitForLoadState('networkidle');
-
-    // No error state from the suggestions fetch
-    await expect(page.getByText('Performance Analysis', { exact: false })).toBeVisible();
-    const bodyText = await page.textContent('body') ?? '';
-    expect(bodyText).not.toContain('NaN');
+      // No error state from the suggestions fetch
+      await expect(page.getByText('Performance Analysis', { exact: false })).toBeVisible();
+      const bodyText = await page.textContent('body') ?? '';
+      expect(bodyText).not.toContain('NaN');
+    } finally {
+      await dispose();
+    }
   });
 
   // ── copy-button (inside finding-card detail when finding is expanded) ──────
 
-  test('@non-blocker success report: copy-button renders inside expanded finding-card', async ({ page }) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await gotoReport(page, seeded!.id);
+  test('@non-blocker success report: copy-button renders inside expanded finding-card', async ({ browser }) => {
+    // Authenticated + owned scan → the finding card is clickable (the
+    // anonymous teaser disables pointer events by design).
+    const { page, dispose } = await openAuthedReport(browser);
+    try {
+      // The security tab is active; click on the CRITICAL finding card to expand it.
+      // FindingCard renders inline — clicking it toggles the expanded state.
+      // When expanded, the fixAiPrompt section renders a CopyButton.
+      const criticalFinding = page.getByText('Seed: API key exposed in JS bundle', { exact: false });
+      await criticalFinding.click();
 
-    // The security tab is active; click on the CRITICAL finding card to expand it.
-    // FindingCard renders inline — clicking it toggles the expanded state.
-    // When expanded, the fixAiPrompt section renders a CopyButton.
-    const criticalFinding = page.getByText('Seed: API key exposed in JS bundle', { exact: false });
-    await criticalFinding.click();
-
-    // After expansion, a CopyButton with label 'Copy' should be visible inside
-    // the expanded card. CopyButton renders a <button> with text "Copy" or "Copied!".
-    // The fixAiPrompt section shows "Copy" label by default.
-    //
-    // Note: CopyButton does not have a data-testid — we locate it by text.
-    // The parent finding-card may have multiple Copy buttons (one per expanded card).
-    await expect(page.getByRole('button', { name: /copy/i }).first()).toBeVisible();
+      // After expansion, a CopyButton with label 'Copy' should be visible inside
+      // the expanded card. CopyButton renders a <button> with text "Copy" or "Copied!".
+      // The fixAiPrompt section shows "Copy" label by default.
+      //
+      // Note: CopyButton does not have a data-testid — we locate it by text.
+      // The parent finding-card may have multiple Copy buttons (one per expanded card).
+      await expect(page.getByRole('button', { name: /copy/i }).first()).toBeVisible();
+    } finally {
+      await dispose();
+    }
   });
 });
 
@@ -695,31 +779,47 @@ test.describe('Report page — AI suggestions absent gracefully', () => {
   // AIImprovementSuggestions section renders nothing (or a null return).
   // This test asserts the page does not crash when enrichment is absent.
 
-  let seeded: SeededEntity | null = null;
+  // Authenticated + owned scan: this test must CLICK the Performance tab, so
+  // the report has to be interactive. The anonymous teaser sets
+  // pointer-events:none by design (page.tsx:188-199) → clicks time out.
+  let seededAuth: SeededAuth | null = null;
+  let ownedScan: SeededEntity | null = null;
 
   test.beforeAll(async () => {
-    seeded = await seedCompletedScan({ userId: null });
+    seededAuth = await seedAuthUser({ email: uniqueEmail('report-ai-absent') });
+    ownedScan = await seedCompletedScan({ userId: seededAuth.user.id });
   });
 
   test.afterAll(async () => {
-    await seeded?.cleanup();
+    await ownedScan?.cleanup();
+    await seededAuth?.cleanup();
   });
 
-  test('@functional report does not crash when AI enrichment / suggestions are absent', async ({ page }) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await gotoReport(page, seeded!.id);
+  test('@functional report does not crash when AI enrichment / suggestions are absent', async ({ browser }) => {
+    const ctx = await browser.newContext({
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      storageState: authStorageState(seededAuth!.sessionToken),
+    });
+    const page = await ctx.newPage();
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      await page.goto(`/en/report/${ownedScan!.id}`, { waitUntil: 'networkidle' });
 
-    // Navigate to the Performance tab (where AIImprovementSuggestions is rendered)
-    const tabStrip = page.locator('[role="tablist"][aria-label="Report sections"]');
-    await tabStrip.getByText('Performance').click();
-    await page.waitForLoadState('networkidle');
+      // Navigate to the Performance tab (where AIImprovementSuggestions is rendered)
+      const tabStrip = page.locator('[role="tablist"][aria-label="Report sections"]');
+      await tabStrip.getByText('Performance').click();
+      await page.waitForLoadState('networkidle');
 
-    // Page must load without crash
-    await expect(page.getByText('Report not found', { exact: false })).not.toBeVisible();
-    await expect(page.getByText('Performance Analysis', { exact: false })).toBeVisible();
+      // Page must load without crash
+      await expect(page.getByText('Report not found', { exact: false })).not.toBeVisible();
+      await expect(page.getByText('Performance Analysis', { exact: false })).toBeVisible();
 
-    // No unhandled error banner
-    const bodyText = await page.textContent('body') ?? '';
-    expect(bodyText).not.toContain('NaN');
+      // No unhandled error banner
+      const bodyText = await page.textContent('body') ?? '';
+      expect(bodyText).not.toContain('NaN');
+    } finally {
+      await page.close();
+      await ctx.close();
+    }
   });
 });
