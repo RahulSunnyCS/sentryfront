@@ -45,3 +45,5 @@
 | Phase 4.5 | FIX-B: cookie dedup 3 specs | implementor | sonnet | high | ~20k |
 | Phase 4.5 | FIX-C: de-price active-test metadata | implementor | sonnet | high | ~12k |
 | Phase 4.5 | Scope-check + re-verify | orchestrator | haiku | low | ~3k |
+| Phase 5 | Unit+Integration tests (T-19/T-20) | test-writer | opus | high | ~30k |
+| Phase 5 | Docs | docs-writer | haiku | low | ~6k (no-op) |
