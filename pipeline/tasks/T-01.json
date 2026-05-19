@@ -1,0 +1,37 @@
+{
+  "task_id": "T-01",
+  "title": "Fix server-side Sentry wiring (instrumentation.ts + withSentryConfig + release)",
+  "assigned_to": "implementor",
+  "risk_flags": [],
+  "model_hint": "sonnet",
+  "effort_hint": "high",
+  "scope": {
+    "files_to_create": [
+      "src/instrumentation.ts"
+    ],
+    "files_to_modify": [
+      "next.config.mjs",
+      "sentry.server.config.ts",
+      "sentry.client.config.ts",
+      "sentry.edge.config.ts",
+      ".env.example"
+    ],
+    "files_forbidden": [
+      "src/lib/scan-worker.ts",
+      "src/lib/scanner/index.ts",
+      "src/app/api/health/route.ts",
+      "prisma/schema.prisma"
+    ]
+  },
+  "acceptance_criteria": [
+    "src/instrumentation.ts exists at the project src/ level with an exported async register() function that conditionally imports sentry.server.config on NEXT_RUNTIME===nodejs and sentry.edge.config on NEXT_RUNTIME===edge",
+    "next.config.mjs adds experimental: { instrumentationHook: true } to nextConfig (required for Next.js 14.2.x to load instrumentation.ts)",
+    "next.config.mjs wraps its export with withSentryConfig (ESM import from @sentry/nextjs) with options: hideSourceMaps: true, disableLogger: true. tunnelRoute is NOT added (dropped to avoid proxy/rate-limit risk)",
+    "All three Sentry.init() calls (client/server/edge) add release: process.env.SENTRY_RELEASE to the init options",
+    ".env.example gains four new commented entries: SENTRY_RELEASE (git SHA / deploy tag), SENTRY_AUTH_TOKEN (source map upload), SENTRY_ORG, SENTRY_PROJECT",
+    "npm run typecheck passes with zero new errors",
+    "npm run build succeeds (withSentryConfig wrapping does not break the standalone build)"
+  ],
+  "dependencies": [],
+  "output_format": "code plus plain English explanation of every non-obvious decision"
+}

@@ -1,0 +1,35 @@
+{
+  "task_id": "T-02",
+  "title": "Add scan-pipeline Sentry spans and measurements",
+  "assigned_to": "implementor",
+  "risk_flags": [],
+  "model_hint": "sonnet",
+  "effort_hint": "high",
+  "scope": {
+    "files_to_create": [],
+    "files_to_modify": [
+      "src/lib/scan-worker.ts",
+      "src/lib/scanner/index.ts"
+    ],
+    "files_forbidden": [
+      "next.config.mjs",
+      "src/instrumentation.ts",
+      "src/app/api/health/route.ts",
+      "sentry.server.config.ts",
+      "sentry.client.config.ts",
+      "sentry.edge.config.ts"
+    ]
+  },
+  "acceptance_criteria": [
+    "scan-worker.ts wraps ALL scan work (including setMeasurement) inside Sentry.startSpan({ name: 'scan', op: 'scan.run' }, async (span) => { ... }). The callback returns the awaited scan result — span does not close early.",
+    "The root span is tagged with attributes: scan_id (the scan UUID), tier (user tier string). Raw URL is NOT an attribute — only url_hash (first 8 hex chars of a sha256 digest of the URL, using Node crypto, no new dependency).",
+    "Sentry.setMeasurement('scan.duration_ms', elapsedMs, 'millisecond') is called inside the span callback after runScanInternal resolves (on success, timeout, and error paths).",
+    "Two child spans are added in src/lib/scanner/index.ts: one wrapping the Playwright/static-fetch crawl phase, one wrapping LLM enrichment if it runs. Scanner module groups (group1/group2) do NOT get their own spans — too granular.",
+    "On all scan outcomes (complete, timeout, error) logger.info('scan_complete', { scanId, durationMs, result: 'complete'|'timeout'|'error', tier }) is called.",
+    "When Sentry is not initialized (no DSN), Sentry.startSpan and setMeasurement are no-ops — confirm this does not throw or change behaviour.",
+    "npm run typecheck passes (startSpan generics must satisfy TypeScript strict mode).",
+    "npm run test passes — no regressions in existing scan-worker tests."
+  ],
+  "dependencies": ["T-01"],
+  "output_format": "code plus plain English explanation of every non-obvious decision"
+}
