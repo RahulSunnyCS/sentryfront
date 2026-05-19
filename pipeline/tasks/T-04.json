@@ -1,0 +1,33 @@
+{
+  "task_id": "T-04",
+  "title": "Deployment observability runbook (log shipping + uptime alerting)",
+  "assigned_to": "docs-writer",
+  "risk_flags": [],
+  "model_hint": "haiku",
+  "effort_hint": "medium",
+  "scope": {
+    "files_to_create": [
+      "docs/observability.md"
+    ],
+    "files_to_modify": [
+      ".env.example"
+    ],
+    "files_forbidden": [
+      "next.config.mjs",
+      "src/instrumentation.ts",
+      "src/lib/scan-worker.ts",
+      "src/lib/scanner/index.ts",
+      "src/app/api/health/route.ts"
+    ]
+  },
+  "acceptance_criteria": [
+    "docs/observability.md created covering THREE operational topics: (1) Sentry — which env vars to set (SENTRY_DSN, SENTRY_ENABLED, SENTRY_RELEASE, SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT) and what each enables; (2) Log shipping — that logger.ts emits structured JSON to stdout in production, and concrete options to ship it (Docker logging driver, Cloudflare Logpush, Datadog agent, Logtail) with the principle 'no code change needed, provider-side config only'; (3) Uptime alerting — the /api/health contract (HTTP 200 = ok, HTTP 503 = degraded, JSON body fields explained) and that any external monitor (BetterStack/UptimeRobot/Checkly) can poll it.",
+    "The runbook explicitly states what is in-repo (already done) vs what is operator/provider responsibility (out-of-repo setup) so there is no false impression that log shipping or alerting is wired automatically.",
+    "The runbook documents the active_scans_this_instance per-instance limitation (cross-references T-03).",
+    ".env.example gains a short comment block pointing operators to docs/observability.md for log shipping and uptime alerting setup.",
+    "No source code is modified — this is documentation only.",
+    "npm run lint and npm run typecheck remain green (no code touched, but verify the .env.example edit introduced no issue)."
+  ],
+  "dependencies": ["T-01", "T-03"],
+  "output_format": "documentation plus a one-paragraph note on what was intentionally left as operator responsibility and why"
+}

@@ -23,3 +23,4 @@ F-04: `SENTRY_RELEASE` env var value appears on Sentry events when set (release 
 F-05: `active_scans_this_instance` in `/api/health` increments by 1 when a scan starts and returns to 0 after it completes or times out.
 F-06: With `SENTRY_ENABLED=false` or DSN unset, all scan behaviour is identical to pre-change — Sentry calls are silent no-ops, no errors thrown.
 F-07: `logger.info('scan_complete', ...)` log line with `durationMs`, `result`, and `tier` fields appears in stdout on scan completion, timeout, and error.
+F-08: `docs/observability.md` exists and clearly separates in-repo (done) from operator-responsibility (provider config) for log shipping and uptime alerting; `.env.example` cross-references it.

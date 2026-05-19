@@ -16,4 +16,4 @@ feature-fast | MEDIUM risk | 1 Red Team sprint | 3 Human Gates
 - Gate 3: NOT REACHED
 
 ## Recommendation Rounds Used
-recommendation_rounds_used: 0
+recommendation_rounds_used: 1 (R1 log shipping + R2 uptime alerting accepted → folded into T-04 docs runbook; both are operator/provider config, no code)
