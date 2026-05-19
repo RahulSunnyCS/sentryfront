@@ -16,3 +16,12 @@
 | Phase 4.5 | Fix: beforeSend URL scrub | implementor | sonnet | high | ~44k |
 | Phase 5 | Unit tests (redactUrls, counter, health) | test-writer | sonnet | medium | ~63k |
 | Phase 6 | Automation Gate | orchestrator | haiku | low | ~3k |
+| Phase 7 | Epic delivery doc | epic-doc-writer | sonnet | medium | ~71k |
+| Phase 7 | Final Review + Gate 3 Translator | orchestrator + translator | opus + haiku | high + medium | ~15k |
+
+──────────────────────────────────────────────────────────────
+Total estimate : ~665k tokens
+  Opus   : ~201k tokens (planning, review, synthesis, final)
+  Sonnet : ~286k tokens (implementors, tests, epic doc)
+  Haiku  : ~178k tokens (triage, docs, translators, gates, blast-radius)
+Est. cost      : ~$3–5 (estimates only — see /cost for exact billing)

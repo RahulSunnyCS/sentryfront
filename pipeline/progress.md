@@ -22,7 +22,7 @@ feature-fast | MEDIUM risk | 1 Red Team sprint | 3 Human Gates
 ## Gate History
 - Gate 1: APPROVED (with R1+R2 recommendations accepted)
 - Gate 2: APPROVED (CONDITIONAL PASS — both conditions resolved in Phase 4.5)
-- Gate 3: NOT REACHED
+- Gate 3: PENDING USER DECISION
 
 ## Recommendation Rounds Used
 recommendation_rounds_used: 1 (R1 log shipping + R2 uptime alerting accepted → folded into T-04 docs runbook; both are operator/provider config, no code)
