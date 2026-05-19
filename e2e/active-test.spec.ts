@@ -400,3 +400,36 @@ for (const tier of ENTITLED_TIERS) {
     });
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🟡 MIDDLEWARE — unauthenticated visitor is redirected to login
+//    qa-checklist: "An unauthenticated visitor to active-test is redirected to
+//    login" @functional
+//
+// The middleware (src/middleware.ts) lists 'active-test' as a protected segment.
+// Any request with no session cookie is redirected to /{locale}/login?next=<path>
+// BEFORE the page component runs. No seed is required — the redirect fires
+// before auth or tier checks inside the page.
+//
+// This test is fully independent and stateless: it opens a fresh page with NO
+// cookies and navigates directly to /en/active-test, then asserts the redirect.
+// ─────────────────────────────────────────────────────────────────────────────
+test('@functional An unauthenticated visitor to active-test is redirected to login', async ({
+  page,
+}) => {
+  // No storageState / no cookie — anonymous request.
+  await page.goto(ACTIVE_TEST_PATH);
+
+  // The middleware redirect chain resolves to /en/login (with a ?next= query).
+  // We assert the final URL is on the /login path and NOT on /active-test.
+  await expect(
+    page,
+    'Unauthenticated visit to /en/active-test did not redirect to /en/login — ' +
+      'check that "active-test" is still in the PROTECTED_SEGMENTS list in src/middleware.ts.',
+  ).toHaveURL(/\/en\/login/);
+
+  expect(
+    page.url(),
+    'Final URL after middleware redirect is still on active-test — redirect did not fire.',
+  ).not.toMatch(/\/active-test/);
+});

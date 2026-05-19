@@ -47,3 +47,4 @@
 | Phase 4.5 | Scope-check + re-verify | orchestrator | haiku | low | ~3k |
 | Phase 5 | Unit+Integration tests (T-19/T-20) | test-writer | opus | high | ~30k |
 | Phase 5 | Docs | docs-writer | haiku | low | ~6k (no-op) |
+| Phase 5 | E2E gap audit (+2 functional) | e2e-test-writer | sonnet | medium | ~25k |

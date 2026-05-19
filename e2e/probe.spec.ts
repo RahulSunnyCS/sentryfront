@@ -63,6 +63,8 @@
 import { test, expect, type APIResponse } from '@playwright/test';
 import { Prisma } from '@prisma/client';
 import { seedAuthUser, authStorageState, uniqueEmail, type SeededAuth } from './support/auth-seed';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // AR-H1 (mirrors landing.spec.ts): known-harmless dev-mode console noise that
 // must not flip this @critical probe red. The pageerror check below stays
@@ -284,4 +286,56 @@ test('@critical Wave-1 PROBE: auth provider + seeded session + DB round-trip', a
   } finally {
     await context.close();
   }
+});
+
+// ── Wave-1 @functional: globalSetup leaves schema datasource on sqlite ────────
+//
+// qa-checklist Wave-1: "globalSetup leaves the schema datasource on sqlite"
+// Automatable: partial (assertion inside globalSetup; surfaced as a probe-spec
+// check here).
+//
+// WHY THIS ASSERTION EXISTS HERE (in addition to the globalSetup hard-fail):
+//   globalSetup throws if the schema is not sqlite BEFORE the webServer starts,
+//   so if it fails the whole suite aborts. This spec-level check is the
+//   "surfaced as a probe-spec check" part of the qa-checklist partial
+//   automation: it reads prisma/schema.prisma AFTER globalSetup has run and
+//   asserts the provider value is 'sqlite', giving a named, traceable test
+//   result in the suite report (rather than an opaque globalSetup abort). It
+//   also documents the precondition every spec in the suite relies on.
+//
+//   If globalSetup ever regresses (e.g. its schema check is removed or
+//   silenced), this test will catch the gap at the spec level — the assertion
+//   is redundant by design, not accidental duplication.
+//
+// No browser or DB seed needed — this is a pure filesystem read.
+test('@functional globalSetup leaves the schema datasource on sqlite', () => {
+  // Resolve prisma/schema.prisma relative to the repo root. __dirname is
+  // e2e/ (the spec file location); one level up is the repo root.
+  const schemaPath = path.resolve(__dirname, '..', 'prisma', 'schema.prisma');
+
+  let schemaContent: string;
+  try {
+    schemaContent = fs.readFileSync(schemaPath, 'utf8');
+  } catch (err) {
+    throw new Error(
+      `[probe] Could not read prisma/schema.prisma at "${schemaPath}": ${String(err)}. ` +
+        `globalSetup must have run first (Playwright guarantees: globalSetup → webServer → specs).`,
+    );
+  }
+
+  // Extract the datasource provider from the schema block.
+  // db-config.js rewrites the block to: provider = "sqlite" for development.
+  const providerMatch = schemaContent.match(
+    /datasource\s+db\s*\{[^}]*provider\s*=\s*"([^"]+)"/,
+  );
+  const provider = providerMatch?.[1];
+
+  expect(
+    provider,
+    `prisma/schema.prisma datasource provider is "${provider ?? '(not found)'}". ` +
+      `Expected "sqlite" (set by globalSetup via scripts/db-config.js development). ` +
+      `A non-sqlite provider means either db-config.js failed, a concurrent production ` +
+      `run overwrote the schema, or globalSetup was skipped. ` +
+      `Every E2E spec that seeds DB rows depends on this invariant.`,
+  ).toBe('sqlite');
 });
