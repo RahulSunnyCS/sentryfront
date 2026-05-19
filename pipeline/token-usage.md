@@ -35,3 +35,5 @@
 | Phase 3 | T-10: active-test specs (post-T-19) | implementor | opus | high | ~50k |
 | Phase 3 | T-16: coverage matrix | implementor | sonnet | high | ~60k |
 | Phase 3 | T-20: mount real comps (menu+navbar) | implementor | opus | high | ~58k |
+| Phase 4 | Pricing review | pricing-reviewer | sonnet | medium | ~22k |
+| Phase 4 | Security audit | security-auditor | opus | max | ~48k |
