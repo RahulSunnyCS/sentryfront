@@ -61,6 +61,9 @@
     "es": "Español",
     "de": "Deutsch"
   },
+  "theme": {
+    "label": "Theme"
+  },
   "landing": {
     "pill": "Enterprise-grade security · Starting at $0",
     "heroTitleLine1": "Your AI-built site is now",

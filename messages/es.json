@@ -61,6 +61,9 @@
     "es": "Español",
     "de": "Deutsch"
   },
+  "theme": {
+    "label": "Tema"
+  },
   "landing": {
     "pill": "Seguridad de nivel empresarial · Desde $0",
     "heroTitleLine1": "Tu sitio creado con IA ahora es",

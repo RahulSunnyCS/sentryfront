@@ -9,6 +9,8 @@ import { Logo } from './logo';
 import { PdfExportButton } from './pdf-export-button';
 import { AuthButton } from './auth-button';
 import { VerifyEmailNudge } from './verify-email-nudge';
+import { LocaleSwitcher } from './locale-switcher';
+import { ThemeToggle } from './theme-toggle';
 import { useFeature } from '@/lib/client-features';
 
 interface CreditsData {
@@ -92,6 +94,31 @@ function CreditsChip() {
   }
 
   return null;
+}
+
+// LocaleSwitcher + ThemeToggle live in the signed-out navbar only. When the
+// user IS signed in they move into the AuthButton user menu (auth-button.tsx),
+// so they must NOT also appear here. We mirror AuthButton's own auth signal
+// exactly (useFeature('auth') + useSession status) so the navbar shows them in
+// precisely the states AuthButton shows the "Sign in" link rather than the
+// user menu: auth feature disabled, or no authenticated session (this also
+// covers the brief 'loading' state and the E2E unauthenticated /en case).
+function NavPreferences() {
+  const authEnabled = useFeature('auth');
+  const { status } = useSession();
+
+  // Signed in only when the auth feature is enabled AND a session exists.
+  const signedIn = authEnabled && status === 'authenticated';
+  if (signedIn) return null;
+
+  return (
+    <span
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
+    >
+      <LocaleSwitcher />
+      <ThemeToggle />
+    </span>
+  );
 }
 
 interface Props {
@@ -234,6 +261,11 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
         )}
         <CreditsChip />
         <VerifyEmailNudge />
+        {/* Signed-out only. Rendered exactly ONCE in the DOM (here, not also
+            in the mobile menu) so the data-testid locators stay strict-mode
+            unambiguous; when signed in this returns null and the switchers
+            live in the AuthButton user menu instead. */}
+        <NavPreferences />
         <span className="nav-action-hide-mobile">
           <AuthButton />
         </span>

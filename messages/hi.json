@@ -61,6 +61,9 @@
     "es": "Español",
     "de": "Deutsch"
   },
+  "theme": {
+    "label": "थीम"
+  },
   "landing": {
     "pill": "एंटरप्राइज़-ग्रेड सुरक्षा · $0 से शुरू",
     "heroTitleLine1": "आपकी AI-निर्मित साइट अब",

@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useTranslations, useLocale } from 'next-intl';
-import { useParams } from 'next/navigation';
-import { Link, usePathname, useRouter } from '@/i18n/navigation';
-import { routing, type Locale } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { useFeature } from '@/lib/client-features';
+import { LocaleSwitcher } from './locale-switcher';
+import { ThemeToggle } from './theme-toggle';
 
 const SignInIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -41,6 +41,10 @@ function initialsFrom(name?: string | null, email?: string | null): string {
   return '?';
 }
 
+// Shared label style for the preference rows in the user menu. The real
+// LocaleSwitcher/ThemeToggle components carry their own control styling and
+// data-testid — we only add a small label beside each so the menu stays
+// self-explanatory (the standalone components have no visible text label).
 const prefRowStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -49,110 +53,7 @@ const prefRowStyle: React.CSSProperties = {
   padding: '8px 12px',
   fontSize: 13,
   color: 'var(--text-secondary)',
-  border: 'none',
-  background: 'transparent',
-  borderRadius: 6,
-  cursor: 'pointer',
 };
-
-const prefValueStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  fontSize: 13,
-  fontWeight: 600,
-  color: 'var(--text)',
-};
-
-function PreferenceRows() {
-  const tLocale = useTranslations('localeSwitcher');
-  const locale = useLocale() as Locale;
-  const router = useRouter();
-  const pathname = usePathname();
-  const params = useParams();
-  const [isPending, startTransition] = useTransition();
-
-  const [isDark, setIsDark] = useState(true);
-  useEffect(() => {
-    setIsDark(document.documentElement.getAttribute('data-theme') !== 'light');
-  }, []);
-
-  const toggleTheme = () => {
-    const next = isDark ? 'light' : 'dark';
-    setIsDark(!isDark);
-    localStorage.setItem('theme', next);
-    if (next === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-    }
-  };
-
-  const onLocale = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const next = e.target.value as Locale;
-    startTransition(() => {
-      router.replace(
-        // @ts-expect-error -- pathname signature varies per route; next-intl handles it
-        { pathname, params },
-        { locale: next },
-      );
-    });
-  };
-
-  return (
-    <>
-      <button
-        type="button"
-        role="menuitem"
-        onClick={toggleTheme}
-        style={prefRowStyle}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'color-mix(in srgb, var(--border) 40%, transparent)')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-      >
-        <span>Theme</span>
-        <span style={prefValueStyle}>
-          <span aria-hidden="true">{isDark ? '🌙' : '☀️'}</span>
-          {isDark ? 'Dark' : 'Light'}
-        </span>
-      </button>
-
-      <div
-        style={{ position: 'relative' }}
-        onMouseEnter={(e) => (e.currentTarget.firstElementChild as HTMLElement).style.background = 'color-mix(in srgb, var(--border) 40%, transparent)'}
-        onMouseLeave={(e) => (e.currentTarget.firstElementChild as HTMLElement).style.background = 'transparent'}
-      >
-        <div style={prefRowStyle}>
-          <span>{tLocale('label')}</span>
-          <span style={prefValueStyle}>
-            {tLocale(locale)}
-            <span aria-hidden="true" style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>▾</span>
-          </span>
-        </div>
-        <select
-          value={locale}
-          onChange={onLocale}
-          disabled={isPending}
-          aria-label={tLocale('label')}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            opacity: 0,
-            cursor: 'pointer',
-            border: 'none',
-          }}
-        >
-          {routing.locales.map((l) => (
-            <option key={l} value={l}>
-              {tLocale(l)}
-            </option>
-          ))}
-        </select>
-      </div>
-    </>
-  );
-}
 
 function UserMenu({
   name,
@@ -164,6 +65,8 @@ function UserMenu({
   image?: string | null;
 }) {
   const t = useTranslations('auth');
+  const tLocale = useTranslations('localeSwitcher');
+  const tTheme = useTranslations('theme');
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -231,7 +134,18 @@ function UserMenu({
 
       <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
 
-      <PreferenceRows />
+      {/* Real LocaleSwitcher / ThemeToggle (replaces the former fake
+          PreferenceRows). These are the same components used in the
+          signed-out navbar — single source of truth, no reimplementation,
+          and they carry the data-testids the E2E suite asserts. */}
+      <div style={prefRowStyle}>
+        <span>{tLocale('label')}</span>
+        <LocaleSwitcher />
+      </div>
+      <div style={prefRowStyle}>
+        <span>{tTheme('label')}</span>
+        <ThemeToggle />
+      </div>
 
       <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
 
