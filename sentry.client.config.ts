@@ -16,7 +16,11 @@ if (SENTRY_ENABLED && SENTRY_DSN) {
     
     // Environment
     environment: process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.NODE_ENV || 'development',
-    
+
+    // Release attribution — ties browser events to a specific deploy.
+    // SENTRY_RELEASE is injected by CI; undefined at dev time (harmless).
+    release: process.env.SENTRY_RELEASE,
+
     // Only send errors in production to reduce noise
     enabled: process.env.NODE_ENV === 'production',
     

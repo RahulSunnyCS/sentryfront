@@ -16,7 +16,12 @@ if (SENTRY_ENABLED && SENTRY_DSN) {
     
     // Environment
     environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'development',
-    
+
+    // Release attribution — ties events to a specific deploy (git SHA or tag).
+    // SENTRY_RELEASE is injected by CI; undefined at dev time, which is fine
+    // (Sentry treats missing release as "unknown", not as an error).
+    release: process.env.SENTRY_RELEASE,
+
     // Only send errors in production
     enabled: process.env.NODE_ENV === 'production',
     
