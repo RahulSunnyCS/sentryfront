@@ -1,0 +1,23 @@
+{
+  "task_id": "T-15",
+  "title": "Wave-3 🟢: static-page smoke batch — legal×3, docs, demo×3, error, not-found",
+  "assigned_to": "implementor",
+  "risk_flags": [],
+  "model_hint": "sonnet",
+  "effort_hint": "high",
+  "wave": 3,
+  "scope": {
+    "files_to_create": ["e2e/static-pages.spec.ts"],
+    "files_to_modify": [],
+    "files_forbidden": ["e2e/support/**", "playwright.config.ts", "src/**", "other e2e/*.spec.ts"]
+  },
+  "acceptance_criteria": [
+    "Mechanical batch (same smoke pattern, low individual complexity — one spec, one owner): legal/contact, legal/privacy, legal/terms, docs, demo/accessibility, demo/performance, demo/seo, error.tsx, not-found.tsx.",
+    "Each: HTTP 200 (or the intended status for error/not-found), a primary heading/landmark visible, and ZERO uncaught pageerror + zero non-benign console errors (reuse the benign-console filter pattern from landing.spec.ts; do not import from it — replicate the small constant).",
+    "No auth/seed needed (public/static). en locale.",
+    "All tagged @non-blocker per qa-checklist.md (🟢 — logged only, no gate impact).",
+    "npm run typecheck passes; lists under playwright; does not touch other specs or support files."
+  ],
+  "dependencies": ["T-06"],
+  "output_format": "code plus a one-line note confirming every listed static page has a smoke case"
+}

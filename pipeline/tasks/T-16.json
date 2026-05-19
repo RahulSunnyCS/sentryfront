@@ -1,0 +1,23 @@
+{
+  "task_id": "T-16",
+  "title": "Wave-3 🟡: hostless interactive components + auto-derived coverage matrix",
+  "assigned_to": "implementor",
+  "risk_flags": [],
+  "model_hint": "sonnet",
+  "effort_hint": "high",
+  "wave": 3,
+  "scope": {
+    "files_to_create": ["e2e/components.spec.ts", "e2e/support/coverage-matrix.ts", "e2e/coverage-matrix.spec.ts"],
+    "files_to_modify": [],
+    "files_forbidden": ["e2e/support/perf-db-seed.ts", "e2e/support/auth-seed.ts", "e2e/support/db-seed.ts", "e2e/support/selectors.ts", "e2e/support/global-setup.ts", "playwright.config.ts", "src/**", "e2e/*.spec.ts (other than the three created here)"]
+  },
+  "acceptance_criteria": [
+    "components.spec.ts: standalone interaction tests ONLY for components with no single natural host page — toast, locale-switcher, theme-toggle (drive them on a page that mounts them, e.g. landing, asserting their interactive behaviour). Tagged @functional.",
+    "coverage-matrix.ts: a documented mapping from every one of the ~28 pages + 31 components (from context-pack.md inventory) → the spec file(s) that exercise it (page-driven D2). Pure data + a helper that derives, by scanning e2e/*.spec.ts for referenced routes/testids, which inventory items have ≥1 referencing spec.",
+    "coverage-matrix.spec.ts: a test that FAILS if any inventory page or component has zero mapped/referencing spec (proves 'every page and component is covered'). Tagged @non-blocker (informational gate per qa-checklist.md) but the assertion is real.",
+    "Read-only over other specs (no edits to them). npm run typecheck passes; lists under playwright.",
+    "The matrix explicitly records that pure-presentational components (logo, icons, severity-badge, grade-display, footer) are covered transitively by the page specs that render them, naming the owning spec."
+  ],
+  "dependencies": ["T-06", "T-08", "T-09", "T-10", "T-11", "T-12", "T-13", "T-14", "T-15", "T-17"],
+  "output_format": "code plus the plain-English coverage matrix (page/component → spec) showing no orphans"
+}

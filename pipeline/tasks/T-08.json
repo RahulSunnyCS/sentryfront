@@ -1,0 +1,24 @@
+{
+  "task_id": "T-08",
+  "title": "Wave-2 🔴: auth pages — login (real creds), signup, verify, verify-email-sent, OAuth popups + axe",
+  "assigned_to": "implementor",
+  "risk_flags": ["auth"],
+  "model_hint": "opus",
+  "effort_hint": "high",
+  "wave": 2,
+  "scope": {
+    "files_to_create": ["e2e/auth.spec.ts", "e2e/auth.a11y.spec.ts"],
+    "files_to_modify": [],
+    "files_forbidden": ["e2e/support/**", "playwright.config.ts", "src/**", "other e2e/*.spec.ts"]
+  },
+  "acceptance_criteria": [
+    "Covers QA checklist 🔴/🟡 cases for: login (ONE real credentials sign-in happy path → authenticated redirect; bad-creds error state), signup (form + validation error state + success), verify, verify-email-sent, auth/popup-start, auth/popup-callback (bounded documented partial coverage where the OAuth provider round-trip cannot be driven E2E — assert the page renders + the popup contract, do NOT fake a provider).",
+    "State×Display matrix for login/signup covered: loading (submitting), error (bad creds/validation), success.",
+    "Uses auth-seed.ts (T-04) where a session is needed; each tier/auth-sensitive case seeds its OWN unique-email user with afterAll cleanup; selectors from e2e/support/selectors.ts (no inline testids).",
+    "auth.a11y.spec.ts (R3): axe-core assertions on login, signup, verify pages — run only after stable asserted state (post-seed, networkidle), scoped to main region, WCAG 2.0/2.1 A+AA, tagged @functional; pre-existing color-contrast noise may be allow-listed but MUST be logged (never silently disabled). Mirrors landing.a11y.spec.ts.",
+    "Every test single-tagged @critical/@functional/@non-blocker per qa-checklist.md; npm run typecheck passes; `npx playwright test --list` includes the files.",
+    "Does NOT modify or duplicate any existing spec; does NOT call /api/v1/scans."
+  ],
+  "dependencies": ["T-04", "T-06"],
+  "output_format": "code plus plain English note on what OAuth-popup behaviour is bounded/partial and why"
+}

@@ -1,0 +1,23 @@
+{
+  "task_id": "T-07",
+  "title": "Wave-1: auth-seed PROBE spec (gates Waves 2/3 execution)",
+  "assigned_to": "implementor",
+  "risk_flags": ["auth"],
+  "model_hint": "opus",
+  "effort_hint": "high",
+  "wave": 1,
+  "scope": {
+    "files_to_create": ["e2e/probe.spec.ts"],
+    "files_to_modify": [],
+    "files_forbidden": ["e2e/support/**", "playwright.config.ts", "src/**", "other e2e/*.spec.ts"]
+  },
+  "acceptance_criteria": [
+    "Runs AFTER the full cold dev-server compile (no special ordering tricks — relies on webServer readiness).",
+    "Seeds a user via auth-seed.ts (T-04), applies authStorageState, then asserts: (i) the running server reports auth provider === 'nextauth' (via the health/getFeatureStatus endpoint — locate it; do not hard-code a guess), (ii) getCurrentUser() resolves through a REAL protected route (e.g. /{locale}/dashboard renders the authenticated view, not a redirect to /login), (iii) a real DB write+read round-trips through the running server (a route that performs a Prisma query touching the seeded user succeeds).",
+    "Failure classification: if the probe error is a PrismaClientInitializationError (error CLASS — not a message-substring match) it is a HARD STOP — the test must fail with a clear 'Wave-1 PROBE: provider/datasource mismatch — STOP, surface to user' message and not retry. Any other non-2xx is an ordinary DIRECT failure routed through normal triage.",
+    "Tagged @critical. Self-contained seed + afterAll cleanup (own dedicated user, not a global one).",
+    "npm run typecheck passes; `npx playwright test --list` includes it."
+  ],
+  "dependencies": ["T-03", "T-04"],
+  "output_format": "code plus plain English explanation of why a Prisma-init error must hard-stop rather than retry"
+}

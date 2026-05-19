@@ -1,0 +1,22 @@
+{
+  "task_id": "T-17",
+  "title": "Wave-3 🟡: locale-switch smoke (hi/ml/es/de switch mechanism)",
+  "assigned_to": "implementor",
+  "risk_flags": [],
+  "model_hint": "sonnet",
+  "effort_hint": "high",
+  "wave": 3,
+  "scope": {
+    "files_to_create": ["e2e/locale-switch.spec.ts"],
+    "files_to_modify": [],
+    "files_forbidden": ["e2e/support/**", "playwright.config.ts", "src/**", "other e2e/*.spec.ts"]
+  },
+  "acceptance_criteria": [
+    "Asserts the locale-switch MECHANISM only (D3): from the default en page, switching to each of hi, ml, es, de changes the URL locale segment and the rendered content is no longer the en string for a stable landmark (e.g. the hero heading) — NOT a full per-locale content audit (next-intl key presence is unit-tested).",
+    "Covers the locale-switcher component's switch behaviour across all 4 non-default locales in one spec.",
+    "No auth/seed; public landing page; tagged @functional per qa-checklist.md.",
+    "npm run typecheck passes; lists under playwright; no collision with other specs."
+  ],
+  "dependencies": ["T-06"],
+  "output_format": "code plus a one-line note stating why this is mechanism-only, not a per-locale content audit"
+}

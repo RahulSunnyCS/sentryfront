@@ -1,0 +1,24 @@
+{
+  "task_id": "T-04",
+  "title": "Wave-1: e2e/support/auth-seed.ts — DB session seeder + storageState + tier isolation",
+  "assigned_to": "implementor",
+  "risk_flags": ["auth"],
+  "model_hint": "opus",
+  "effort_hint": "high",
+  "wave": 1,
+  "scope": {
+    "files_to_create": ["e2e/support/auth-seed.ts"],
+    "files_to_modify": [],
+    "files_forbidden": ["e2e/support/perf-db-seed.ts", "e2e/support/selectors.ts", "e2e/support/global-setup.ts", "playwright.config.ts", "src/**", "e2e/*.spec.ts"]
+  },
+  "acceptance_criteria": [
+    "Export seedAuthUser(opts:{email,tier?}): inserts a User row (Prisma client against DEV_DATABASE_URL) and a Session row; returns { user, sessionToken, cleanup() }. cleanup() deletes the Session then the User.",
+    "Contract: the cookie value MUST equal the Session.sessionToken row value; sessionToken is any cryptographically-random unique string (need NOT mirror establishSession's exact format); Session.expires = now + 30 days.",
+    "Export authStorageState(sessionToken): returns a Playwright StorageState setting cookie name `next-auth.session-token` (http; no __Secure prefix — NEXTAUTH_URL is http) for domain localhost, path '/', value === sessionToken.",
+    "Export an admin variant helper that documents (and enforces via JSDoc + a runtime note) that the seeded admin email MUST be 'e2e-admin@vibesafe.test' (matching ADMIN_EMAILS in webServer.env) and that admin user creation/teardown belongs in the admin spec file's beforeAll/afterAll only — never a global seed.",
+    "Tier-isolation: documented rule + helper signature making it natural for each tier-sensitive/tier-mutating spec to seed its OWN unique-email user (per-spec), never a shared global user (the nextauth session callback re-reads tier from DB each request; the checkout bypass mutates User.tier).",
+    "No use of next-auth/jwt or any JWT minting (strategy is 'database'). npm run typecheck passes; the module imports cleanly under Playwright's esbuild + @/* alias."
+  ],
+  "dependencies": [],
+  "output_format": "code plus plain English explanation of the cookie==row contract and the tier-isolation rule"
+}

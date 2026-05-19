@@ -1,0 +1,22 @@
+{
+  "task_id": "T-02",
+  "title": "Wave-0: reconciliation audit + empirical dev-server boot measurement",
+  "assigned_to": "implementor",
+  "risk_flags": [],
+  "model_hint": "sonnet",
+  "effort_hint": "high",
+  "wave": 0,
+  "scope": {
+    "files_to_create": ["pipeline/reviews/wave0-recon.md"],
+    "files_to_modify": [],
+    "files_forbidden": ["src/**", "e2e/**", "playwright.config.ts", "package.json", "prisma/**"]
+  },
+  "acceptance_criteria": [
+    "Read all 6 existing e2e specs + e2e/support/perf-db-seed.ts + playwright.config.ts; confirm in writing that a globalSetup which deletes the e2e.db* glob + db push + truncate before the suite does NOT break any of them (state per-spec why: landing/security submit real scans; report-calibration imports pure fns; performance/compliance are env-gated skips). Flag any spec that DOES depend on persistent cross-spec e2e.db rows.",
+    "Empirically run `npm run dev` once with the exact e2e webServer.env (DEV_DATABASE_URL=file:./e2e.db, NEXTAUTH_SECRET dummy, NEXTAUTH_URL=http://localhost:3000, AUTH_PROVIDER=nextauth, RATE_LIMIT_PER_HOUR=100000, ADMIN_EMAILS=e2e-admin@vibesafe.test); record the measured time from process start to the http://localhost:3000 health/ready response. If a browser/server cannot bind in-sandbox, record the exact error and recommend a conservative timeout (>=600000) instead.",
+    "wave0-recon.md states: (a) per-spec safety verdict for globalSetup, (b) measured-or-recommended webServer.timeout value for T-03 to consume, (c) confirmation prisma/schema.prisma datasource is `sqlite` at rest (byte-identical to db-config.js development output), (d) any blocker surfaced to the user.",
+    "No source/config/test files modified — investigation + report only."
+  ],
+  "dependencies": [],
+  "output_format": "the recon report file plus a one-paragraph plain-English summary of the timeout value chosen and why"
+}

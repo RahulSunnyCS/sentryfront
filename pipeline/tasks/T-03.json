@@ -1,0 +1,23 @@
+{
+  "task_id": "T-03",
+  "title": "Wave-1: playwright globalSetup/globalTeardown + config (timeout, ADMIN_EMAILS)",
+  "assigned_to": "implementor",
+  "risk_flags": ["infra"],
+  "model_hint": "sonnet",
+  "effort_hint": "high",
+  "wave": 1,
+  "scope": {
+    "files_to_create": ["e2e/support/global-setup.ts", "e2e/support/global-teardown.ts"],
+    "files_to_modify": ["playwright.config.ts"],
+    "files_forbidden": ["e2e/support/perf-db-seed.ts", "e2e/support/selectors.ts", "e2e/support/auth-seed.ts", "e2e/support/db-seed.ts", "any e2e/*.spec.ts", "src/**", "package.json", "prisma/schema.prisma"]
+  },
+  "acceptance_criteria": [
+    "globalSetup, in strict order: (1) delete the glob e2e.db, e2e.db-wal, e2e.db-shm; (2) run `node scripts/db-config.js development`; (3) assert prisma/schema.prisma datasource provider === 'sqlite' (throw + surface if 'postgresql'); (4) `prisma db push` against DEV_DATABASE_URL=file:./e2e.db; (5) no seeding here (specs own their seeds). It must complete fully before webServer starts (Playwright contract) — add a comment forbidding moving seeding to a server-parallel hook.",
+    "globalTeardown runs `git checkout -- prisma/schema.prisma` ONLY when process.env.CI is set (protect in-progress local schema edits).",
+    "playwright.config.ts: keep `command: 'npm run dev'` UNCHANGED; register globalSetup + globalTeardown; raise webServer.timeout to the value from pipeline/reviews/wave0-recon.md (>=600000) and update the lines 14-15 comment to match; add ADMIN_EMAILS='e2e-admin@vibesafe.test' to webServer.env; do NOT add NODE_ENV; do NOT add PAYMENT_TEST_FLOW. Keep workers:1, no extra browser projects.",
+    "Existing 6 specs still discovered and unaffected (testDir unchanged).",
+    "npm run typecheck + npm run lint pass; `npx playwright test --list` succeeds (lists specs without executing)."
+  ],
+  "dependencies": ["T-02"],
+  "output_format": "code plus plain English explanation of the globalSetup ordering invariant and the chosen timeout"
+}

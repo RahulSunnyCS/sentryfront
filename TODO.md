@@ -1,28 +1,34 @@
 # TODO — Comprehensive E2E Integration Coverage
 
-> At-a-glance mirror of the Phase-1 plan. Source of truth: pipeline/plan.md +
-> pipeline/tasks/T-XX.json (seeded at Phase 2). Orchestrator is the sole writer.
+> At-a-glance mirror of pipeline/tasks/T-XX.json. Orchestrator is sole writer.
+> Status: **Phase 2 complete — awaiting approval to start implementation.**
+> Cross-artifact check: PASS (pipeline/reviews/cross-artifact-check.md).
 
-Status: **Phase 1 — awaiting Human Gate 1** (plan converged 8/10, 5 Red Team sprints).
+## Wave 0 — blocking (security + reconciliation)
+- [ ] **T-01** Fix commented-out PAYMENT_TEST_FLOW prod guard + vitest regression (opus/high) — deps: none
+- [ ] **T-02** Reconciliation audit + dev-server boot measurement (sonnet/high) — deps: none
 
-## Wave 0 — blocking (surfaced to user)
-- [ ] Fix commented-out PAYMENT_TEST_FLOW production guard in checkout/route.ts (live security defect)
-- [ ] vitest regression test for the prod guard (no DB write, 404, no leak)
-- [ ] Reconcile existing 6 specs + empirical `npm run dev` boot measurement
+## Wave 1 — shared infra (single-owner each, parallel; disjoint files)
+- [ ] **T-03** playwright globalSetup/teardown + config (timeout, ADMIN_EMAILS) (sonnet/high) — deps: T-02
+- [ ] **T-04** auth-seed.ts DB session seeder + storageState + tier isolation (opus/high) — deps: none
+- [ ] **T-05** db-seed.ts userId-scoped + new domain seeders (sonnet/high) — deps: none
+- [ ] **T-06** Hybrid data-testid sweep + selectors.ts constants — ONE task (opus/high) — deps: none
+- [ ] **T-07** auth-seed PROBE spec — gates Waves 2/3 execution (opus/high) — deps: T-03, T-04
 
-## Wave 1 — shared infra (single-owner each)
-- [ ] playwright.config: keep `npm run dev`, raise webServer.timeout, add ADMIN_EMAILS
-- [ ] globalSetup (delete e2e.db*, db-config development, assert sqlite, db push, seed) + globalTeardown
-- [ ] e2e/support/auth-seed.ts (DB User+Session seeder, storageState, tier isolation)
-- [ ] Wave-1 PROBE spec (auth provider + getCurrentUser + DB touch; Prisma-init = hard stop)
-- [ ] Expand DB seed helpers (userId-scoped, completed scan, verification, P5, tiered users)
-- [ ] Hybrid data-testid sweep + selectors.ts constants (one task, static literals only)
+## Wave 2 — 🔴 behavioral page specs (+ R3 axe @functional; parallel)
+- [ ] **T-08** Auth: login(real creds)/signup/verify/verify-email-sent/popups + axe (opus/high) — deps: T-04, T-06
+- [ ] **T-09** Checkout/pricing: PAYMENT_TEST_FLOW outcomes, tier gating, disabled→404 + axe (opus/high) — deps: T-01, T-04, T-05, T-06
+- [ ] **T-10** active-test DAST tier-gating both directions + axe (opus/high) — deps: T-04, T-05, T-06
+- [ ] **T-11** dashboard user-scoped scans/pagination/states + axe (sonnet/high) — deps: T-04, T-05, T-06
+- [ ] **T-12** scan/[id] seeded lifecycle + 1 real submission + axe (sonnet/high) — deps: T-05, T-06
+- [ ] **T-13** report state matrix + print + section components + axe (sonnet/high) — deps: T-05, T-06
+- [ ] **T-14** internal admin ×6 — non-admin 404 existence-hiding, admin 200 + axe (opus/high) — deps: T-04, T-06
 
-## Wave 2/3 — risk-tiered page + component specs
-- [ ] 🔴 behavioral: login/signup/verify/active-test/checkout/dashboard/scan/report/internal×6
-- [ ] 🟡 interaction: interactive components within owning page specs + hostless standalone
-- [ ] 🟢 smoke: legal×3/docs/demo×3/error/not-found + presentational components
-- [ ] Seeded scan-lifecycle (RUNNING/TIMEOUT/COMPLETED) + 1 real-scan submission
-- [ ] Coverage matrix appendix + locale-switch smoke + a11y sweep
+## Wave 3 — 🟡/🟢 breadth + provable completeness (parallel)
+- [ ] **T-15** Static-page smoke batch: legal×3/docs/demo×3/error/not-found 🟢 (sonnet/high) — deps: T-06
+- [ ] **T-16** Hostless components + auto-derived coverage matrix (no orphans) (sonnet/high) — deps: T-06, T-08..T-15, T-17
+- [ ] **T-17** Locale-switch smoke hi/ml/es/de 🟡 (sonnet/high) — deps: T-06
 
-(Decomposed into T-XX contracts at Phase 2 after Gate 1 approval.)
+Execution gate: T-07 PROBE must pass in CI before Wave-2/3 specs are *run*
+(authoring needs no browser; Phase-6 Automation Gate is CI-ONLY if chromium
+cannot install in-sandbox).

@@ -14,3 +14,4 @@
 | Phase 1 | QA Planner | qa-planner | opus | high | ~25k |
 | Phase 1 | Translator (Plan Report) | translator | haiku | medium | ~12k |
 | Phase 1 | QA delta refresh (R3) | qa-planner | opus | high | ~25k |
+| Phase 2 | Decomposition + cross-artifact check | orchestrator | opus | high | ~28k |
