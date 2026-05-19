@@ -1,6 +1,6 @@
 {
   "task_id": "T-20",
-  "title": "Wave-0.6: mount LocaleSwitcher + ThemeToggle in the user menu (next to Sign out)",
+  "title": "Wave-0.6: real LocaleSwitcher/ThemeToggle — replace PreferenceRows in user menu (signed-in) + add to navbar (signed-out only)",
   "assigned_to": "implementor",
   "risk_flags": ["auth"],
   "model_hint": "opus",
@@ -10,18 +10,19 @@
     "files_to_create": [],
     "files_to_modify": [
       "src/components/auth-button.tsx",
+      "src/components/nav.tsx",
       "messages/en.json (+ hi/ml/es/de) ONLY if a new label string is required"
     ],
-    "files_forbidden": ["e2e/**", "playwright.config.ts", "pipeline/**", "src/components/locale-switcher.tsx", "src/components/theme-toggle.tsx", "src/components/nav.tsx", "any other src file", "*.test.*"]
+    "files_forbidden": ["e2e/**", "playwright.config.ts", "pipeline/**", "src/components/locale-switcher.tsx", "src/components/theme-toggle.tsx", "any other src file", "*.test.*"]
   },
   "acceptance_criteria": [
-    "Mount <LocaleSwitcher /> and <ThemeToggle /> inside the authenticated user dropdown menu in src/components/auth-button.tsx — the same open menu panel that contains the Sign out item (around the signOut() / t('signOut') control, ~line 241-244). They render as menu rows/section near Sign out, only when the menu is open and the user is signed in.",
-    "Import the existing components as-is; do NOT modify locale-switcher.tsx or theme-toggle.tsx (they already carry their data-testid anchors from T-06). Do NOT change their internal behaviour.",
-    "Preserve all existing AuthButton behaviour: sign-in state, the dropdown open/close, Sign out, and the unauthenticated branch are unchanged. The two controls are additive.",
-    "Keyboard/focus + click-outside behaviour of the menu still works with the added rows; the added controls are reachable and operable within the open menu.",
-    "If a section label/heading string is added, add it to ALL catalogs messages/{en,hi,ml,es,de}.json per the i18n convention; otherwise no catalog change.",
-    "npm run typecheck, npm run lint, npm run test, npm run build all pass (full project stays green). git diff limited to auth-button.tsx (+ message catalogs only if a string was added)."
+    "auth-button.tsx (signed-in user menu): REPLACE the existing inline PreferenceRows reimplementation (~lines 67-155, the fake theme/locale controls) with the REAL <LocaleSwitcher /> and <ThemeToggle /> components, rendered in the same menu panel near Sign out. This intentionally CHANGES existing menu UI (user-authorized — no longer 'purely additive'): remove PreferenceRows, mount the real components, no duplicate theme/locale controls remain. Sign out, sign-in branch, dropdown open/close, click-outside, and keyboard/focus must still work.",
+    "nav.tsx: add <LocaleSwitcher /> and <ThemeToggle /> to the navbar, rendered ONLY when the user is NOT signed in (unauthenticated). When signed in they must NOT appear in the navbar (they live in the user menu instead). Use the same auth/session signal nav already uses (AuthButton/useSession) — do not invent a new one.",
+    "Net visibility contract: unauthenticated visitor on /en → locale-switcher + theme-toggle testids visible in the navbar (this is what e2e/locale-switch.spec.ts T-17 and e2e/components.spec.ts T-16 assert against unauthenticated /en — they must now pass without spec changes). Signed-in user → the real components are in the user menu, not the navbar.",
+    "Do NOT modify locale-switcher.tsx / theme-toggle.tsx (they already carry their data-testid from T-06). Do NOT modify any e2e spec.",
+    "Only add an i18n string if a new visible label is introduced; if so add it to ALL messages/{en,hi,ml,es,de}.json in the existing key style; otherwise no catalog change.",
+    "npm run typecheck, npm run lint, npm run test, npm run build all pass (full project stays green). git diff limited to auth-button.tsx, nav.tsx (+ catalogs only if a string was added)."
   ],
   "dependencies": [],
-  "output_format": "code plus plain English: exactly where in the menu the two controls were mounted, confirmation Sign out / sign-in / open-close behaviour is unchanged, and the 4 verification results"
+  "output_format": "code plus plain English: where in the menu the real components replaced PreferenceRows, how the navbar gates on signed-out, confirmation no duplicate controls + Sign out/open-close unchanged, whether an i18n string was added, and the 4 verification results"
 }
