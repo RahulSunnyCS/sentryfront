@@ -24,3 +24,4 @@
 | Phase 3 | T-07: PROBE spec | implementor | opus | high | ~40k |
 | Phase 3 | T-17: locale-switch smoke | implementor | sonnet | high | ~26k |
 | Phase 3 | T-18: fix pre-existing lint | implementor | sonnet | high | ~24k |
+| Phase 3 | T-14: internal admin specs | implementor | opus | high | ~42k |
