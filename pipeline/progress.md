@@ -11,7 +11,9 @@ Task: Comprehensive E2E integration test coverage for every page and component.
 | Phase 3 — Implementation | DONE | T-01..T-20 (20 tasks; +T-18 lint, +T-19 active-test tier-gate fix, +T-20 mount real comps — all user-approved). 251 E2E tests/25 files; typecheck/lint/test(1840)/build all GREEN. E2E execution = CI-only (no in-sandbox browsers, as planned). |
 | Phase 4 — Specialist Review | DONE | Epic split: security PASS, perf PASS, arch/pricing CONDITIONAL PASS. 0 Critical/High. Gate 2 APPROVED. |
 | Phase 4.5 — Bounded Fix Cycle | DONE | C1/C2/C3 fixed in parallel (FIX-A/B/C). Suite re-verified green. Synthesis → effective PASS. |
-| Phase 5 — Test Generation | IN PROGRESS | Unit/integration/docs/E2E parallel. |
+| Phase 5 — Test Generation | DONE | +28 vitest (1868 pass); docs no-op (no API ref doc); E2E gap audit +2 functional (suite 254). |
+| Phase 6 — Test Execution | DONE | Vitest 1868 pass. Blast-radius: 60 epic files all linked, 0 unlinked. Automation Gate = CI-ONLY: 125 E2E "fails" all EXTERNAL (missing browser binary; Playwright CDN blocked by net policy) — 0 DIRECT, 0 COLLATERAL. Non-browser subset (43) green. |
+| Phase 7 — Final Review | IN PROGRESS | Epic doc + Final Summary → Gate 3. |
 
 Effort: Phase 1 = max (feature-full + HIGH + risk_flags). Other phases per CLAUDE.md table.
 

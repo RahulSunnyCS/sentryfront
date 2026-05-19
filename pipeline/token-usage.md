@@ -50,3 +50,5 @@
 | Phase 5 | E2E gap audit (+2 functional) | e2e-test-writer | sonnet | medium | ~25k |
 | Phase 6 | Blast-radius validation | orchestrator | haiku | low | ~4k |
 | Phase 6 | Vitest execution | orchestrator | haiku | low | ~2k |
+| Phase 6 | Automation Gate (CI-ONLY, all EXTERNAL) | orchestrator | haiku | low | ~3k |
+| Phase 7 | Epic doc | epic-doc-writer | sonnet | medium | ~14k |
