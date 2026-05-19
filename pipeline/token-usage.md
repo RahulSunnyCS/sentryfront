@@ -21,3 +21,4 @@
 | Phase 3 | T-04: auth-seed helper | implementor | opus | high | ~34k |
 | Phase 3 | T-05: db-seed helpers | implementor | sonnet | high | ~33k |
 | Phase 3 | T-06: data-testid sweep | implementor | opus | high | ~75k |
+| Phase 3 | T-07: PROBE spec | implementor | opus | high | ~40k |
