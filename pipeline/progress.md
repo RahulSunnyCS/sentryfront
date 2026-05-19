@@ -6,7 +6,8 @@ Task: Comprehensive E2E integration test coverage for every page and component.
 |---|---|---|
 | Phase 0 — Triage | DONE | HIGH risk, feature-full, epic split (5 tags). risk_manifest.json written. |
 | Phase 1 — Planning | IN PROGRESS | Plan v5 converged 8/10 after 5 Red Team sprints + Bounded Constraint Round (pricing+arch memos). Wave-0 security defect surfaced (commented-out PAYMENT_TEST_FLOW prod guard). QA Planner + Translator next. |
-| Human Gate 1 | PENDING | Translated Plan Report to be presented; wait for approval. |
+| Human Gate 1 | APPROVED | Recommended decisions locked; R3 accepted; bounded re-plan done. |
+| Phase 2 — Decomposition | DONE | 17 task contracts (T-01..T-17), 3 waves. Cross-artifact check PASS. Context-pack built. Awaiting user go-ahead for Phase 3. |
 
 Effort: Phase 1 = max (feature-full + HIGH + risk_flags). Other phases per CLAUDE.md table.
 
