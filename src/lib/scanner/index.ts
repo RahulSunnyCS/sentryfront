@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { crawl } from './crawler';
 import { runSecretsModule } from './modules/p1-01-secrets';
 import { runSourcemapsModule } from './modules/p1-02-sourcemaps';
@@ -110,7 +111,13 @@ export interface ScannerResult {
 }
 
 export async function runScanner(targetUrl: string): Promise<ScannerResult> {
-  const crawlResult = await crawl(targetUrl);
+  // Child span: crawl phase (Playwright headless or static-fetch fallback).
+  // Named 'scan.crawl' so the Performance dashboard shows how much of total
+  // scan time is spent fetching the target page vs running security modules.
+  const crawlResult = await Sentry.startSpan(
+    { name: 'crawl', op: 'scan.crawl' },
+    () => crawl(targetUrl),
+  );
 
   // Group 1: async I/O-heavy modules — run fully in parallel
   const [

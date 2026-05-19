@@ -117,6 +117,12 @@ vi.mock('playwright', () => ({
 }));
 
 // Mock Sentry
+// startSpan must execute the callback and return its result so that code
+// under test (scan-worker, scanner/index) behaves identically with and
+// without a real Sentry DSN. A plain vi.fn() would return undefined and
+// break any code that awaits the span result.
+// setMeasurement is a documented no-op when Sentry is not initialised — we
+// mirror that by making it a silent vi.fn() here.
 vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
   captureMessage: vi.fn(),
@@ -125,6 +131,13 @@ vi.mock('@sentry/nextjs', () => ({
   setUser: vi.fn(),
   setContext: vi.fn(),
   addBreadcrumb: vi.fn(),
+  // startSpan: invoke the callback and pass it a no-op span object so
+  // callers that reference the span argument (e.g. T-02 scan-worker) work
+  // without a real Sentry connection. Returns a Promise so `await` works.
+  startSpan: vi.fn((_options: any, callback: (span: any) => any) =>
+    Promise.resolve(callback({ setAttribute: vi.fn(), setStatus: vi.fn() })),
+  ),
+  setMeasurement: vi.fn(),
 }));
 
 // Mock NextAuth

@@ -14,6 +14,11 @@ if (SENTRY_ENABLED && SENTRY_DSN) {
   Sentry.init({
     dsn: SENTRY_DSN,
     environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'development',
+
+    // Release attribution — ties edge runtime events to a specific deploy.
+    // SENTRY_RELEASE is injected by CI; undefined at dev time (harmless).
+    release: process.env.SENTRY_RELEASE,
+
     enabled: process.env.NODE_ENV === 'production',
     tracesSampleRate: 0.1,
   });
