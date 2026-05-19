@@ -317,8 +317,6 @@ export function PrintReport(props: Props) {
     .filter((f) => f.severity === 'CRITICAL' || f.severity === 'HIGH')
     .slice(0, 5);
 
-  const priorityIds = new Set(priorityFindings.map((f) => f.id));
-
   const passedModules = SCAN_MODULES.filter(
     (m) => !findings.some((f) => f.module === m.id),
   );

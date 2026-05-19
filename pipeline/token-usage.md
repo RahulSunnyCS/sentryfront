@@ -23,3 +23,4 @@
 | Phase 3 | T-06: data-testid sweep | implementor | opus | high | ~75k |
 | Phase 3 | T-07: PROBE spec | implementor | opus | high | ~40k |
 | Phase 3 | T-17: locale-switch smoke | implementor | sonnet | high | ~26k |
+| Phase 3 | T-18: fix pre-existing lint | implementor | sonnet | high | ~24k |
