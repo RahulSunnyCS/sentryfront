@@ -37,3 +37,6 @@
 | Phase 3 | T-20: mount real comps (menu+navbar) | implementor | opus | high | ~58k |
 | Phase 4 | Pricing review | pricing-reviewer | sonnet | medium | ~22k |
 | Phase 4 | Security audit | security-auditor | opus | max | ~48k |
+| Phase 4 | Performance review | performance-reviewer | sonnet | high | ~30k |
+| Phase 4 | Architecture review | architecture-reviewer | sonnet | high | ~38k |
+| Phase 4 | Synthesis | orchestrator | opus | high | ~12k |
