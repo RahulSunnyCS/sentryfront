@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
+import { Link } from '@/i18n/navigation';
 import { Nav } from '@/components/nav';
 import { Footer } from '@/components/footer';
+import { getCurrentUser, hasTier, isAuthEnabled } from '@/lib/auth/helpers';
+import { getUpgradeMessage, isTierGatingEnabled } from '@/lib/tier-gating';
 import { ActiveTestFlow } from './active-test-flow';
 
 export const metadata: Metadata = {
@@ -66,11 +69,83 @@ function ActiveComingSoonCard({
   );
 }
 
-export default function ActiveTestPage({ searchParams }: ActiveTestPageProps) {
+// Server-rendered upgrade prompt shown INSTEAD of the DAST wizard for users
+// below the required tier. This is the UI half of a two-layer gate; the
+// authoritative gate lives in POST /api/v1/active-test/start. Copy for the
+// body comes from tier-gating.ts getUpgradeMessage so the gate has a single
+// source of truth (no new message-catalog string is introduced — this page
+// already renders hardcoded English throughout, so this stays consistent
+// with the page's existing pattern).
+function ActiveTestUpgradePrompt({ tier }: { tier: string }) {
+  return (
+    <section
+      aria-label="Upgrade required"
+      data-testid="active-test-upgrade-prompt"
+      style={{
+        maxWidth: 640,
+        margin: '0 auto',
+        background: 'linear-gradient(135deg, rgba(13,148,136,0.10), rgba(124,58,237,0.08))',
+        border: '1px solid rgba(13,148,136,0.30)',
+        borderRadius: 16,
+        padding: 'clamp(28px, 5vw, 40px)',
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>
+        Active DAST testing is a paid feature
+      </div>
+      <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.7 }}>
+        {getUpgradeMessage(tier) ||
+          'Upgrade to confirm exploitability with active DAST testing.'}
+      </p>
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Link
+          href="/pricing"
+          className="btn-primary"
+          style={{ padding: '13px 28px', fontSize: 15, fontWeight: 700 }}
+        >
+          See plans &amp; upgrade
+        </Link>
+        <Link
+          href="/dashboard"
+          className="btn-secondary"
+          style={{ padding: '13px 28px', fontSize: 15, fontWeight: 600 }}
+        >
+          Back to dashboard
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+export default async function ActiveTestPage({ searchParams }: ActiveTestPageProps) {
   const rawDomain = Array.isArray(searchParams?.domain)
     ? searchParams?.domain[0]
     : searchParams?.domain;
   const initialDomain = (rawDomain ?? '').trim();
+
+  // Two-layer tier gate (UI half). When auth + tier gating are both active,
+  // a user below the required 'one-shot' tier must NOT see the DAST wizard —
+  // they get the upgrade prompt instead. We do NOT replace the existing auth
+  // gate (middleware redirects unauthenticated requests on the protected
+  // `active-test` segment) or the domain-verification gate (server route) —
+  // this ADDS the missing tier gate. When auth or tier gating is disabled,
+  // behaviour is byte-identical to before (the wizard renders as before),
+  // matching how tier-gating is bypassed everywhere else in the app.
+  let showUpgradePrompt = false;
+  let currentTier = 'free';
+  if (isAuthEnabled() && isTierGatingEnabled()) {
+    const user = await getCurrentUser();
+    currentTier = user?.tier ?? 'free';
+    // The required minimum tier for the paid active-DAST surface is
+    // 'one-shot' (per .claude/project/business.md — Verify unlocks 1 active
+    // DAST scan; free is blocked). hasTier owns the hierarchy; we never
+    // hard-code free<one-shot<pro<studio here.
+    if (!hasTier(user, 'one-shot')) {
+      showUpgradePrompt = true;
+    }
+  }
+
   return (
     <>
       <Nav />
@@ -106,7 +181,11 @@ export default function ActiveTestPage({ searchParams }: ActiveTestPageProps) {
               </p>
             </header>
 
-            <ActiveTestFlow initialDomain={initialDomain} />
+            {showUpgradePrompt ? (
+              <ActiveTestUpgradePrompt tier={currentTier} />
+            ) : (
+              <ActiveTestFlow initialDomain={initialDomain} />
+            )}
 
             <div
               style={{

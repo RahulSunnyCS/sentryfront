@@ -30,3 +30,4 @@
 | Phase 3 | T-12: scan lifecycle specs | implementor | sonnet | high | ~38k |
 | Phase 3 | T-13: report-pages specs | implementor | sonnet | high | ~46k |
 | Phase 3 | T-11: dashboard specs | implementor | sonnet | high | ~38k |
+| Phase 3 | T-19: active-test tier gate | implementor | opus | high | ~42k |
