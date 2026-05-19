@@ -41,7 +41,7 @@ export function DomainEntry({ initialDomain, error }: Props) {
         {t('askDomainHint')}
       </p>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <form data-testid="verify-domain-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         <div>
           <label
             htmlFor="domain-input"
@@ -56,6 +56,7 @@ export function DomainEntry({ initialDomain, error }: Props) {
           </label>
           <input
             id="domain-input"
+            data-testid="verify-domain-input"
             type="text"
             inputMode="url"
             autoComplete="off"
@@ -78,6 +79,7 @@ export function DomainEntry({ initialDomain, error }: Props) {
 
         <button
           type="submit"
+          data-testid="verify-domain-submit"
           className="btn-primary"
           disabled={submitting || !domain.trim()}
           style={{ justifyContent: 'center' }}

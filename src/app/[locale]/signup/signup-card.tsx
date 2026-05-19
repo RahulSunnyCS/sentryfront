@@ -228,11 +228,12 @@ export function SignupCard({ googleClientId }: { googleClientId?: string }) {
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
 
-      <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <form data-testid="signup-form" onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         <div>
           <label htmlFor="name" style={labelCss}>{t('nameLabel')}</label>
           <input
             id="name"
+            data-testid="signup-name-input"
             type="text"
             autoComplete="name"
             value={name}
@@ -246,6 +247,7 @@ export function SignupCard({ googleClientId }: { googleClientId?: string }) {
           <label htmlFor="email" style={labelCss}>{tl('emailLabel')}</label>
           <input
             id="email"
+            data-testid="signup-email-input"
             type="email"
             inputMode="email"
             autoComplete="email"
@@ -261,6 +263,7 @@ export function SignupCard({ googleClientId }: { googleClientId?: string }) {
           <label htmlFor="password" style={labelCss}>{tl('passwordLabel')}</label>
           <input
             id="password"
+            data-testid="signup-password-input"
             type="password"
             autoComplete="new-password"
             required
@@ -277,13 +280,14 @@ export function SignupCard({ googleClientId }: { googleClientId?: string }) {
         </div>
 
         {error && (
-          <p role="alert" style={{ fontSize: 'var(--fs-sm)', color: '#E11D48' }}>
+          <p data-testid="signup-error" role="alert" style={{ fontSize: 'var(--fs-sm)', color: '#E11D48' }}>
             {error}
           </p>
         )}
 
         <button
           type="submit"
+          data-testid="signup-submit"
           className="btn-primary"
           disabled={loading !== null}
           style={{ width: '100%', justifyContent: 'center' }}

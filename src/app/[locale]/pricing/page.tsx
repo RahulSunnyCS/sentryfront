@@ -333,6 +333,7 @@ function PricingCard(props: PricingCardProps) {
   return (
     <article
       id={props.id}
+      data-testid="pricing-card"
       style={{
         background: 'var(--surface)',
         border: `2px solid ${props.featured ? 'var(--accent)' : 'var(--border)'}`,

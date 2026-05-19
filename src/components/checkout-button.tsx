@@ -97,6 +97,7 @@ export function CheckoutButton({ tier, label, featured = false }: Props) {
     <>
       <button
         type="button"
+        data-testid="checkout-button"
         onClick={() => setOpen(true)}
         style={{
           width: '100%',
@@ -118,6 +119,7 @@ export function CheckoutButton({ tier, label, featured = false }: Props) {
 
       {open && (
         <div
+          data-testid="checkout-modal"
           role="dialog"
           aria-modal="true"
           aria-labelledby={`checkout-${tier}-title`}
@@ -214,6 +216,7 @@ export function CheckoutButton({ tier, label, featured = false }: Props) {
             {/* Actions */}
             <button
               type="button"
+              data-testid="checkout-confirm"
               onClick={handleConfirm}
               disabled={loading}
               className="btn-primary"

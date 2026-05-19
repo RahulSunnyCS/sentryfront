@@ -22,7 +22,8 @@
     "faq": "FAQ",
     "openMenu": "Menü öffnen",
     "closeMenu": "Menü schließen",
-    "siteMenu": "Seitenmenü"
+    "siteMenu": "Seitenmenü",
+    "preferences": "Einstellungen"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -60,6 +61,9 @@
     "ml": "മലയാളം",
     "es": "Español",
     "de": "Deutsch"
+  },
+  "theme": {
+    "label": "Design"
   },
   "landing": {
     "pill": "Sicherheit auf Enterprise-Niveau · Ab $0",

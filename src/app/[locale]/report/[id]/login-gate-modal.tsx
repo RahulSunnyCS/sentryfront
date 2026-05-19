@@ -55,6 +55,7 @@ export function LoginGateModal({ callbackUrl }: { callbackUrl: string }) {
 
   return (
     <div
+      data-testid="login-gate-modal"
       role="dialog"
       aria-modal="true"
       aria-labelledby="login-gate-title"

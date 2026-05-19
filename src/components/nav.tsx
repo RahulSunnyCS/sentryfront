@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
@@ -9,6 +10,8 @@ import { Logo } from './logo';
 import { PdfExportButton } from './pdf-export-button';
 import { AuthButton } from './auth-button';
 import { VerifyEmailNudge } from './verify-email-nudge';
+import { LocaleSwitcher } from './locale-switcher';
+import { ThemeToggle } from './theme-toggle';
 import { useFeature } from '@/lib/client-features';
 
 interface CreditsData {
@@ -94,6 +97,31 @@ function CreditsChip() {
   return null;
 }
 
+// LocaleSwitcher + ThemeToggle live in the signed-out navbar only. When the
+// user IS signed in they move into the AuthButton user menu (auth-button.tsx),
+// so they must NOT also appear here. We mirror AuthButton's own auth signal
+// exactly (useFeature('auth') + useSession status) so the navbar shows them in
+// precisely the states AuthButton shows the "Sign in" link rather than the
+// user menu: auth feature disabled, or no authenticated session (this also
+// covers the brief 'loading' state and the E2E unauthenticated /en case).
+function NavPreferences() {
+  const authEnabled = useFeature('auth');
+  const { status } = useSession();
+
+  // Signed in only when the auth feature is enabled AND a session exists.
+  const signedIn = authEnabled && status === 'authenticated';
+  if (signedIn) return null;
+
+  return (
+    <span
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
+    >
+      <LocaleSwitcher />
+      <ThemeToggle />
+    </span>
+  );
+}
+
 interface Props {
   showReportActions?: boolean;
   scanUrl?: string;
@@ -105,6 +133,11 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
   const tCommon = useTranslations('common');
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navLinks = [
     { href: '/pricing', label: t('pricing') },
@@ -193,7 +226,11 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
       <div className="nav-actions" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
         {showReportActions && (
           <>
-            {scanId && <PdfExportButton scanId={scanId} />}
+            {scanId && (
+              <span className="nav-action-hide-mobile">
+                <PdfExportButton scanId={scanId} />
+              </span>
+            )}
             <Link
               href="/"
               className="nav-action-hide-mobile"
@@ -211,6 +248,7 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
             </Link>
             {scanUrl && (
               <button
+                className="nav-action-hide-mobile"
                 onClick={() => navigator.clipboard.writeText(window.location.href).catch(() => {})}
                 style={{
                   padding: '7px 14px',
@@ -234,6 +272,13 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
         )}
         <CreditsChip />
         <VerifyEmailNudge />
+        {/* Desktop bar only (hidden on mobile via CSS). Signed-out shows the
+            switchers here; signed-in they live in the AuthButton user menu.
+            On mobile they move into the slide-out menu instead (below) so the
+            cramped top bar stays clean. */}
+        <span className="nav-action-hide-mobile">
+          <NavPreferences />
+        </span>
         <span className="nav-action-hide-mobile">
           <AuthButton />
         </span>
@@ -251,51 +296,142 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
         </button>
       </div>
 
-      <div
-        id="mobile-menu"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('siteMenu')}
-        className="nav-mobile-menu"
-        data-open={open ? 'true' : 'false'}
-      >
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          {navLinks.map((l) => (
-            <li key={l.href}>
-              <Link
-                href={l.href}
+      {/* Mobile menu is portaled to <body> so it escapes this <nav>'s
+          stacking context: nav has position:fixed + z-index:100 +
+          backdrop-filter (each creates a stacking context), which previously
+          trapped the menu's z-index no matter how high it was set. On body it
+          sits above all page content as intended. */}
+      {mounted &&
+        createPortal(
+          <div
+            id="mobile-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('siteMenu')}
+            className="nav-mobile-menu"
+            data-open={open ? 'true' : 'false'}
+          >
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+              {navLinks.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    onClick={() => setOpen(false)}
+                    style={{
+                      display: 'block',
+                      padding: '14px 16px',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 'var(--fs-lg)',
+                      fontWeight: 600,
+                      color: 'var(--text)',
+                    }}
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Report actions, surfaced as prominent full-width items so they
+                stay discoverable in the menu (the bar versions are hidden on
+                mobile to declutter — moving them here keeps the user aware
+                and one tap away rather than removing them). */}
+            {showReportActions && (
+              <div
                 style={{
-                  display: 'block',
-                  padding: '14px 16px',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: 'var(--fs-lg)',
-                  fontWeight: 600,
-                  color: 'var(--text)',
+                  marginTop: 'var(--space-6)',
+                  paddingTop: 'var(--space-6)',
+                  borderTop: '1px solid var(--border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-2)',
                 }}
               >
-                {l.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <div
-          style={{
-            marginTop: 'var(--space-6)',
-            paddingTop: 'var(--space-6)',
-            borderTop: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 'var(--space-3)',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
-            <VerifyEmailNudge />
-            <AuthButton />
-          </div>
-        </div>
-      </div>
+                {scanId && <PdfExportButton scanId={scanId} />}
+                {scanUrl && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href).catch(() => {});
+                      setOpen(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      borderRadius: 'var(--radius-md)',
+                      border: 'none',
+                      background: 'var(--accent)',
+                      fontSize: 'var(--fs-lg)',
+                      fontWeight: 600,
+                      color: '#fff',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <IconExternalLink size={15} color="#fff" />
+                    {tCommon('share')}
+                  </button>
+                )}
+                <Link
+                  href="/"
+                  onClick={() => setOpen(false)}
+                  style={{
+                    display: 'block',
+                    textAlign: 'center',
+                    padding: '14px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    fontSize: 'var(--fs-lg)',
+                    fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  {tCommon('newScan')}
+                </Link>
+              </div>
+            )}
+
+            <div
+              style={{
+                marginTop: 'var(--space-6)',
+                paddingTop: 'var(--space-6)',
+                borderTop: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-4)',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+                <VerifyEmailNudge />
+                <AuthButton />
+              </div>
+              {/* Locale + theme live at the TOP LEVEL of the mobile menu for
+                  EVERYONE — signed-out and signed-in alike — so an authorised
+                  user can change them from the first screen of the menu
+                  instead of drilling into the nested account dropdown. (The
+                  desktop signed-out bar still uses <NavPreferences/>; the
+                  desktop signed-in case still has them in the AuthButton
+                  menu.) */}
+              <div
+                aria-label={t('preferences')}
+                role="group"
+                style={{
+                  display: 'flex',
+                  gap: 'var(--space-2)',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <LocaleSwitcher />
+                <ThemeToggle />
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </nav>
   );
 }

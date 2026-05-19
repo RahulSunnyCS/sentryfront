@@ -62,16 +62,6 @@ function isKnownSafeDomain(domain: string): boolean {
   );
 }
 
-function getApexDomain(url: string): string | null {
-  try {
-    const hostname = new URL(url).hostname;
-    const parts = hostname.split('.');
-    return parts.slice(-2).join('.');
-  } catch {
-    return null;
-  }
-}
-
 // ── Band-summary extraction ──────────────────────────────────────────────────
 
 export interface BandSummaryItem {

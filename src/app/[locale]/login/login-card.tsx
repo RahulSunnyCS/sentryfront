@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useRouter, Link } from '@/i18n/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { Logo } from '@/components/logo';
 
 declare global {
@@ -50,6 +50,7 @@ function sanitizeCallback(raw: string | null): string {
 export function LoginCard({ googleClientId }: { googleClientId?: string }) {
   const t = useTranslations('login');
   const router = useRouter();
+  const { update: refreshSession } = useSession();
   const searchParams = useSearchParams();
   const callbackUrl = sanitizeCallback(
     searchParams?.get('callbackUrl') ?? searchParams?.get('next') ?? null,
@@ -77,6 +78,10 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
           const body = await res.json().catch(() => ({ error: t('signInFailedGeneric') }));
           throw new Error(body.error || t('signInFailedGeneric'));
         }
+        // Refresh the NextAuth client session so SessionProvider consumers
+        // (e.g. the nav AuthButton) reflect the signed-in state immediately,
+        // without requiring a manual page refresh.
+        await refreshSession();
         router.push(callbackUrl);
         router.refresh();
       } catch (e) {
@@ -84,7 +89,7 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
         setLoading(null);
       }
     },
-    [callbackUrl, router, t],
+    [callbackUrl, router, t, refreshSession],
   );
 
   useEffect(() => {
@@ -154,7 +159,7 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
 
     setLoading('github');
 
-    const onMessage = (event: MessageEvent) => {
+    const onMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if ((event.data as { type?: string } | null)?.type !== 'oauth-complete') return;
 
@@ -165,6 +170,7 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
       } catch {
         // ignore
       }
+      await refreshSession();
       router.push(callbackUrl);
       router.refresh();
     };
@@ -195,7 +201,12 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
         setLoading(null);
         return;
       }
-      window.location.href = callbackUrl;
+      // Refresh the NextAuth client session in-place so the nav AuthButton
+      // (and any other useSession consumer) switches to the signed-in state
+      // immediately. Replaces a full-page `window.location.href` reload.
+      await refreshSession();
+      router.push(callbackUrl);
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('signInFailedGeneric'));
       setLoading(null);
@@ -261,11 +272,12 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
 
-      <form onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <form data-testid="login-form" onSubmit={handleEmail} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         <div>
           <label htmlFor="email" style={labelCss}>{t('emailLabel')}</label>
           <input
             id="email"
+            data-testid="login-email-input"
             type="email"
             inputMode="email"
             autoComplete="email"
@@ -289,6 +301,7 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
           </div>
           <input
             id="password"
+            data-testid="login-password-input"
             type="password"
             autoComplete="current-password"
             required
@@ -302,13 +315,14 @@ export function LoginCard({ googleClientId }: { googleClientId?: string }) {
         </div>
 
         {error && (
-          <p role="alert" style={{ fontSize: 'var(--fs-sm)', color: '#E11D48' }}>
+          <p data-testid="login-error" role="alert" style={{ fontSize: 'var(--fs-sm)', color: '#E11D48' }}>
             {error}
           </p>
         )}
 
         <button
           type="submit"
+          data-testid="login-submit"
           className="btn-primary"
           disabled={loading !== null}
           style={{ width: '100%', justifyContent: 'center' }}

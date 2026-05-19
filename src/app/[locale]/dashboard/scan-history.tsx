@@ -164,7 +164,7 @@ export function ScanHistory({ initialItems, initialCursor, initialHasMore, local
   };
 
   return (
-    <section aria-labelledby="scan-history-heading">
+    <section data-testid="scan-history" aria-labelledby="scan-history-heading">
       <div
         style={{
           display: 'flex',
@@ -192,6 +192,7 @@ export function ScanHistory({ initialItems, initialCursor, initialHasMore, local
       >
         <input
           type="search"
+          data-testid="scan-history-search"
           placeholder={labels.searchPlaceholder}
           value={search}
           onChange={(e) => handleSearchChange(e.target.value)}
@@ -281,6 +282,7 @@ export function ScanHistory({ initialItems, initialCursor, initialHasMore, local
         <div style={{ textAlign: 'center', marginTop: 'var(--space-6)' }}>
           <button
             type="button"
+            data-testid="scan-history-load-more"
             onClick={handleLoadMore}
             disabled={loadMoreLoading}
             style={{

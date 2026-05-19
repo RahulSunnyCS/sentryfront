@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth/helpers';
+import { getCurrentUser, hasTier } from '@/lib/auth/helpers';
+import { isTierGatingEnabled } from '@/lib/tier-gating';
 import { normalizeDomain } from '@/lib/verify-domain';
 import { ValidationError } from '@/lib/url-validator';
 import {
@@ -15,6 +16,23 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  }
+
+  // Tier gate (authoritative, defense-in-depth — the UI gate alone is not
+  // enough). The active DAST surface is a paid feature: per business.md it is
+  // unlocked starting at the 'one-shot' tier (Verify — 1 active DAST scan);
+  // 'free' is blocked. We do NOT hard-code the hierarchy here — hasTier owns
+  // it (free < one-shot < pro < studio). Mirrors how tier-gating is bypassed
+  // elsewhere when the TIER_GATING feature flag is off, so flag-off behaviour
+  // stays byte-identical to before this gate existed.
+  if (isTierGatingEnabled() && !hasTier(user, 'one-shot')) {
+    return NextResponse.json(
+      {
+        error: 'Active DAST testing requires a paid plan. Upgrade to run active tests.',
+        code: 'TIER_REQUIRED',
+      },
+      { status: 403 },
+    );
   }
 
   let body: { domain?: string; tests?: unknown };

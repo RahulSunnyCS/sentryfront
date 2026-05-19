@@ -307,7 +307,7 @@ export function ReportView({ scanData, authed = false }: { scanData: ScanData; a
           </div>
 
           {/* Tab body */}
-          <div role="tabpanel" style={{ padding: 24 }}>
+          <div data-testid="report-tabpanel" role="tabpanel" style={{ padding: 24 }}>
             {activeTab === 'security' && (
               <SecurityTabBody
                 scanId={scanData.id ?? ''}
@@ -466,7 +466,7 @@ function SecurityTabBody({
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
         <ScanLevelMissedButton scanId={scanId} authed={authed} />
       </div>
-      <div role="tablist" aria-label="Filter findings" style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div data-testid="report-filter-tabs" role="tablist" aria-label="Filter findings" style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         <FilterButton
           active={view === 'critical'}
           onClick={() => setView('critical')}

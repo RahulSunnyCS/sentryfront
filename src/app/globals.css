@@ -768,6 +768,10 @@ input, textarea, select, button { font: inherit; color: inherit; }
   .nav-action-hide-mobile { display: none !important; }
   .nav-hamburger { display: inline-flex; }
   :root { --nudge-label-display: none; }
+  /* Landing-page supporting sections hidden on mobile to reduce scroll
+     length. Conversion spine stays; content remains in the DOM so SEO and
+     the FAQ JSON-LD are unaffected. Desktop is unchanged. */
+  .landing-hide-mobile { display: none !important; }
 }
 
 @media (min-width: 881px) {

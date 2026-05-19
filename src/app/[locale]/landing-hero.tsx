@@ -43,13 +43,21 @@ export function LandingHero({ initialHeroAnim }: LandingHeroProps) {
   return (
     <main id="main" style={{ display: 'flex', flexDirection: 'column' }}>
       <HeroSection weeklyCount={weeklyCount} initialHeroAnim={initialHeroAnim} />
-      <ToolsStrip />
+      {/* Supporting sections are hidden on mobile to cut the scroll length —
+          the conversion spine (hero → how-it-works → stats → features → FAQ →
+          final CTA) is kept on every viewport. Content stays in the DOM so
+          desktop, SEO and the FAQ JSON-LD are unaffected. */}
+      <div className="landing-hide-mobile">
+        <ToolsStrip />
+      </div>
       <HowItWorksSection />
       <StatsSection weeklyCount={weeklyCount} />
       <FeaturesSection />
-      <ComparisonSection />
-      <TestimonialsSection />
-      <ChromeExtensionSection />
+      <div className="landing-hide-mobile">
+        <ComparisonSection />
+        <TestimonialsSection />
+        <ChromeExtensionSection />
+      </div>
       <FAQSection />
       <FinalCTASection />
 

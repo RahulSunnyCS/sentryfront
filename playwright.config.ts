@@ -11,15 +11,32 @@ import { defineConfig, devices } from '@playwright/test';
  *  - RATE_LIMIT_PER_HOUR=100000 prevents 429 responses when multiple tests
  *    submit scans; the real rate-limiter counts Scan rows per IP/hour (default
  *    10), which a modest suite would exhaust immediately.
- *  - webServer.timeout of 180000 ms is generous because 'npm run dev'
- *    runs prisma generate + db push before next dev on first run.
+ *  - webServer.timeout of 180000 ms (3 minutes) is the proven safe value:
+ *    empirical cold-boot measurement (wave0-recon.md §b) showed ~10 s on a
+ *    fast local SSD; 180000 gives an 18× safety margin for slow CI runners.
+ *    If a CI environment cannot bind within 180000 ms, escalate to 600000
+ *    (10 minutes) — the documented conservative fallback for resource-
+ *    constrained runners. Do not lower this value without a new measurement.
  *  - workers: 1 prevents concurrent scans from racing on the shared e2e.db
  *    and keeps server load predictable for the non-hermetic scan flow.
  *  - Single chromium project only (the plan defers a second browser to a
  *    future sprint per decision D2 / R3).
+ *  - globalSetup (e2e/support/global-setup.ts) wipes e2e.db*, rewrites
+ *    schema.prisma to SQLite, and runs prisma db push BEFORE webServer
+ *    starts. globalTeardown restores schema.prisma on CI only.
  */
 export default defineConfig({
   testDir: './e2e',
+
+  // globalSetup runs BEFORE webServer (Playwright contract). It wipes e2e.db*,
+  // rewrites schema.prisma to SQLite, and runs prisma db push so the dev server
+  // inherits a fully-initialised, empty database.  Seeding lives in per-spec
+  // beforeAll/beforeEach — never in globalSetup or any server-parallel hook.
+  globalSetup: './e2e/support/global-setup.ts',
+
+  // globalTeardown restores prisma/schema.prisma on CI only, protecting any
+  // in-progress local schema edits from being silently discarded.
+  globalTeardown: './e2e/support/global-teardown.ts',
 
   // Fail fast in CI if a test has .only left in — never in local runs.
   forbidOnly: !!process.env.CI,
@@ -102,6 +119,11 @@ export default defineConfig({
       // Raise the scan-row-per-IP/hour ceiling far above what a test suite
       // will ever reach, preventing 429 across retries or parallel specs.
       RATE_LIMIT_PER_HOUR: '100000',
+
+      // Required for admin-user seeding in wave specs that test internal/
+      // admin-gated pages. This email is used exclusively in E2E tests —
+      // it is never a real account and never reaches production auth logic.
+      ADMIN_EMAILS: 'e2e-admin@vibesafe.test',
     },
   },
 });

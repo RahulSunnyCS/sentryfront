@@ -22,7 +22,8 @@
     "faq": "Preguntas frecuentes",
     "openMenu": "Abrir menú",
     "closeMenu": "Cerrar menú",
-    "siteMenu": "Menú del sitio"
+    "siteMenu": "Menú del sitio",
+    "preferences": "Preferencias"
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -60,6 +61,9 @@
     "ml": "മലയാളം",
     "es": "Español",
     "de": "Deutsch"
+  },
+  "theme": {
+    "label": "Tema"
   },
   "landing": {
     "pill": "Seguridad de nivel empresarial · Desde $0",
