@@ -89,9 +89,12 @@ describe('Nav — NavPreferences switcher placement', () => {
 
     render(<Nav />);
 
-    // Signed-out navbar renders the switchers (exactly once, strict-mode safe).
-    expect(screen.getAllByTestId(LOCALE_TESTID)).toHaveLength(1);
-    expect(screen.getAllByTestId(THEME_TESTID)).toHaveLength(1);
+    // Signed-out: the switchers render in TWO placements by design — the
+    // desktop nav bar (hidden ≤880px via CSS) and the mobile slide-out menu
+    // (hidden ≥881px via CSS). Exactly one is visible per viewport; in jsdom
+    // both are in the DOM regardless of CSS, so the count is 2.
+    expect(screen.getAllByTestId(LOCALE_TESTID)).toHaveLength(2);
+    expect(screen.getAllByTestId(THEME_TESTID)).toHaveLength(2);
   });
 
   it('shows the switchers during the transient loading session state', () => {
@@ -99,8 +102,8 @@ describe('Nav — NavPreferences switcher placement', () => {
 
     render(<Nav />);
 
-    expect(screen.getAllByTestId(LOCALE_TESTID)).toHaveLength(1);
-    expect(screen.getAllByTestId(THEME_TESTID)).toHaveLength(1);
+    expect(screen.getAllByTestId(LOCALE_TESTID)).toHaveLength(2);
+    expect(screen.getAllByTestId(THEME_TESTID)).toHaveLength(2);
   });
 
   it('shows the switchers when the auth feature is disabled (even if a session exists)', () => {
@@ -112,8 +115,8 @@ describe('Nav — NavPreferences switcher placement', () => {
 
     render(<Nav />);
 
-    expect(screen.getAllByTestId(LOCALE_TESTID)).toHaveLength(1);
-    expect(screen.getAllByTestId(THEME_TESTID)).toHaveLength(1);
+    expect(screen.getAllByTestId(LOCALE_TESTID)).toHaveLength(2);
+    expect(screen.getAllByTestId(THEME_TESTID)).toHaveLength(2);
   });
 
   it('HIDES the navbar switchers when signed in (auth on + authenticated session)', () => {

@@ -228,15 +228,15 @@ test.describe('LocaleSwitcher — standalone interaction', () => {
   }) => {
     await page.goto('/en');
 
-    // The locale-switcher <select> (data-testid="locale-switcher") must be
-    // visible in the page — it is expected to be rendered somewhere in the
-    // [locale] layout (nav or footer) and hydrated before this assertion.
-    const switcher = byTestId(page, LOCALE_SWITCHER);
+    // The locale-switcher <select> renders in two placements (desktop nav bar
+    // + mobile slide-out menu portaled to <body>). Scope to the copy inside
+    // <nav> — the one visible at the desktop test viewport — so the locator
+    // stays single and unambiguous under Playwright strict mode.
+    const switcher = page.locator('nav').getByTestId(LOCALE_SWITCHER);
     await expect(
       switcher,
-      'data-testid="locale-switcher" not found on /en. ' +
-        'Likely cause: LocaleSwitcher is not mounted by any page/layout. ' +
-        'Mount it in the nav or footer and re-run.',
+      'data-testid="locale-switcher" not found in <nav> on /en. ' +
+        'Likely cause: LocaleSwitcher is not mounted by the nav.',
     ).toBeVisible();
 
     // The <select> must be enabled (isPending=false on initial load).
@@ -296,12 +296,13 @@ test.describe('ThemeToggle — standalone interaction', () => {
     await page.goto('/en');
     await page.waitForLoadState('networkidle');
 
-    const toggle = byTestId(page, THEME_TOGGLE);
+    // Scoped to <nav> (theme-toggle also renders in the body-portaled mobile
+    // menu; the nav-bar copy is the one visible at the desktop test viewport).
+    const toggle = page.locator('nav').getByTestId(THEME_TOGGLE);
     await expect(
       toggle,
-      'data-testid="theme-toggle" not found on /en. ' +
-        'Likely cause: ThemeToggle is not mounted by any page/layout. ' +
-        'Mount it in the nav or footer and re-run.',
+      'data-testid="theme-toggle" not found in <nav> on /en. ' +
+        'Likely cause: ThemeToggle is not mounted by the nav.',
     ).toBeVisible();
     await expect(toggle, 'theme-toggle button is disabled — unexpected.').toBeEnabled();
 

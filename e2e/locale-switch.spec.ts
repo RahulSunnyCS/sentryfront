@@ -31,7 +31,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { byTestId, LOCALE_SWITCHER } from './support/selectors';
+import { LOCALE_SWITCHER } from './support/selectors';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -73,7 +73,13 @@ async function assertLocaleSwitchMechanism(
   // The <h1 id="hero-heading"> is always rendered server-side, but the
   // LocaleSwitcher is a client component and must hydrate before onChange works.
   await expect(page.locator('#hero-heading')).toBeVisible();
-  await expect(byTestId(page, LOCALE_SWITCHER)).toBeVisible();
+
+  // The switcher renders in two placements (desktop nav bar + mobile slide-out
+  // menu, one visible per viewport). Scope to the one inside <nav> — the
+  // mobile-menu copy is portaled to <body>, outside <nav> — so this stays a
+  // single, unambiguous, visible locator at the desktop test viewport.
+  const localeSwitcher = page.locator('nav').getByTestId(LOCALE_SWITCHER);
+  await expect(localeSwitcher).toBeVisible();
 
   // Confirm we start with the English content so the "no longer en" assertion
   // later is meaningful (not a vacuous pass if the heading never had en text).
@@ -83,7 +89,7 @@ async function assertLocaleSwitchMechanism(
   // page.selectOption resolves immediately when the DOM value changes and the
   // change event fires — the transition itself is async (next-intl router
   // replace + Next.js navigation), so we follow with a waitForURL.
-  await byTestId(page, LOCALE_SWITCHER).selectOption(locale);
+  await localeSwitcher.selectOption(locale);
 
   // Wait for the URL to reflect the new locale segment.
   // The regex anchors to the path start: /{locale}/ or /{locale} (trailing
