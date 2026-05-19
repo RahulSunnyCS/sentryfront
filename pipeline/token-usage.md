@@ -26,3 +26,4 @@
 | Phase 3 | T-18: fix pre-existing lint | implementor | sonnet | high | ~24k |
 | Phase 3 | T-14: internal admin specs | implementor | opus | high | ~42k |
 | Phase 3 | T-08: auth specs | implementor | opus | high | ~55k |
+| Phase 3 | T-15: static-page smoke | implementor | sonnet | high | ~32k |
