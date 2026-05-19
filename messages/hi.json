@@ -22,7 +22,8 @@
     "faq": "सामान्य प्रश्न",
     "openMenu": "मेनू खोलें",
     "closeMenu": "मेनू बंद करें",
-    "siteMenu": "साइट मेनू"
+    "siteMenu": "साइट मेनू",
+    "preferences": "प्राथमिकताएँ"
   },
   "auth": {
     "signIn": "साइन इन",

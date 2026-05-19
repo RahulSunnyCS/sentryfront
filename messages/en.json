@@ -22,7 +22,8 @@
     "faq": "FAQ",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "siteMenu": "Site menu"
+    "siteMenu": "Site menu",
+    "preferences": "Preferences"
   },
   "auth": {
     "signIn": "Sign in",

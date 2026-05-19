@@ -408,10 +408,26 @@ export function Nav({ showReportActions = false, scanUrl, scanId }: Props) {
                 <VerifyEmailNudge />
                 <AuthButton />
               </div>
-              {/* Signed-out mobile users get locale/theme here (inside the
-                  menu). Signed-in users get them via the AuthButton user menu
-                  above, so NavPreferences renders null for them. */}
-              <NavPreferences />
+              {/* Locale + theme live at the TOP LEVEL of the mobile menu for
+                  EVERYONE — signed-out and signed-in alike — so an authorised
+                  user can change them from the first screen of the menu
+                  instead of drilling into the nested account dropdown. (The
+                  desktop signed-out bar still uses <NavPreferences/>; the
+                  desktop signed-in case still has them in the AuthButton
+                  menu.) */}
+              <div
+                aria-label={t('preferences')}
+                role="group"
+                style={{
+                  display: 'flex',
+                  gap: 'var(--space-2)',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <LocaleSwitcher />
+                <ThemeToggle />
+              </div>
             </div>
           </div>,
           document.body,

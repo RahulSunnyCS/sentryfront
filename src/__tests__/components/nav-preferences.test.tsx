@@ -119,7 +119,7 @@ describe('Nav — NavPreferences switcher placement', () => {
     expect(screen.getAllByTestId(THEME_TESTID)).toHaveLength(2);
   });
 
-  it('HIDES the navbar switchers when signed in (auth on + authenticated session)', () => {
+  it('hides the desktop-bar switchers when signed in but keeps them in the mobile menu', () => {
     mockUseSession.mockReturnValue({
       data: { user: { email: 'a@x.com', name: 'Ada Lovelace' } },
       status: 'authenticated',
@@ -127,11 +127,13 @@ describe('Nav — NavPreferences switcher placement', () => {
 
     render(<Nav />);
 
-    // NavPreferences returns null; the only place the switchers can appear
-    // now is inside the (closed) AuthButton user menu — i.e. NOT in the DOM
-    // until the menu is opened.
-    expect(screen.queryByTestId(LOCALE_TESTID)).not.toBeInTheDocument();
-    expect(screen.queryByTestId(THEME_TESTID)).not.toBeInTheDocument();
+    // Signed in: the desktop-bar <NavPreferences/> returns null, but the
+    // mobile slide-out menu ALWAYS exposes locale/theme at its top level
+    // (so an authorised user can change them from the first menu screen
+    // rather than drilling into the nested account dropdown). So exactly
+    // ONE instance is in the DOM — the mobile-menu copy.
+    expect(screen.getAllByTestId(LOCALE_TESTID)).toHaveLength(1);
+    expect(screen.getAllByTestId(THEME_TESTID)).toHaveLength(1);
   });
 });
 

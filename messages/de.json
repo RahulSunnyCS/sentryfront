@@ -22,7 +22,8 @@
     "faq": "FAQ",
     "openMenu": "Menü öffnen",
     "closeMenu": "Menü schließen",
-    "siteMenu": "Seitenmenü"
+    "siteMenu": "Seitenmenü",
+    "preferences": "Einstellungen"
   },
   "auth": {
     "signIn": "Anmelden",

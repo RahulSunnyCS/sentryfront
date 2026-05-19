@@ -22,7 +22,8 @@
     "faq": "Preguntas frecuentes",
     "openMenu": "Abrir menú",
     "closeMenu": "Cerrar menú",
-    "siteMenu": "Menú del sitio"
+    "siteMenu": "Menú del sitio",
+    "preferences": "Preferencias"
   },
   "auth": {
     "signIn": "Iniciar sesión",
