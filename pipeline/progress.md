@@ -17,7 +17,7 @@ feature-fast | MEDIUM risk | 1 Red Team sprint | 3 Human Gates
 
 - Phase 4 (Consolidated Review): COMPLETE — CONDITIONAL PASS, 0 Critical/High, 2 Medium. Deep-dive NOT required.
 - Phase 4.5 (Bounded Fix): COMPLETE — condition 1 (beforeSend + beforeSendTransaction URL scrub) fixed & committed; condition 2 (build) resolved during review. Both conditions closed.
-- Phase 5/6 (Tests + Automation Gate): IN PROGRESS
+- Phase 5/6 (Tests + Automation Gate): COMPLETE — 1890 tests pass (22 new), typecheck clean, lint clean (pre-existing warnings only), build verified. Automation Gate: Critical tier PASS, E2E CI-ONLY (no E2E surface for observability change). Blast-radius clean.
 
 ## Gate History
 - Gate 1: APPROVED (with R1+R2 recommendations accepted)

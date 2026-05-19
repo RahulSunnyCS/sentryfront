@@ -23,7 +23,7 @@ const SENTRY_ENABLED = process.env.SENTRY_ENABLED === 'true';
  * whitespace or end-of-string, so it handles embedded URLs in longer messages.
  * It is null/undefined-safe and is a no-op when no URL is present.
  */
-function redactUrls(value: string | null | undefined): string | undefined {
+export function redactUrls(value: string | null | undefined): string | undefined {
   if (value == null) return undefined;
   // Capture: (1) scheme+host  (2) everything after host up to whitespace/end
   return value.replace(

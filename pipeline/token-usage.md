@@ -11,4 +11,8 @@
 | Phase 3 | T-03: scan counter | implementor | sonnet | medium | ~51k |
 | Phase 3 | T-04: observability docs | docs-writer | haiku | medium | ~94k |
 | Phase 5/6 | Blast-Radius Validation | orchestrator | haiku | low | ~3k |
-| Phase 4 | Consolidated Specialist Review | senior-software-engineer | opus | high | ~40k |
+| Phase 4 | Consolidated Specialist Review | senior-software-engineer | opus | high | ~65k |
+| Phase 4 | Synthesis + Gate 2 Translator | orchestrator + translator | opus + haiku | high + medium | ~80k |
+| Phase 4.5 | Fix: beforeSend URL scrub | implementor | sonnet | high | ~44k |
+| Phase 5 | Unit tests (redactUrls, counter, health) | test-writer | sonnet | medium | ~63k |
+| Phase 6 | Automation Gate | orchestrator | haiku | low | ~3k |

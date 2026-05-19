@@ -151,4 +151,53 @@ describe('GET /api/health', () => {
     expect(data.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     expect(new Date(data.timestamp).toString()).not.toBe('Invalid Date');
   });
+
+  // ── metrics.active_scans_this_instance ──────────────────────────────────────
+
+  it('should include metrics.active_scans_this_instance as a number', async () => {
+    (prisma.$queryRaw as any).mockResolvedValue([{ result: 1 }]);
+
+    const response = await GET();
+    const data = await response.json();
+
+    expect(data.metrics).toBeDefined();
+    expect(typeof data.metrics.active_scans_this_instance).toBe('number');
+  });
+
+  it('metrics.active_scans_this_instance is non-negative', async () => {
+    (prisma.$queryRaw as any).mockResolvedValue([{ result: 1 }]);
+
+    const response = await GET();
+    const data = await response.json();
+
+    expect(data.metrics.active_scans_this_instance).toBeGreaterThanOrEqual(0);
+  });
+
+  it('active_scans_this_instance does not affect 200 status when db is healthy', async () => {
+    process.env.PAGESPEED_API_KEY = 'test-key';
+    (prisma.$queryRaw as any).mockResolvedValue([{ result: 1 }]);
+
+    const response = await GET();
+    const data = await response.json();
+
+    // Status is driven only by db + missing env vars — the scan counter is
+    // informational and must never flip the status to error.
+    expect(response.status).toBe(200);
+    expect(data.status).toBe('ok');
+    // Counter is still present in the response
+    expect(typeof data.metrics.active_scans_this_instance).toBe('number');
+  });
+
+  it('active_scans_this_instance does not affect 503 status when db is down', async () => {
+    (prisma.$queryRaw as any).mockRejectedValue(new Error('db down'));
+
+    const response = await GET();
+    const data = await response.json();
+
+    // DB failure still produces 503 regardless of the scan counter value
+    expect(response.status).toBe(503);
+    expect(data.status).toBe('error');
+    // Counter is still present even in error responses
+    expect(typeof data.metrics.active_scans_this_instance).toBe('number');
+  });
 });
