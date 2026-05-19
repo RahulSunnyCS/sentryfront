@@ -133,7 +133,7 @@ async function getTLSInfo(hostname: string): Promise<TLSCertInfo | null> {
   });
 }
 
-async function probeTLS(finalUrl: string): Promise<TLSCertInfo | null> {
+export async function probeTLS(finalUrl: string): Promise<TLSCertInfo | null> {
   try {
     const parsed = new URL(finalUrl);
     if (parsed.protocol === 'https:') {
