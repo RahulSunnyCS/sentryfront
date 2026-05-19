@@ -40,3 +40,4 @@
 | Phase 4 | Performance review | performance-reviewer | sonnet | high | ~30k |
 | Phase 4 | Architecture review | architecture-reviewer | sonnet | high | ~38k |
 | Phase 4 | Synthesis | orchestrator | opus | high | ~12k |
+| Phase 4 | Translator (Synthesis) | translator | haiku | medium | ~10k |
