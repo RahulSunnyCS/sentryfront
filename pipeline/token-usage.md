@@ -41,3 +41,4 @@
 | Phase 4 | Architecture review | architecture-reviewer | sonnet | high | ~38k |
 | Phase 4 | Synthesis | orchestrator | opus | high | ~12k |
 | Phase 4 | Translator (Synthesis) | translator | haiku | medium | ~10k |
+| Phase 4.5 | FIX-A: payment-modal smoke + cookie dedup | implementor | sonnet | high | ~22k |

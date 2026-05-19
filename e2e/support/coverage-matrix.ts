@@ -623,7 +623,21 @@ export const INVENTORY: InventoryItem[] = [
     kind: 'component',
     path: 'src/components/payment-modal.tsx',
     coverage: [
-      { spec: 'checkout.spec.ts', type: 'DIRECT', note: 'checkout.spec.ts asserts the payment-modal upsell dialog opens from the pricing page.' },
+      {
+        spec: 'checkout.spec.ts',
+        // DIRECT: the test "@functional payment-modal upsell opens on 402 and
+        // shows tier plan names" (Phase 4.5 C1 fix) directly opens and asserts
+        // data-testid="payment-modal" by intercepting POST /api/v1/scans → 402,
+        // which triggers the PaymentRequiredError → openModal() path in
+        // landing-hero.tsx. Tier plan names ('One-Shot', 'Active Pack', 'Monitor')
+        // are asserted visible; no dollar amount is asserted (May-2026 pivot rule).
+        type: 'DIRECT',
+        note:
+          'checkout.spec.ts asserts the payment-modal upsell dialog opens from the ' +
+          'landing hero on a mocked 402 from POST /api/v1/scans, then verifies all ' +
+          'three tier plan names are visible and no CTA label is a dollar amount. ' +
+          'Test name: "@functional payment-modal upsell opens on 402 and shows tier plan names".',
+      },
     ],
   },
 

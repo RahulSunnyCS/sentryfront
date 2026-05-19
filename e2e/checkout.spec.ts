@@ -44,13 +44,17 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { seedAuthUser, uniqueEmail, type SeededAuth } from './support/auth-seed';
+import { seedAuthUser, uniqueEmail, authStorageState, type SeededAuth } from './support/auth-seed';
 import {
   PRICING_CARD,
   CHECKOUT_BUTTON,
   CHECKOUT_MODAL,
   CHECKOUT_CONFIRM,
   CHECKOUT_SUCCESS,
+  PAYMENT_MODAL,
+  HERO_SCAN_FORM,
+  HERO_URL_INPUT,
+  HERO_SCAN_SUBMIT,
   byTestId,
 } from './support/selectors';
 
@@ -110,6 +114,109 @@ test('@functional The pricing page renders all tier cards and their checkout CTA
         `do not assert amounts (May-2026 pricing pivot in flux)`,
     ).toBe(false);
   }
+});
+
+// ── 🟡 payment-modal upsell opens from the landing hero on a 402 ─────────────
+//
+// HOW THE MODAL IS TRIGGERED (from src/components/payment-modal.tsx +
+// src/app/[locale]/landing-hero.tsx):
+//   1. The landing hero <form> calls createScan() on submit.
+//   2. createScan() throws PaymentRequiredError when POST /api/v1/scans → 402.
+//   3. The catch block in HeroSection calls openModal() from usePaymentModal().
+//   4. PaymentModalProvider renders <PaymentModalUI open={true} …>
+//      with data-testid="payment-modal".
+//
+// WHY page.route() mocking is the correct trigger mechanism:
+//   • The dev server is a single shared non-hermetic process. We cannot mutate
+//     a user's free-scan quota deterministically without seeding + risking
+//     bleed into sibling tests.
+//   • Intercepting POST /api/v1/scans with a 402 body is the EXACT code path
+//     the real server takes (same ApiError → PaymentRequiredError → openModal()
+//     chain). No flakiness: the route() intercept fires synchronously before
+//     the fetch response resolves, so the modal opens on the very first click.
+//   • This matches the approach used in other specs that need a deterministic
+//     client-side error state without relying on server-side state setup.
+//
+// The test NEVER asserts any dollar amount ($9/$29/$15 etc. — May-2026 pivot).
+// Instead it asserts the tier PLAN NAMES ('One-Shot', 'Active Pack', 'Monitor')
+// and reuses the DOLLAR_AMOUNT negative-guard pattern from the pricing-card test
+// to confirm the per-plan CTA button text does not itself assert a price.
+test('@functional payment-modal upsell opens on 402 and shows tier plan names', async ({
+  page,
+}) => {
+  // Intercept the scan creation request and return 402 Payment Required so the
+  // landing hero triggers openModal(). The response body mirrors what the real
+  // /api/v1/scans route returns in the payment-required branch (the client only
+  // reads `body.error` to construct the PaymentRequiredError message — any
+  // truthy string is sufficient; the modal open is unconditional on 402).
+  await page.route('**/api/v1/scans', (route) => {
+    // Only intercept POST; let other methods (GET stats, etc.) pass through.
+    if (route.request().method() !== 'POST') {
+      route.continue();
+      return;
+    }
+    route.fulfill({
+      status: 402,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Free scan quota reached — upgrade to continue' }),
+    });
+  });
+
+  const resp = await page.goto('/en');
+  expect(resp?.status(), 'landing page did not return 200').toBe(200);
+  await page.waitForLoadState('networkidle');
+
+  // The hero scan form and its URL input must be present before we interact.
+  const form = byTestId(page, HERO_SCAN_FORM);
+  await expect(form, 'hero scan form not found on landing page').toBeVisible();
+
+  // Fill a valid-looking URL so the form does not reject it client-side before
+  // the fetch fires. The actual value does not matter (the request is intercepted
+  // before it reaches the server).
+  const urlInput = byTestId(page, HERO_URL_INPUT);
+  await urlInput.fill('example.com');
+
+  // Click the scan submit button; the 402 intercept fires and openModal() runs.
+  const submitBtn = byTestId(page, HERO_SCAN_SUBMIT);
+  await submitBtn.click();
+
+  // The payment-modal should now be visible (data-testid="payment-modal").
+  const modal = byTestId(page, PAYMENT_MODAL);
+  await expect(modal, 'payment-modal did not open after 402 from /api/v1/scans').toBeVisible();
+
+  // Assert the plan NAME labels (not prices) are visible inside the modal.
+  // These are the stable `plan.name` strings from payment-modal.tsx PLANS array:
+  // 'One-Shot', 'Active Pack', 'Monitor'. They are hard-coded product names, not
+  // dollar amounts, so asserting them does not conflict with the May-2026 pivot.
+  await expect(modal.getByText('One-Shot'), 'One-Shot plan name missing from payment-modal').toBeVisible();
+  await expect(modal.getByText('Active Pack'), 'Active Pack plan name missing from payment-modal').toBeVisible();
+  await expect(modal.getByText('Monitor'), 'Monitor plan name missing from payment-modal').toBeVisible();
+
+  // Negative guard: the per-plan CTA buttons say 'Get started →' (never a price).
+  // Reuse the DOLLAR_AMOUNT regex guard established for pricing-card CTAs above
+  // so the same May-2026 pivot rule is uniformly enforced across both components.
+  const ctaButtons = modal.getByRole('button', { name: /get started/i });
+  const ctaCount = await ctaButtons.count();
+  expect(ctaCount, 'expected ≥1 "Get started" CTA button inside payment-modal').toBeGreaterThan(0);
+  for (let i = 0; i < ctaCount; i++) {
+    const label = (await ctaButtons.nth(i).textContent())?.trim() ?? '';
+    expect(
+      DOLLAR_AMOUNT.test(label),
+      `payment-modal CTA #${i} label "${label}" looks like a dollar amount — ` +
+        'do not assert amounts (May-2026 pricing pivot in flux)',
+    ).toBe(false);
+  }
+
+  // The modal must be dismissible (the × close button and "Maybe later" button
+  // are both present — they are close affordances in the real product).
+  await expect(
+    modal.getByRole('button', { name: /close/i }),
+    '"Close" button (×) missing from payment-modal',
+  ).toBeVisible();
+  await expect(
+    modal.getByRole('button', { name: /maybe later/i }),
+    '"Maybe later" dismiss button missing from payment-modal',
+  ).toBeVisible();
 });
 
 // ── 🟡 checkout/success renders the entitlement confirmation ─────────────────
@@ -176,23 +283,16 @@ test.describe('payments-disabled checkout (no PAYMENT_TEST_FLOW, Stripe unconfig
     // file-level test.use({ storageState }) is evaluated at collection time,
     // before beforeAll, so the token is not yet known there (same rationale as
     // probe.spec.ts / auth.a11y.spec.ts).
+    // C2: Use the canonical authStorageState() helper from auth-seed instead
+    // of re-implementing the cookie literal inline. This keeps the cookie shape
+    // (name, domain, sameSite, httpOnly, secure) in exactly one place so a
+    // contract change (e.g. http→https renames __Secure- prefix) only requires
+    // one edit in auth-seed.ts. The reviewer confirmed browser.newContext()
+    // accepts authStorageState() directly, solving the test.use() collection-time
+    // constraint without any inline duplication.
     const context = await browser.newContext({
       baseURL: baseURL ?? 'http://localhost:3000',
-      storageState: {
-        cookies: [
-          {
-            name: 'next-auth.session-token',
-            value: seeded.sessionToken,
-            domain: 'localhost',
-            path: '/',
-            expires: Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000),
-            httpOnly: true,
-            secure: false,
-            sameSite: 'Lax',
-          },
-        ],
-        origins: [],
-      },
+      storageState: authStorageState(seeded.sessionToken),
     });
     const page = await context.newPage();
 
