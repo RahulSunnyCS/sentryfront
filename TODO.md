@@ -7,8 +7,8 @@ Agents read this file; only the orchestrator writes it.
 
 - [x] T-01: Fix server-side Sentry wiring (instrumentation.ts + withSentryConfig + release)
 - [x] T-02: Add scan-pipeline Sentry spans and measurements
-- [ ] T-03: Expose per-instance active scan counter on /api/health
-- [ ] T-04: Deployment observability runbook (log shipping + uptime alerting)
+- [x] T-03: Expose per-instance active scan counter on /api/health
+- [x] T-04: Deployment observability runbook (log shipping + uptime alerting)
 
 ## Status
 
