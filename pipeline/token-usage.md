@@ -52,3 +52,4 @@
 | Phase 6 | Vitest execution | orchestrator | haiku | low | ~2k |
 | Phase 6 | Automation Gate (CI-ONLY, all EXTERNAL) | orchestrator | haiku | low | ~3k |
 | Phase 7 | Epic doc | epic-doc-writer | sonnet | medium | ~14k |
+| Phase 7 | Translator (Final Summary) | translator | haiku | medium | ~11k |
